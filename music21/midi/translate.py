@@ -1784,13 +1784,11 @@ def getNotesFromEvents(
                 tuple[int, midi.MidiEvent]]]:
     '''
     Returns a list of Tuples of MIDI events that are pairs of note-on and
-    note-off events.
+    note-off events. Note that one note-off event may turn off multiple
+    note-ons.
     '''
     notes = []  # store pairs of pairs
-    memo = set()   # store already matched note off
     for i, eventTuple in enumerate(events):
-        if i in memo:
-            continue
         unused_t, e = eventTuple
         # for each note on event, we need to search for a match in all future
         # events
@@ -1799,11 +1797,8 @@ def getNotesFromEvents(
         match = None
         # environLocal.printDebug(['midiTrackToStream(): isNoteOn', e])
         for j in range(i + 1, len(events)):
-            if j in memo:
-                continue
             unused_tSub, eSub = events[j]
             if e.matchedNoteOff(eSub):
-                memo.add(j)
                 match = i, j
                 break
         if match is not None:
