@@ -2003,6 +2003,8 @@ def midiTrackToStream(
             # if we find a note with a different end time but same start
             # time, throw into a different voice
             for j in range(i + 1, len(notes)):
+                if j in iGathered:
+                    continue
                 # look at each on time event
                 onSub, offSub = notes[j]
                 tSub, unused_eSub = onSub
