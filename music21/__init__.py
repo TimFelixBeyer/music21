@@ -72,7 +72,7 @@ del sys
 del minPythonVersion
 del minPythonVersionStr
 
-# this defines what  is loaded when importing __all__
+# this defines what is loaded when importing __all__
 # put these in alphabetical order FIRST dirs then modules
 # but: base must come first; in some cases other modules depend on
 # definitions in base

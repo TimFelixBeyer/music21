@@ -175,7 +175,7 @@ def ticksToDuration(ticks,
         d = inputM21DurationObject
 
     # given a value in ticks
-    d.quarterLength = float(ticks) / ticksPerQuarter
+    d.quarterLength = ticks / ticksPerQuarter
     return d
 
 
@@ -1793,10 +1793,7 @@ def getNotesFromEvents(
     note-off events.
     '''
     notes = []  # store pairs of pairs
-    memo = set()   # store already matched note off
     for i, eventTuple in enumerate(events):
-        if i in memo:
-            continue
         unused_t, e = eventTuple
         # for each note on event, we need to search for a match in all future
         # events
@@ -1805,11 +1802,8 @@ def getNotesFromEvents(
         match = None
         # environLocal.printDebug(['midiTrackToStream(): isNoteOn', e])
         for j in range(i + 1, len(events)):
-            if j in memo:
-                continue
             unused_tSub, eSub = events[j]
             if e.matchedNoteOff(eSub):
-                memo.add(j)
                 match = i, j
                 break
         if match is not None:
@@ -1857,7 +1851,16 @@ def getMetaEvents(
             pass
         if metaObj:
             pair = (timeEvent, metaObj)
-            metaEvents.append(pair)
+            # Only allow one set_tempo at beginning
+            if e.type == MetaEvents.SET_TEMPO and timeEvent == 0:
+                for i, (time, meta) in enumerate(metaEvents):
+                    if time == 0 and isinstance(meta, tempo.MetronomeMark):
+                        metaEvents[i] = pair
+                        break
+                else:
+                    metaEvents.append(pair)
+            else:
+                metaEvents.append(pair)
 
     return metaEvents
 
@@ -1876,7 +1879,7 @@ def insertConductorEvents(conductorPart: stream.Part,
             ('TimeSignature', 'KeySignature', 'MetronomeMark')):
         # create a deepcopy of the element so a flat does not cause
         # multiple references of the same
-        eventCopy = copy.deepcopy(e)
+        eventCopy = e._deepcopySubclassable(ignoreAttributes={'sites'})
         if 'TempoIndication' in eventCopy.classes and not isFirst:
             eventCopy.style.hideObjectOnPrint = True
             eventCopy.numberImplicit = True
@@ -2009,6 +2012,8 @@ def midiTrackToStream(
             # if we find a note with a different end time but same start
             # time, throw into a different voice
             for j in range(i + 1, len(notes)):
+                if j in iGathered:
+                    continue
                 # look at each on time event
                 onSub, offSub = notes[j]
                 tSub, unused_eSub = onSub
@@ -2017,10 +2022,10 @@ def midiTrackToStream(
                 # let tolerance for chord subbing follow the quantization
                 if quantizePost:
                     divisor = max(quarterLengthDivisors)
-                # fallback: 1/16 of a quarter (64th)
+                    chunkTolerance = ticksPerQuarter / divisor
+                # do not quantize if not requested
                 else:
-                    divisor = 16
-                chunkTolerance = ticksPerQuarter / divisor
+                    chunkTolerance = 1
                 # must be strictly less than the quantization unit
                 if abs(tSub - timeNow) < chunkTolerance:
                     # isolate case where end time is not w/n tolerance
@@ -2112,7 +2117,7 @@ def midiTrackToStream(
     return s
 
 
-def prepareStreamForMidi(s) -> stream.Stream:
+def prepareStreamForMidi(s: stream.Stream) -> stream.Stream:
     # noinspection PyShadowingNames
     '''
     Given a score, prepare it for MIDI processing, and return a new Stream:
@@ -2555,8 +2560,7 @@ def streamHierarchyToMidiTracks(
 
     # strip all ties inPlace
     for subs in substreamList:
-        subs.stripTies(inPlace=True, matchByPitch=True)
-
+        subs.stripTies(inPlace=True, matchByPitch=True, preserveVoices=False)
     packetStorage = packetStorageFromSubstreamList(substreamList, addStartDelay=addStartDelay)
     updatePacketStorageWithChannelInfo(packetStorage, channelByInstrument)
 

@@ -612,7 +612,8 @@ def makeMeasures(
                                 'mStart': mStart,
                                 'mEnd': mEnd})
 
-    # populate measures with elements
+    # populate measures with
+    measureIndex = 0
     for oneOffsetMap in offsetMapList:
         e, start, end, voiceIndex = oneOffsetMap
 
@@ -625,21 +626,12 @@ def makeMeasures(
             spannerBundleAccum.append(e)
             continue
 
-        match = False
-
-        for i in range(postLen):
-            postMeasureInfo = postMeasureList[i]
-            mStart = postMeasureInfo['mStart']
-            mEnd = postMeasureInfo['mEnd']
-            m = postMeasureInfo['measure']
-
-            if mStart <= start < mEnd:
-                match = True
-                # environLocal.printDebug([
-                #    'found measure match', i, mStart, mEnd, start, end, e])
+        for measureIndex in list(range(measureIndex, len(postMeasureList))) + list(range(0, measureIndex)):
+            m = postMeasureList[measureIndex]
+            if m['mStart'] <= start < m['mEnd']:
                 break
-
-        if not match:
+        else:
+            measureIndex = 0
             if start == end == oMax:
                 post.storeAtEnd(e)
                 continue
@@ -647,20 +639,21 @@ def makeMeasures(
                 raise stream.StreamException(
                     f'cannot place element {e} with start/end {start}/{end} within any measures')
 
-        # find offset in the temporal context of this measure
-        # i is the index of the measure that this element starts at
-        # mStart, mEnd are correct
-        oNew = start - mStart  # remove measure offset from element offset
-
-        # insert element at this offset in the measure
-        # not copying elements here!
-
         # in the case of a Clef, and possibly other measure attributes,
         # the element may have already been placed in this measure
         # we need to only exclude elements that are placed in the special
         # first position
-        if m.clef is e:
+        if m['measure'].clef is e:
             continue
+
+        # find offset in the temporal context of this measure
+        # i is the index of the measure that this element starts at
+        # mStart, mEnd are correct
+        oNew = start - m['mStart']  # remove measure offset from element offset
+
+        # insert element at this offset in the measure
+        # not copying elements here!
+
         # do not accept another time signature at the zero position: this
         # is handled above
         if oNew == 0 and isinstance(e, meter.TimeSignature):
@@ -669,9 +662,9 @@ def makeMeasures(
         # environLocal.printDebug(['makeMeasures()', 'inserting', oNew, e])
         # NOTE: cannot use coreInsert here for some reason
         if voiceIndex is None:
-            m.insert(oNew, e)
+            m['measure'].insert(oNew, e)
         else:  # insert into voice specified by the voice index
-            m.voices[voiceIndex].insert(oNew, e)
+            m['measure'].voices[voiceIndex].insert(oNew, e)
 
     # add found spanners to higher-level; could insert at zero
     for sp in spannerBundleAccum:
@@ -896,6 +889,9 @@ def makeRests(
         elif returnObj.hasMeasures():
             # This could be optimized to save some context searches,
             # but at the cost of readability.
+            for el in returnObj._elements:
+                if el.isStream and not el.isSorted:
+                    el.sort()
             oHighTarget = sum(
                 m.barDuration.quarterLength for m in returnObj.getElementsByClass(stream.Measure)
             )

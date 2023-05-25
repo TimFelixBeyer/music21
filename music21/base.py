@@ -594,7 +594,7 @@ class Music21Object(prebase.ProtoM21Object):
         * Changed in v9: removeFromIgnore removed;
           never used and this is performance critical.
         '''
-        defaultIgnoreSet = {'_derivation', '_activeSite', '_sites', '_cache'}
+        defaultIgnoreSet = {'_derivation', '_activeSite', '_cache'}
         if not self.groups:
             defaultIgnoreSet.add('groups')
         # duration is smart enough to do itself.
@@ -607,8 +607,9 @@ class Music21Object(prebase.ProtoM21Object):
 
         new = common.defaultDeepcopy(self, memo, ignoreAttributes=ignoreAttributes)
         setattr(new, '_cache', {})
-        setattr(new, '_sites', Sites())
-        if 'groups' in defaultIgnoreSet:
+        if 'sites' in ignoreAttributes:
+            new.sites = Sites()
+        if 'groups' in ignoreAttributes:
             new.groups = Groups()
 
         # was: keep the old ancestor but need to update the client
@@ -1253,10 +1254,10 @@ class Music21Object(prebase.ProtoM21Object):
         # TODO: how can this be optimized to not use getSites, to
         # not unwrap weakrefs?
         for s in self.sites.yieldSites(excludeNone=True):
-            # of the site does not actually have this Music21Object in
+            # if the site does not actually have this Music21Object in
             # its elements list, it is an orphan and should be removed
             # note: this permits non-site context Streams to continue
-            if s.isStream and not s.hasElement(self):
+            if s.isStream and not self in s:
                 if excludeStorageStreams:
                     # only get those that are not Storage Streams
                     if ('SpannerStorage' not in s.classes

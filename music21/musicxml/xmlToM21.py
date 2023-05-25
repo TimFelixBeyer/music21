@@ -3705,7 +3705,8 @@ class MeasureParser(XMLParserBase):
 
             # Second check against qLen (raw), now with tuplets
             # if not almost equal, create unlinked Duration and set raw qLen
-            if not isclose(d.quarterLength, qLen, abs_tol=1e-7):
+            tol = min(0.5 / divisions, 1e-3) # MY CHANGE: increase tol 1e-7->1e-3 to get 9ths
+            if not isclose(d.quarterLength, qLen, abs_tol=tol):
                 d.linked = False
                 d.quarterLength = qLen
 

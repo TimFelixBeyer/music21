@@ -596,10 +596,12 @@ def nearestMultiple(n: float, unit: float) -> tuple[float, float, float]:
         raise ValueError(f'cannot place n between multiples: {matchLow}, {matchHigh}')
 
     if matchLow <= n <= (matchLow + halfUnit):
-        return matchLow, round(n - matchLow, 7), round(n - matchLow, 7)
+        error = round(n - matchLow, 7)
+        return matchLow, error, error
     else:
         # elif n >= (matchHigh - halfUnit) and n <= matchHigh:
-        return matchHigh, round(matchHigh - n, 7), round(n - matchHigh, 7)
+        error = round(n - matchHigh, 7)
+        return matchHigh, -error, error
 
 
 _DOT_LOOKUP = (1.0, 1.5, 1.75, 1.875, 1.9375,

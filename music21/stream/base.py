@@ -24,6 +24,7 @@ from __future__ import annotations
 from collections import deque, namedtuple, OrderedDict
 from collections.abc import Collection, Iterable, Sequence
 import copy
+from functools import lru_cache
 from fractions import Fraction
 import itertools
 import math
@@ -811,7 +812,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> nC2 in s.elements
         True
         '''
-        return (any(sEl is el for sEl in self._elements)
+        return (id(el) in self._offsetDict
+                or any(sEl is el for sEl in self._elements)
                 or any(sEl is el for sEl in self._endElements))
 
     @property
@@ -1434,24 +1436,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if hasattr(other, attr):
                 setattr(self, attr, getattr(other, attr))
 
-    def hasElement(self, obj):
-        '''
-        Return True if an element, provided as an argument, is contained in
-        this Stream.
-
-        This method is based on object equivalence, not parameter equivalence
-        of different objects.
-
-        >>> s = stream.Stream()
-        >>> n1 = note.Note('g')
-        >>> n2 = note.Note('g#')
-        >>> s.append(n1)
-        >>> s.hasElement(n1)
-        True
-        '''
-        objId = id(obj)
-        return self.coreHasElementByMemoryLocation(objId)
-
     def hasElementOfClass(self, className, forceFlat=False):
         '''
         Given a single class name as string,
@@ -2005,7 +1989,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # must manually add elements to new Stream
         for e in self._elements:
             # environLocal.printDebug(['deepcopy()', e, 'old', old, 'id(old)', id(old),
-            #     'new', new, 'id(new)', id(new), 'old.hasElement(e)', old.hasElement(e),
+            #     'new', new, 'id(new)', id(new), 'e in old', e in old,
             #     'e.activeSite', e.activeSite, 'e.getSites()', e.getSites(), 'e.getSiteIds()',
             #     e.getSiteIds()], format='block')
             #
@@ -2207,7 +2191,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     f'an entry for this object 0x{id(element):x} is not stored in stream {self}')
 
         # OffsetSpecial.__contains__() is more expensive, so try to fail fast
-        if isinstance(o, str) and returnSpecial is False and o in OffsetSpecial:
+        if isinstance(o, str) and (not returnSpecial) and o in OffsetSpecial:
             try:
                 return getattr(self, o)
             except AttributeError:  # pragma: no cover
@@ -2344,7 +2328,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         updateIsFlat = False
         if element.isStream:
             updateIsFlat = True
-        self.coreElementsChanged(updateIsFlat=updateIsFlat)
+        self.coreElementsChanged(clearIsSorted=not storeSorted, updateIsFlat=updateIsFlat)
         if ignoreSort is False:
             self.isSorted = storeSorted
 
@@ -7135,6 +7119,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         *,
         inPlace: t.Literal[True],
         matchByPitch: bool = True,
+        preserveVoices: bool = True,
     ) -> None:
         return None
 
@@ -7144,6 +7129,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         *,
         inPlace: t.Literal[False] = False,
         matchByPitch: bool = True,
+        preserveVoices: bool = True,
     ) -> StreamType:
         return self
 
@@ -7152,6 +7138,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         *,
         inPlace: bool = False,
         matchByPitch: bool = True,
+        preserveVoices: bool = True,
     ) -> StreamType | None:
         # noinspection PyShadowingNames
         '''
@@ -7301,7 +7288,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # returnObj.parts for this...
             for p in returnObj.getElementsByClass(Stream):
                 # already copied if necessary; edit in place
-                p.stripTies(inPlace=True, matchByPitch=matchByPitch)
+                p.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices)
             if not inPlace:
                 return returnObj
             else:
@@ -7310,7 +7297,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         if returnObj.hasVoices():
             for v in returnObj.voices:
                 # already copied if necessary; edit in place
-                v.stripTies(inPlace=True, matchByPitch=matchByPitch)
+                v.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices)
             if not inPlace:
                 return returnObj
             else:
@@ -7407,121 +7394,258 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     if innerN.tie.type != 'continue':
                         return False
             return True
-
-        for i in range(len(notes_and_rests)):
-            endMatch = None  # can be True, False, or None
-            n = notes_and_rests[i]
-            if i > 0:  # get i and n for the previous value
-                iLast = i - 1
-                nLast = notes_and_rests[iLast]
-            else:
-                iLast = None
-                nLast = None
-
-            # See if we have a tie, and it has started.
-            # A start typed tie may not be a true start tie
-            if (hasattr(n, 'tie')
-                    and n.tie is not None
-                    and n.tie.type == 'start'):
-                # find a true start, add to known connected positions
-                if iLast is None or iLast not in posConnected:
-                    posConnected = [i]  # reset list with start
-                # find a continuation: the last note was a tie
-                # start and this note is a tie start (this may happen)
-                elif iLast in posConnected:
-                    posConnected.append(i)
-                # a connection has been started or continued, so no endMatch
-                endMatch = False
-
-            # A "continue" may or may not imply a connection
-            elif (hasattr(n, 'tie')
-                    and n.tie is not None
-                    and n.tie.type == 'continue'):
-                # is this actually a start?
-                if not posConnected:
-                    posConnected.append(i)
-                    endMatch = False
-                elif matchByPitch:
-                    # try to match pitch against nLast
-                    # updateEndMatch() checks for equal cardinality
-                    tempEndMatch = updateEndMatch(n)
-                    if tempEndMatch:
-                        posConnected.append(i)
-                        # ... and keep going.
-                        endMatch = False
-                    else:
-                        # clear list and populate with this element
-                        posConnected = [i]
-                        endMatch = False
-                elif allTiesAreContinue(n):
-                    # uniform-continue suffices if not matchByPitch
-                    # but still need to check cardinality
-                    if isinstance(nLast, note.NotRest) and (len(nLast.pitches) != len(n.pitches)):
-                        # different sizes: clear list and populate with this element
-                        # since allTiesAreContinue, it is okay to treat as ersatz-start
-                        posConnected = [i]
-                    else:
-                        posConnected.append(i)
-                    # either way, this was not a stop
-                    endMatch = False
+        if preserveVoices:
+            for i in range(len(notes_and_rests)):
+                endMatch = None  # can be True, False, or None
+                n = notes_and_rests[i]
+                if i > 0:  # get i and n for the previous value
+                    iLast = i - 1
+                    nLast = notes_and_rests[iLast]
                 else:
-                    # only SOME ties on this chord are "continue": reject
-                    posConnected = []
+                    iLast = None
+                    nLast = None
+
+                # See if we have a tie, and it has started.
+                # A start typed tie may not be a true start tie
+                if (hasattr(n, 'tie')
+                        and n.tie is not None
+                        and n.tie.type == 'start'):
+                    # find a true start, add to known connected positions
+                    if iLast is None or iLast not in posConnected:
+                        posConnected = [i]  # reset list with start
+                    # find a continuation: the last note was a tie
+                    # start and this note is a tie start (this may happen)
+                    elif iLast in posConnected:
+                        posConnected.append(i)
+                    # a connection has been started or continued, so no endMatch
                     endMatch = False
 
-            # establish end condition
-            if endMatch is None:  # not yet set, not a start or continue
-                endMatch = updateEndMatch(n)
+                # A "continue" may or may not imply a connection
+                elif (hasattr(n, 'tie')
+                        and n.tie is not None
+                        and n.tie.type == 'continue'):
+                    # is this actually a start?
+                    if not posConnected:
+                        posConnected.append(i)
+                    elif matchByPitch:
+                        # try to match pitch against nLast
+                        # updateEndMatch() checks for equal cardinality
+                        tempEndMatch = updateEndMatch(n)
+                        if tempEndMatch:
+                            posConnected.append(i)
+                            # ... and keep going.
+                        else:
+                            # clear list and populate with this element
+                            posConnected = [i]
+                    elif allTiesAreContinue(n):
+                        # uniform-continue suffices if not matchByPitch
+                        # but still need to check cardinality
+                        if isinstance(nLast, note.NotRest) and (len(nLast.pitches) != len(n.pitches)):
+                            # different sizes: clear list and populate with this element
+                            # since allTiesAreContinue, it is okay to treat as ersatz-start
+                            posConnected = [i]
+                        else:
+                            posConnected.append(i)
+                        # either way, this was not a stop
+                    else:
+                        # only SOME ties on this chord are "continue": reject
+                        posConnected = []
+                    endMatch = False
 
-            # process end condition
-            if endMatch:
-                posConnected.append(i)  # add this last position
-                if len(posConnected) < 2:
-                    # an open tie, not connected to anything
-                    # should be an error; presently, just skipping
-                    # raise StreamException('cannot consolidate ties when only one tie is present',
-                    #    notes[posConnected[0]])
-                    # environLocal.printDebug(
-                    #   ['cannot consolidate ties when only one tie is present',
-                    #     notes[posConnected[0]]])
-                    posConnected = []
+                # establish end condition
+                if endMatch is None:  # not yet set, not a start or continue
+                    endMatch = updateEndMatch(n)
+
+                # process end condition
+                if endMatch:
+                    posConnected.append(i)  # add this last position
+                    if len(posConnected) < 2:
+                        # an open tie, not connected to anything
+                        # should be an error; presently, just skipping
+                        # raise StreamException('cannot consolidate ties when only one tie is present',
+                        #    notes[posConnected[0]])
+                        # environLocal.printDebug(
+                        #   ['cannot consolidate ties when only one tie is present',
+                        #     notes[posConnected[0]]])
+                        posConnected = []
+                        continue
+
+                    # get sum of durations for all notes
+                    # do not include first; will add to later; do not delete
+                    durSum = 0
+                    for q in posConnected[1:]:  # all but the first
+                        durSum += notes_and_rests[q].quarterLength
+                        posDelete.append(q)  # store for deleting later
+                    # dur sum should always be greater than zero
+                    if durSum == 0:
+                        raise StreamException('aggregated ties have a zero duration sum')
+                    # change the duration of the first note to be self + sum
+                    # of all others
+                    changing_note = t.cast(note.GeneralNote, notes_and_rests[posConnected[0]])
+
+                    qLen = changing_note.quarterLength
+                    if not changing_note.duration.linked:
+                        # obscure bug found from some inexact musicxml files.
+                        changing_note.duration.linked = True
+                    changing_note.quarterLength = opFrac(qLen + durSum)
+
+                    # set tie to None on first note
+                    changing_note.tie = None
+
+                    # let the site know that we've changed duration.
+                    changing_note.informSites()
+
+                    # replace removed elements in spanners
+                    for sp in f.spanners:
+                        for index in posConnected[1:]:
+                            if notes_and_rests[index] in sp:
+                                sp.replaceSpannedElement(
+                                    notes_and_rests[index],
+                                    changing_note
+                                )
+
+                    posConnected = []  # reset to empty
+        else:
+            # Flatten all chords
+            for c in returnObj.recurse().getElementsByClass('Chord'):
+                for noteObj in c.notes:
+                    noteObj.duration = c.duration
+                    c.activeSite.insert(c.offset, noteObj)
+                c.activeSite.remove(c)
+            ties = {"start": 0, "continue": 0, "stop": 0}
+            for n in returnObj.flatten().notes:
+                if n.tie is not None:
+                    ties[n.tie.type] += 1
+            f = returnObj.flatten()
+            notes_and_rests: StreamType = f.notes.addFilter(
+                lambda el, _iterator: el.quarterLength > 0
+            ).stream()
+            # there are several valid tie-combinations
+            # start - stop
+            # start - continue - stop
+            # - stop
+            # start -
+            # continue - stop
+            # start - continue
+            # continue
+            posDelete = set()
+            tied = set()
+            for i, n in enumerate(notes_and_rests):
+                if n.isRest or i in posDelete or i in tied:
                     continue
+                if n.tie is not None:
+                    # If we are here, we know that there is no (relevant) tie before the
+                    # current one
+                    current_duration = n.quarterLength
+                    match n.tie.type:
+                        case "start":
+                            idx_start = i
+                            for j in range(i+1, len(notes_and_rests)):
+                                if j in posDelete or j in tied:
+                                    continue
+                                if n.pitch.step == notes_and_rests[j].pitch.step and n.pitch.isEnharmonic(notes_and_rests[j].pitch):
+                                    tied_note = notes_and_rests[j]
+                                    # If the next note with that pitch has a continue tie,
+                                    # we keep going further
+                                    if tied_note.tie is not None and tied_note.tie.type == "continue":
+                                        posDelete.add(j)
+                                        current_duration += tied_note.quarterLength
+                                        continue
+                                    elif tied_note.tie is None or tied_note.tie.type == "stop":
+                                        posDelete.add(j)
+                                        current_duration += tied_note.quarterLength
+                                        break
+                                    if tied_note.offset == n.offset:
+                                        # Ignore new start ties at the same offset,
+                                        # happens frequently in malformed MusicXML
+                                        continue
+                                    else:
+                                        # This does not fail because it is necessary for
+                                        # correct MIDI import due to possible overlaps
+                                        # introduced by chord quantization.
+                                        posDelete.add(j)
+                                        current_duration += tied_note.quarterLength
+                                        # warnings.warn(f"Unexpected start tie ({tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitch}), treating second start tie as continue tie!")
+                                        continue
+                            else:
+                                warnings.warn(f"No end tie found for start tie ({n.offset}, {n.pitch}) -> ?, ignoring.")
+                                continue
+                        case "continue":
+                            # Find the starting note
+                            posDelete.add(i)
+                            for j in reversed(range(i)):
+                                if j in posDelete or j in tied:
+                                    continue
+                                if n.pitch.step == notes_and_rests[j].pitch.step and n.pitch.isEnharmonic(notes_and_rests[j].pitch):
+                                    idx_start = j
+                                    tied_note = notes_and_rests[j]
+                                    # Previous notes can never have a tie that hasnt been dealt with
+                                    assert tied_note.tie is None
+                                    current_duration += tied_note.quarterLength
+                                    for sp in f.spanners:
+                                        if tied_note in sp:
+                                            sp.replaceSpannedElement(
+                                                notes_and_rests[i],
+                                                notes_and_rests[idx_start])
+                                    break
+                            else:
+                                raise ValueError(f"Continue tie misused as start tie (?, ?) -> ({n.offset}, {n.pitch})!")
+                            # Find end for this one
+                            for j in range(i+1, len(notes_and_rests)):
+                                if j in posDelete or j in tied:
+                                    continue
+                                if n.pitch.step == notes_and_rests[j].pitch.step and n.pitch.isEnharmonic(notes_and_rests[j].pitch):
+                                    tied_note = notes_and_rests[j]
+                                    posDelete.add(j)
+                                    for sp in f.spanners:
+                                        if tied_note in sp:
+                                            sp.replaceSpannedElement(
+                                                notes_and_rests[j],
+                                                notes_and_rests[idx_start])
+                                    # If the next note with that pitch has a continue tie,
+                                    # we keep going further
+                                    if tied_note.tie is not None and tied_note.tie.type == "continue":
+                                        current_duration += tied_note.quarterLength
+                                        continue
+                                    elif tied_note.tie is None or tied_note.tie.type == "stop":
+                                        current_duration += tied_note.quarterLength
+                                        break
+                                    else:
+                                        raise ValueError(f"Unexpected start tie ({tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitch}).")
+                            else:
+                                ns = notes_and_rests[idx_start]
+                                raise ValueError(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")
+                        case "stop":
+                            # Find the previous note
+                            for j in reversed(range(i)):
+                                if j in posDelete or j in tied:
+                                    continue
+                                if n.pitch.step == notes_and_rests[j].pitch.step and n.pitch.isEnharmonic(notes_and_rests[j].pitch):
+                                    idx_start = j
+                                    posDelete.add(i)
+                                    tied_note = notes_and_rests[j]
+                                    current_duration += tied_note.quarterLength
+                                    # replace removed elements in spanners
+                                    for sp in f.spanners:
+                                        if tied_note in sp:
+                                            sp.replaceSpannedElement(
+                                                notes_and_rests[i],
+                                                notes_and_rests[idx_start])
+                                    break
+                            else:
+                                warnings.warn(f"Tie ended but never began (?, ?) -> ({n.offset}, {n.pitch}), ignoring!")
+                                continue
 
-                # get sum of durations for all notes
-                # do not include first; will add to later; do not delete
-                durSum = 0
-                for q in posConnected[1:]:  # all but the first
-                    durSum += notes_and_rests[q].quarterLength
-                    posDelete.append(q)  # store for deleting later
-                # dur sum should always be greater than zero
-                if durSum == 0:
-                    raise StreamException('aggregated ties have a zero duration sum')
-                # change the duration of the first note to be self + sum
-                # of all others
-                changing_note = t.cast(note.GeneralNote, notes_and_rests[posConnected[0]])
+                    # accumulate the duration into the first note
+                    if not notes_and_rests[idx_start].duration.linked:
+                        # obscure bug found from some inexact musicxml files.
+                        notes_and_rests[idx_start].duration.linked = True
+                    notes_and_rests[idx_start].quarterLength = current_duration
 
-                qLen = changing_note.quarterLength
-                if not changing_note.duration.linked:
-                    # obscure bug found from some inexact musicxml files.
-                    changing_note.duration.linked = True
-                changing_note.quarterLength = opFrac(qLen + durSum)
-
-                # set tie to None on first note
-                changing_note.tie = None
-
-                # let the site know that we've changed duration.
-                changing_note.informSites()
-
-                # replace removed elements in spanners
-                for sp in f.spanners:
-                    for index in posConnected[1:]:
-                        if notes_and_rests[index] in sp:
-                            sp.replaceSpannedElement(
-                                notes_and_rests[index],
-                                changing_note
-                            )
-
-                posConnected = []  # reset to empty
+                    # set tie to None on first note
+                    notes_and_rests[idx_start].tie = None
+                    tied.add(idx_start)
+            posDelete = sorted(list(posDelete))
 
         # all results have been processed
         posDelete.reverse()  # start from highest and go down
@@ -8024,7 +8148,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         if not retainContainers:
             sNew.isFlat = True
 
-        if self.autoSort is True:
+        if self.autoSort:
             sNew.sort()  # sort it immediately so that cache is not invalidated
         else:
             sNew.coreElementsChanged()
@@ -8437,8 +8561,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             #     textExpression (ql=0) at 0.25 --
             #     isSorted would be true, but highestTime should be 4.0 not 0.25
             for e in self._elements:
-                candidateOffset = (self.elementOffset(e)
-                                   + e.duration.quarterLength)
+                candidateOffset = self.elementOffset(e) + e.duration.quarterLength
                 if candidateOffset > highestTimeSoFar:
                     highestTimeSoFar = candidateOffset
             self._cache['HighestTime'] = opFrac(highestTimeSoFar)
@@ -9442,10 +9565,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         if not quarterLengthDivisors:
             quarterLengthDivisors = defaults.quantizationQuarterLengthDivisors
-
+        quarterLengthDivisors = (*quarterLengthDivisors,)
         # this presently is not trying to avoid overlaps that
         # result from quantization; this may be necessary
-
+        @lru_cache(maxsize=1024)
         def bestMatch(
             target,
             divisors,
@@ -9494,6 +9617,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             useStreams = list(returnStream.recurse(streamsOnly=True, includeSelf=True))
 
         for useStream in useStreams:
+            rests_lacking_durations: list[note.Rest] = []
             # coreSetElementOffset() will immediately set isSorted = False,
             # but we need to know if the stream was originally sorted to know
             # if it's worth "looking ahead" to the next offset. If a stream
@@ -9538,7 +9662,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # end for e in ._elements
             # ran coreSetElementOffset
             useStream.coreElementsChanged(updateIsFlat=False)
-
             useStream.remove(rests_lacking_durations)
 
         if inPlace is False:

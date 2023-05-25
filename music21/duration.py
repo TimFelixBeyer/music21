@@ -487,7 +487,7 @@ def quarterLengthToTuplet(
     for typeValue, typeKey in durationToType:
         # try tuplets
         for i in tupletNumerators:
-            qLenBase = opFrac(typeValue / i)
+            qLenBase = typeValue / i  # opFrac(typeValue / i)
             # try multiples of the tuplet division, from 1 to max - 1
             for m in range(1, i):
                 for numberOfDots in POSSIBLE_DOTS_IN_TUPLETS:
@@ -2935,6 +2935,7 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
             value = opFrac(value)
             if value == 0.0 and self.linked is True:
                 self.clear()
+            self._tuplets = ()
             self._qtrLength = value
             self.expressionIsInferred = True
             self._componentsNeedUpdating = True
