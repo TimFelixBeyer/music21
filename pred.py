@@ -1,6 +1,7 @@
 import pretty_midi
 from collections import Counter
 from music21 import converter, stream
+from music21.midi.translate import prepareStreamForMidi
 import os
 import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
@@ -39,6 +40,7 @@ def process_file(path):
     print(path)
     m = converter.parse(path, quantizePost=False)
     m.quantize((8, 3), recurse=True)
+    m = prepareStreamForMidi(m)
     # lengths = []
     # for n in m.flat.notes:
     #     lengths.append(n.duration.quarterLength)
@@ -59,12 +61,10 @@ def process_file(path):
 
 
 paths = []
-for root, dirs, files in os.walk("/Users/Tim/Documents/CustomDatasets/A-MAPS_1"):
+for root, dirs, files in os.walk('/Volumes/Macintosh HD (SATA)/Users/Tim/Documents/thesis/data'):
     for file in files:
         if file.endswith(".mid"):
             paths.append(os.path.join(root, file))
-            if len(paths) == 10:
-                break
 import time
 t0 = time.time()
 counts = [process_file(path) for path in paths]

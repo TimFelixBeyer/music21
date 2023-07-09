@@ -260,8 +260,8 @@ class Groups(list):  # no need to inherit from slotted object
         sls = sorted(self)
         slo = sorted(other)
 
-        for x in range(len(sls)):
-            if sls[x].lower() != slo[x].lower():
+        for sls_, slo_ in zip(sls, slo):
+            if sls_.lower() != slo_.lower():
                 return False
         return True
 
@@ -3268,9 +3268,7 @@ class Music21Object(prebase.ProtoM21Object):
 
         elif addTies and isinstance(e, chord.Chord) and isinstance(eRemain, chord.Chord):
             # the last isinstance is redundant, but MyPy needs it.
-            for i in range(len(e.notes)):
-                component = e.notes[i]
-                remainComponent = eRemain.notes[i]
+            for component, remainComponent in zip(e.notes, eRemain.notes):
                 forceEndTieType = 'stop'
                 if component.tie is not None:
                     # the last tie of what was formally a start should
@@ -3353,8 +3351,7 @@ class Music21Object(prebase.ProtoM21Object):
         eList = []
         spannerList = []  # this does not fully work with trills over multiple splits yet.
         eRemain = copy.deepcopy(self)
-        for qlIndex in range(len(quarterLengthList) - 1):
-            qlSplit = quarterLengthList[qlIndex]
+        for qlSplit in quarterLengthList[:-1]:
             st = eRemain.splitAtQuarterLength(qlSplit,
                                               addTies=addTies,
                                               displayTiedAccidentals=displayTiedAccidentals)

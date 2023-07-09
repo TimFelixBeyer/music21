@@ -784,7 +784,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         except IndexError:
             return None
 
-    def __contains__(self, el):
+    def __contains__(self, el: base.Music21Object) -> bool:
         '''
         Returns True if `el` is in the stream (compared with Identity) and False otherwise.
 
@@ -812,9 +812,11 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> nC2 in s.elements
         True
         '''
+        # Should be the fastest implementation of this naive check, compare with
+        # https://stackoverflow.com/questions/44802682/python-any-unexpected-performance
         return (id(el) in self._offsetDict
-                or any(sEl is el for sEl in self._elements)
-                or any(sEl is el for sEl in self._endElements))
+                or any(True for sEl in self._elements if sEl is el)
+                or any(True for sEl in self._endElements if sEl is el))
 
     @property
     def elements(self) -> tuple[M21ObjType, ...]:
@@ -7517,9 +7519,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 if n.tie is not None:
                     ties[n.tie.type] += 1
             f = returnObj.flatten()
-            notes_and_rests: StreamType = f.notes.addFilter(
-                lambda el, _iterator: el.quarterLength > 0
-            ).stream()
+            notes_and_rests: StreamType = f.notes.stream()#.addFilter(
+            #     lambda el, _iterator: el.quarterLength > 0
+            # ).stream()
             # there are several valid tie-combinations
             # start - stop
             # start - continue - stop
@@ -7548,23 +7550,39 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                     # If the next note with that pitch has a continue tie,
                                     # we keep going further
                                     if tied_note.tie is not None and tied_note.tie.type == "continue":
-                                        posDelete.add(j)
-                                        current_duration += tied_note.quarterLength
+                                        # We ignore ties on grace notes since they are usually cosmetic.
+                                        # If the grace note is followed by a continue tie
+                                        if notes_and_rests[idx_start].duration.isGrace:
+                                            notes_and_rests[idx_start].tie = None
+                                            idx_start = j
+                                        else:
+                                            posDelete.add(j)
+                                            current_duration += tied_note.quarterLength
                                         continue
-                                    elif tied_note.tie is None or tied_note.tie.type == "stop":
-                                        posDelete.add(j)
-                                        current_duration += tied_note.quarterLength
-                                        break
-                                    if tied_note.offset == n.offset:
+                                    elif tied_note.offset == n.offset and (tied_note.tie is None or tied_note.tie.type == "start"):
                                         # Ignore new start ties at the same offset,
                                         # happens frequently in malformed MusicXML
                                         continue
+                                    elif tied_note.tie is None or tied_note.tie.type == "stop":
+                                        if notes_and_rests[idx_start].duration.isGrace:
+                                            tied_note.tie = None
+                                            break
+                                        posDelete.add(j)
+                                        current_duration += tied_note.quarterLength
+                                        # print("Merging Duration", notes_and_rests[idx_start].offset, notes_and_rests[idx_start], tied_note.offset, tied_note.measureNumber, tied_note.quarterLength)
+                                        break
                                     else:
+                                        # We have a start tie
+
                                         # This does not fail because it is necessary for
                                         # correct MIDI import due to possible overlaps
                                         # introduced by chord quantization.
-                                        posDelete.add(j)
-                                        current_duration += tied_note.quarterLength
+                                        if notes_and_rests[idx_start].duration.isGrace:
+                                            notes_and_rests[idx_start].tie = None
+                                            idx_start = j
+                                        else:
+                                            posDelete.add(j)
+                                            current_duration += tied_note.quarterLength
                                         # warnings.warn(f"Unexpected start tie ({tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitch}), treating second start tie as continue tie!")
                                         continue
                             else:
@@ -7589,6 +7607,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                                 notes_and_rests[idx_start])
                                     break
                             else:
+                                print(n.duration.quarterLength, n.measureNumber, n.offset, n.pitch)
                                 raise ValueError(f"Continue tie misused as start tie (?, ?) -> ({n.offset}, {n.pitch})!")
                             # Find end for this one
                             for j in range(i+1, len(notes_and_rests)):
@@ -7640,6 +7659,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     if not notes_and_rests[idx_start].duration.linked:
                         # obscure bug found from some inexact musicxml files.
                         notes_and_rests[idx_start].duration.linked = True
+                    # print("Updating Duration", notes_and_rests[idx_start].offset, notes_and_rests[idx_start].measureNumber, notes_and_rests[idx_start].pitch, notes_and_rests[idx_start].quarterLength, current_duration)
                     notes_and_rests[idx_start].quarterLength = current_duration
 
                     # set tie to None on first note

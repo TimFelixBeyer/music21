@@ -2788,6 +2788,7 @@ class MeasureParser(XMLParserBase):
         # note of a chord
         isChord = False
         isRest = False
+        isCue = False
         # TODO: Unpitched
 
         offsetIncrement: float | fractions.Fraction = 0.0
@@ -2796,6 +2797,8 @@ class MeasureParser(XMLParserBase):
             isRest = True
         if mxNote.find('chord') is not None:
             isChord = True
+        if mxNote.find('cue') is not None:
+            isCue = True
 
         # do not count extra pitches in chord as note.
         # it might be the first note of the chord...
@@ -2820,6 +2823,8 @@ class MeasureParser(XMLParserBase):
         elif isChord is False and isRest is False:  # normal note...
             self.restAndNoteCount['note'] += 1
             n = self.xmlToSimpleNote(mxNote)
+            if isCue:
+                n.style.noteSize = "cue"
         else:  # it's a rest
             self.restAndNoteCount['rest'] += 1
             n = self.xmlToRest(mxNote)
@@ -3677,14 +3682,14 @@ class MeasureParser(XMLParserBase):
             # TODO: empty-placement
 
         # two ways to create durations, raw (from qLen) and cooked (from type, time-mod, dots)
-        if d is not None:
+        if d is None:
+            # N.B. music21's parser executes this branch most of the time
+            d = duration.Duration(quarterLength=qLen)
+        else:
             # N.B. music21's parser executes this branch just for grace note corrections
             durRaw = duration.Duration(quarterLength=qLen)  # raw just uses qLen
             d.components = durRaw.components
             d.tuplets = durRaw.tuplets
-        else:
-            # N.B. music21's parser executes this branch most of the time
-            d = duration.Duration(quarterLength=qLen)
         # can't do this unless we have a type, so if not forceRaw
         if not forceRaw:  # a cooked version builds up from pieces
             dt = duration.durationTupleFromTypeDots(durationType, numDots)
@@ -3706,6 +3711,7 @@ class MeasureParser(XMLParserBase):
             # Second check against qLen (raw), now with tuplets
             # if not almost equal, create unlinked Duration and set raw qLen
             tol = min(0.5 / divisions, 1e-3) # MY CHANGE: increase tol 1e-7->1e-3 to get 9ths
+            # print(d.quarterLength, qLen, tol, isclose(d.quarterLength, qLen, abs_tol=tol))
             if not isclose(d.quarterLength, qLen, abs_tol=tol):
                 d.linked = False
                 d.quarterLength = qLen
