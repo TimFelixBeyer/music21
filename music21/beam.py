@@ -329,7 +329,8 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
          None]
         '''
         for i in range(0, len(beamsList)):
-            if (i == 0 or beamsList[i - 1] is None) and (i + 1 == len(beamsList) or beamsList[i + 1] is None):
+            if ((i == 0 or beamsList[i - 1] is None)
+                    and (i + 1 == len(beamsList) or beamsList[i + 1] is None)):
                 beamsList[i] = None
         return beamsList
 
@@ -349,7 +350,7 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
             if not bThisNum:
                 continue
 
-            for thisNum in bThisNum:
+            for i, thisNum in enumerate(bThisNum):
                 thisBeam = bThis.getByNumber(thisNum)
                 if thisBeam.type != 'partial' or thisBeam.direction != 'right':
                     continue
@@ -403,17 +404,17 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
         return beamsList
 
     @staticmethod
-    def sanitizePartialBeams(beamsList: list[Beams | None]):
+    def sanitizePartialBeams(beamsList: list[Beams | None]) -> list[Beams | None]:
         '''
         It is possible at a late stage to have beams that only consist of partials
         or beams with a 'start' followed by 'partial/left' or possibly 'stop' followed
         by 'partial/right'; beams entirely consisting of partials are removed
         and the direction of irrational partials is fixed.
         '''
-        for i in range(len(beamsList)):
-            if beamsList[i] is None:
+        for i, beamsObj in enumerate(beamsList):
+            if beamsObj is None:
                 continue
-            allTypes = beamsList[i].getTypes()
+            allTypes = beamsObj.getTypes()
             # clear elements that have partial beams with no full beams:
             if 'start' not in allTypes and 'stop' not in allTypes and 'continue' not in allTypes:
                 # nothing but partials
@@ -423,7 +424,8 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
             # follow a stop
             hasStart = False
             hasStop = False
-            for b in beamsList[i].beamsList:
+            b: Beam
+            for b in beamsObj.beamsList:
                 if b.type == 'start':
                     hasStart = True
                     continue

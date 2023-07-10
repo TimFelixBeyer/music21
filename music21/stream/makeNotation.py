@@ -1183,6 +1183,7 @@ def makeTies(
 
     # environLocal.printDebug(['calling Stream.makeTies()'])
 
+    returnObj: StreamType
     if not inPlace:  # make a copy
         returnObj = s.coreCopyAsDerivation('makeTies')
     else:
@@ -1193,7 +1194,36 @@ def makeTies(
     if not common.isIterable(classFilterList):
         classFilterList = [classFilterList]
 
-    # get measures from this stream
+    if isinstance(returnObj, stream.Opus):
+        for subScore in returnObj.scores:
+            subScore.makeTies(meterStream=meterStream,
+                              inPlace=True,
+                              displayTiedAccidentals=displayTiedAccidentals,
+                              classFilterList=classFilterList
+                              )
+        if not inPlace:
+            # mypy bug thinks returnObj is not a StreamType.
+            return t.cast(StreamType, returnObj)
+        else:
+            return None
+
+    if returnObj.hasPartLikeStreams():
+        # part-like does not necessarily mean that the next level down is a stream.Part
+        # object or that this is a stream.Score object, so do not substitute
+        # returnObj.parts for this...
+        for p in returnObj.getElementsByClass(stream.Stream):
+            # already copied if necessary; edit in place
+            p.makeTies(meterStream=meterStream,
+                       inPlace=True,
+                       displayTiedAccidentals=displayTiedAccidentals,
+                       classFilterList=classFilterList
+                       )
+        if not inPlace:
+            return returnObj
+        else:
+            return None
+
+    # all remaining stream types should contain measures
     if not returnObj.hasMeasures():
         raise stream.StreamException('cannot process a stream without measures')
 
@@ -1392,14 +1422,9 @@ def makeTupletBrackets(s: StreamType, *, inPlace=False) -> StreamType | None:
     # have a list of tuplet, Duration pairs
     completionCount: OffsetQL = 0.0  # qLen currently filled
     completionTarget: OffsetQL | None = None  # qLen necessary to fill tuplet
-    for i in range(len(tupletMap)):
-        tupletObj, dur = tupletMap[i]
+    tupletPrevious: duration.Tuplet | None = None
 
-        if i > 0:
-            tupletPrevious = tupletMap[i - 1][0]
-        else:
-            tupletPrevious = None
-
+    for i, (tupletObj, dur) in enumerate(tupletMap):
         if i < len(tupletMap) - 1:
             tupletNext = tupletMap[i + 1][0]
             # if tupletNext != None:
@@ -1450,6 +1475,8 @@ def makeTupletBrackets(s: StreamType, *, inPlace=False) -> StreamType | None:
             elif tupletPrevious is not None and tupletNext is not None:
                 # clear any previous type from prior calls
                 tupletObj.type = None
+
+        tupletPrevious = tupletObj
 
     returnObj.streamStatus.tuplets = True
 
@@ -2193,8 +2220,8 @@ class Test(unittest.TestCase):
 
         def testDirections(group, expected):
             self.assertEqual(len(group), len(expected))
-            for j in range(len(group)):
-                self.assertEqual(group[j].stemDirection, expected[j])
+            for groupNote, expectedStemDirection in zip(group, expected):
+                self.assertEqual(groupNote.stemDirection, expectedStemDirection)
 
         testDirections(a, ['unspecified'] * 4)
         setStemDirectionOneGroup(a, setNewStems=False)
@@ -2364,9 +2391,56 @@ class Test(unittest.TestCase):
         self.assertEqual(m.notes[1].nameWithOctave, 'E-2')
         self.assertIs(m.notes[1].pitch.accidental.displayStatus, False)
 
+    def testMakeNotationRecursive(self):
+        from music21 import stream, tie
+
+        def getScore():
+            sc = stream.Score(id='mainScore')
+            p0 = stream.Part(id='part0')
+
+            m01 = stream.Measure(number=1)
+            m01.append(meter.TimeSignature('4/4'))
+            d1 = note.Note('D', type='half', dots=1)
+            c1 = note.Note('C', type='quarter')
+            c1.tie = tie.Tie('start')
+            m01.append([d1, c1])
+            m02 = stream.Measure(number=2)
+            c2 = note.Note('C', type='quarter')
+            c2.tie = tie.Tie('stop')
+            c3 = note.Note('D', type='half')
+            m02.append([c2, c3])
+            p0.append([m01, m02])
+
+            sc.insert(0, p0)
+            return sc
+
+        s = getScore()
+        s.stripTies(inPlace=True)
+        ss = s.makeTies()
+        self.assertEqual(ss.flatten().notes[1].tie, tie.Tie('start'))
+        self.assertEqual(ss.flatten().notes[2].tie, tie.Tie('stop'))
+        self.assertIsNone(s.flatten().notes[1].tie)
+
+        s.makeTies(inPlace=True)
+        self.assertEqual(s.flatten().notes[1].tie, tie.Tie('start'))
+        self.assertEqual(s.flatten().notes[2].tie, tie.Tie('stop'))
+
+        op = stream.Opus()
+        s1 = getScore()
+        s1.id = 'score1'
+        s2 = getScore()
+        s2.id = 'score2'
+        op.insert(0, s1)
+        op.append(s2)
+        op.stripTies(inPlace=True)
+        opp = op.makeTies()
+        self.assertEqual(opp.scores.first()[note.Note][1].tie, tie.Tie('start'))
+        self.assertIsNone(op.scores.first()[note.Note][1].tie)
+        op.makeTies(inPlace=True)
+        self.assertEqual(op.scores[1][note.Note][2].tie, tie.Tie('stop'))
+
 
 # -----------------------------------------------------------------------------
-
 if __name__ == '__main__':
     import music21
     music21.mainTest(Test)

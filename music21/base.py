@@ -257,11 +257,9 @@ class Groups(list):  # no need to inherit from slotted object
 
         if len(self) != len(other):
             return False
-        sls = sorted(self)
-        slo = sorted(other)
 
-        for sls_, slo_ in zip(sls, slo):
-            if sls_.lower() != slo_.lower():
+        for eSelf, eOther in zip(sorted(self), sorted(other)):
+            if eSelf.lower() != eOther.lower():
                 return False
         return True
 
