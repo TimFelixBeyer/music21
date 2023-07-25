@@ -457,12 +457,8 @@ def _convertPsToStep(
     name = STEPREF_REVERSED[pcName]
 
     # create a micro object always
-    if micro != 0:
-        # provide cents value; these are alter values
-        microObj = Microtone(micro * 100)
-    else:
-        microObj = Microtone(0)
-
+    # provide cents value; these are alter values
+    microObj = Microtone(micro * 100)
     return name, acc, microObj, octShift
 
 
@@ -480,25 +476,19 @@ def _convertCentsToAlterAndCents(shift) -> tuple[float, float]:
     (-2.0, 0.0)
     >>> pitch._convertCentsToAlterAndCents(235)
     (2.5, -15.0)
+    >>> pitch._convertCentsToAlterAndCents(-345)
+    (-3.5, 5.0)
     '''
     value = float(shift)
+    sign = 1 if value >= 0 else -1
+    value = abs(value)
 
     alterAdd = 0.0
     if value > 150:
         increment, value = divmod(value, 100)
         alterAdd += increment
-    elif value < -150:
-        while value < 100:
-            value += 100
-            alterAdd -= 1.0
 
-    if value < -75:
-        alterShift = -1.0
-        cents = value + 100.0
-    elif -75 <= value < -25:
-        alterShift = -0.5
-        cents = value + 50.0
-    elif -25 <= value <= 25:
+    if 0 <= value <= 25:
         alterShift = 0.0
         cents = value
     elif 25 < value <= 75:
@@ -509,6 +499,12 @@ def _convertCentsToAlterAndCents(shift) -> tuple[float, float]:
         cents = value - 100
     else:  # pragma: no cover
         raise ValueError(f'value exceeded range: {value}')
+
+    alterShift *= sign
+    alterAdd *= sign
+    if cents != 0:
+        cents *= sign
+
     return alterShift + alterAdd, float(cents)
 
 
@@ -547,7 +543,7 @@ def _convertHarmonicToCents(value: int | float) -> int:
     583
     '''
     if value < 0:  # subharmonics
-        value = 1 / (abs(value))
+        value = 1 / abs(value)
     return round(1200 * math.log2(value))
 
 # -----------------------------------------------------------------------------
@@ -2612,12 +2608,11 @@ class Pitch(prebase.ProtoM21Object):
         The property is called when self.step, self.octave
         or self.accidental are changed.
         '''
-        step = self._step
-        ps = float(((self.implicitOctave + 1) * 12) + STEPREF[step])
+        ps = float(((self.implicitOctave + 1) * 12) + STEPREF[self._step])
         if self.accidental is not None:
-            ps = ps + self.accidental.alter
+            ps += self.accidental.alter
         if self._microtone is not None:
-            ps = ps + self.microtone.alter
+            ps += self.microtone.alter
         return ps
 
     @ps.setter

@@ -2341,13 +2341,10 @@ def _doVariantFixingOnStream(s, variantNames=None):
                 oldOffset = e.getOffsetBySite(v.containedSite)
                 e.setOffsetBySite(v.containedSite, oldOffset + offsetShift)
             v.insert(0.0, copy.deepcopy(targetElement))
-            s.remove(v)
-            s.insert(newVariantOffset, v)
-
-            # Give it a new replacementDuration including the added element
+            v.setOffsetBySite(s, newVariantOffset)
+        # Give it a new replacementDuration including the added element
         oldReplacementDuration = v.replacementDuration
         v.replacementDuration = oldReplacementDuration + targetElement.duration.quarterLength
-
 
 def _getNextElements(s, v, numberOfElements=1):
     # noinspection PyShadowingNames, GrazieInspection

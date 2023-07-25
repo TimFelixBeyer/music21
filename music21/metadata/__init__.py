@@ -1998,13 +1998,7 @@ class Metadata(base.Music21Object):
         >>> metadata.Metadata._isStandardNamespaceName('average duration')
         False
         '''
-        prop: PropertyDescription | None = (
-            properties.NAMESPACE_NAME_TO_PROPERTY_DESCRIPTION.get(namespaceName, None)
-        )
-        if prop is None:
-            return False
-
-        return True
+        return namespaceName in properties.NAMESPACE_NAME_TO_PROPERTY_DESCRIPTION
 
     @staticmethod
     def _isContributorUniqueName(uniqueName: str) -> bool:
@@ -2037,13 +2031,9 @@ class Metadata(base.Music21Object):
         >>> metadata.Metadata._isContributorUniqueName('average duration')
         False
         '''
-        prop: PropertyDescription | None = (
-            properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION.get(uniqueName, None)
-        )
-        if prop is None:
+        if uniqueName not in properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION:
             return False
-
-        return prop.isContributor
+        return properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION[uniqueName].isContributor
 
     @staticmethod
     def _isContributorNamespaceName(namespaceName: str) -> bool:
@@ -2087,13 +2077,9 @@ class Metadata(base.Music21Object):
         >>> metadata.Metadata._isContributorNamespaceName('average duration')
         False
         '''
-        prop: PropertyDescription | None = (
-            properties.NAMESPACE_NAME_TO_PROPERTY_DESCRIPTION.get(namespaceName, None)
-        )
-        if prop is None:
+        if namespaceName not in properties.NAMESPACE_NAME_TO_PROPERTY_DESCRIPTION:
             return False
-
-        return prop.isContributor
+        return properties.NAMESPACE_NAME_TO_PROPERTY_DESCRIPTION[namespaceName].isContributor
 
     @staticmethod
     def _namespaceNameNeedsArticleNormalization(namespaceName: str) -> bool:
@@ -2125,13 +2111,9 @@ class Metadata(base.Music21Object):
         >>> metadata.Metadata._namespaceNameNeedsArticleNormalization('average duration')
         False
         '''
-        prop: PropertyDescription | None = (
-            properties.NAMESPACE_NAME_TO_PROPERTY_DESCRIPTION.get(namespaceName, None)
-        )
-        if prop is None:
+        if namespaceName not in properties.NAMESPACE_NAME_TO_PROPERTY_DESCRIPTION:
             return False
-
-        return prop.needsArticleNormalization
+        return properties.NAMESPACE_NAME_TO_PROPERTY_DESCRIPTION[namespaceName].needsArticleNormalization
 
     @staticmethod
     def _contributorRoleToUniqueName(role: str | None) -> str:
@@ -2165,13 +2147,11 @@ class Metadata(base.Music21Object):
         if role is None:
             return 'otherContributor'
 
-        prop: PropertyDescription | None = (
-            properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION.get(role, None)
-        )
-
-        if prop is None:
+        if role not in properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION:
             # It's not a standard uniqueName
             return 'otherContributor'
+
+        prop: PropertyDescription = properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION[role]
 
         if not prop.isContributor:
             # It's not a standard contributor role

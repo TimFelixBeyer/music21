@@ -314,7 +314,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
         return self.getRealized()
 
     @property
-    def velocity(self):
+    def velocity(self) -> int:
         '''
         Get or set the velocity value, a numerical value between 0 and 127 and
         available setting amplitude on each Note or Pitch in chord.
@@ -377,11 +377,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
         >>> n.volume.velocityScalar is None
         True
         '''
-        v = self._velocityScalar
-        if v is None:
-            return None
-        else:
-            return v
+        return self._velocityScalar
 
     @velocityScalar.setter
     def velocityScalar(self, value):
@@ -589,8 +585,6 @@ class Test(unittest.TestCase):
 
         # d1 = dynamics.Dynamic('ppp')
         # self.assertEqual(v1.getRealizedStr(useDynamicContext=d1), '0.1')
-
-
 
 
 

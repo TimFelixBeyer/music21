@@ -1722,8 +1722,6 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         # permit as keyword so can be passed from notes
         elif quarterLength is not None:
             self.quarterLength = quarterLength
-            self.expressionIsInferred = True
-
         # now assign the client so further changes are informed.
         self.client = client
 

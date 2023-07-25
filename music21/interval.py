@@ -110,19 +110,16 @@ class Specifier(enum.IntEnum):
     QUADDIM = 11
 
     def __str__(self) -> str:
-        # this should just be prefixSpecs[self.value] but pylint chokes
-        # noinspection PyTypeChecker
-        return str(prefixSpecs[int(self.value)])
+        return prefixSpecs[self.value]
 
     def __repr__(self):
         return f'<Specifier.{self.name}>'
 
     @property
-    def niceName(self):
-        # noinspection PyTypeChecker
-        return niceSpecNames[int(self.value)]
+    def niceName(self) -> str:
+        return niceSpecNames[self.value]
 
-    def inversion(self):
+    def inversion(self) -> Specifier:
         '''
         Return a new specifier that inverts this Specifier.
 
@@ -134,11 +131,10 @@ class Specifier(enum.IntEnum):
         <Specifier.PERFECT>
         '''
         # noinspection PyTypeChecker
-        v = int(self.value)
         inversions = [None, 1, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10]
-        return Specifier(inversions[v])
+        return Specifier(inversions[self.value])
 
-    def semitonesAbovePerfect(self):
+    def semitonesAbovePerfect(self) -> int:
         # noinspection PyShadowingNames
         '''
         Returns the number of semitones this specifier is above PERFECT
@@ -188,7 +184,7 @@ class Specifier(enum.IntEnum):
         except KeyError as ke:
             raise IntervalException(f'{self!r} cannot be compared to Perfect') from ke
 
-    def semitonesAboveMajor(self):
+    def semitonesAboveMajor(self) -> int:
         # noinspection PyShadowingNames
         '''
         Returns the number of semitones this specifier is above Major
@@ -337,7 +333,7 @@ def _extractPitch(
     return n.pitch
 
 
-def convertStaffDistanceToInterval(staffDist):
+def convertStaffDistanceToInterval(staffDist: int) -> int:
     '''
     Returns an integer of the generic interval number
     (P5 = 5, M3 = 3, minor 3 = 3 also) etc. from the given staff distance.
@@ -351,9 +347,7 @@ def convertStaffDistanceToInterval(staffDist):
     >>> interval.convertStaffDistanceToInterval(-1)
     -2
     '''
-    if staffDist == 0:
-        return 1
-    elif staffDist > 0:
+    if staffDist >= 0:
         return staffDist + 1
     else:
         return staffDist - 1
@@ -471,17 +465,13 @@ def parseSpecifier(value: str | int | Specifier) -> Specifier:
 
     # permit specifiers as prefixes without case; this will not distinguish
     # between m and M, but was taken care of in the line above
-    if value.lower() in [x.lower() for x in prefixSpecs[1:]]:
-        for i, prefix in enumerate(prefixSpecs):
-            if prefix is None:
-                continue
-            if value.lower() == prefix.lower():
-                return Specifier(i)
+    for i, prefix in enumerate(prefixSpecs):
+        if value.lower() == prefix.lower():
+            return Specifier(i)
 
-    if value.lower() in [x.lower() for x in niceSpecNames[1:]]:
-        for i in range(1, len(niceSpecNames)):
-            if value.lower() == niceSpecNames[i].lower():
-                return Specifier(i)
+    for i in range(1, len(niceSpecNames)):
+        if value.lower() == niceSpecNames[i].lower():
+            return Specifier(i)
 
     raise IntervalException(f'Cannot find a match for value: {value!r}')
 
@@ -1404,10 +1394,7 @@ class GenericInterval(IntervalBase):
         >>> gSharp
         <music21.pitch.Pitch D#5>
         '''
-        if p.octave is None:
-            useImplicitOctave = True
-        else:
-            useImplicitOctave = False
+        useImplicitOctave = p.octave is None
         pitchDNN = p.diatonicNoteNum
 
         if inPlace:
@@ -2119,7 +2106,7 @@ class DiatonicInterval(IntervalBase):
         # note: part of this functionality used to be in the function
         # _stringToDiatonicChromatic(), which used to be named something else
 
-        octaveOffset = int(abs(self.generic.staffDistance) / 7)
+        octaveOffset = abs(self.generic.staffDistance) // 7
         semitonesStart = semitonesGeneric[self.generic.simpleUndirected]
 
         if self.generic.perfectable:
@@ -2262,10 +2249,7 @@ class ChromaticInterval(IntervalBase):
         if not hasattr(other, 'semitones'):
             return False
 
-        if self.semitones == other.semitones:
-            return True
-        else:
-            return False
+        return self.semitones == other.semitones
 
     def __hash__(self):
         return id(self) >> 4
@@ -3446,14 +3430,11 @@ class Interval(IntervalBase):
         # NOTE: this is a performance critical method
 
         inheritAccidentalDisplayStatus: bool = False
-        if self.simpleName == 'P1' and float(self.semitones) == float(int(self.semitones)):
+        if self.simpleName == 'P1' and float(self.semitones).is_integer():
             # true unison and any multiple of true octave
             inheritAccidentalDisplayStatus = True
 
-        if p.octave is None:
-            useImplicitOctave = True
-        else:
-            useImplicitOctave = False
+        useImplicitOctave = p.octave is None
 
         pitch1 = p
         pitch2 = copy.deepcopy(pitch1)

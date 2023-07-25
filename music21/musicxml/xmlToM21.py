@@ -2190,9 +2190,15 @@ class PartParser(XMLParserBase):
         else:
             lastTimeSignatureQuarterLength = 4.0  # sensible default.
 
-        if mHighestTime >= lastTimeSignatureQuarterLength:
+        if mHighestTime == lastTimeSignatureQuarterLength:
             mOffsetShift = mHighestTime
-
+        elif mHighestTime > lastTimeSignatureQuarterLength:
+            if (mHighestTime - lastTimeSignatureQuarterLength) % 1 == 0:
+                mOffsetShift = mHighestTime
+            else:
+                mOffsetShift = lastTimeSignatureQuarterLength  # mHighestTime
+                warnings.warn(f"""Warning: measure {m.number} in part {self.stream.partName}
+                    is overfull: {mHighestTime} > {lastTimeSignatureQuarterLength}, assuming {mOffsetShift} is correct.""")
         elif (mHighestTime == 0.0
               and not m.recurse().notesAndRests.getElementsNotOfClass('Harmony')
               ):

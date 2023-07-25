@@ -779,7 +779,7 @@ class Expander(t.Generic[StreamType]):
 
         # need to copy source measures, as may later measures before copying
         # them, and this can result in orphaned spanners
-        if deepcopy is not False:
+        if deepcopy:
             srcStream = self._srcMeasureStream.coreCopyAsDerivation('expandRepeats')
         else:
             srcStream = self._srcMeasureStream

@@ -1113,9 +1113,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> testBool(s)
         True
         '''
-        if self._elements:  # blindingly faster than if len(self._elements) > 0
-            return True    # and even about 5x faster than if any(self._elements)
-        if self._endElements:
+        # blindingly faster than if len(self._elements) > 0
+        # and even about 5x faster than if any(self._elements)
+        if self._elements or self._endElements:
             return True
         return False
 
@@ -1838,7 +1838,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         Return and remove the object found at the
         user-specified index value. Index values are
-        those found in `elements` and are not necessary offset order.
+        those found in `elements` and are not necessarily in offset order.
 
         >>> a = stream.Stream()
         >>> for i in range(12):  # notes C, C#, etc. to B
@@ -2330,6 +2330,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         updateIsFlat = False
         if element.isStream:
             updateIsFlat = True
+        # track if the sort has changed
         self.coreElementsChanged(clearIsSorted=not storeSorted, updateIsFlat=updateIsFlat)
         if ignoreSort is False:
             self.isSorted = storeSorted
@@ -5955,15 +5956,15 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         # only want _elements, do not want _endElements
         for e in self._elements:
-
-            if startOffset is not None and self.elementOffset(e) < startOffset:
+            offsetEl = self.elementOffset(e)
+            if startOffset is not None and offsetEl < startOffset:
                 continue
-            if endOffset is not None and self.elementOffset(e) >= endOffset:
+            if endOffset is not None and offsetEl >= endOffset:
                 continue
             if classFilterList is not None and e.classSet.isdisjoint(classFilterList):
                 continue
 
-            self.coreSetElementOffset(e, opFrac(self.elementOffset(e) + offset))
+            self.coreSetElementOffset(e, opFrac(offsetEl + offset))
 
         self.coreElementsChanged()
 

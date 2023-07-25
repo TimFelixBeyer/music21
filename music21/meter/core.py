@@ -288,6 +288,8 @@ class MeterTerminal(prebase.ProtoM21Object, SlottedObjectMixin):
         >>> a.duration.quarterLength
         11.0
         '''
+        if not isinstance(value, int) and value > 0:
+            raise MeterException(f'bad numerator value: {value}')
         self._numerator = value
         self._ratioChanged()
 
@@ -298,13 +300,12 @@ class MeterTerminal(prebase.ProtoM21Object, SlottedObjectMixin):
 
     def _setDenominator(self, value):
         '''
-
         >>> a = meter.MeterTerminal('2/4')
         >>> a.duration.quarterLength
         2.0
-        >>> a.numerator = 11
+        >>> a.denominator = 8
         >>> a.duration.quarterLength
-        11.0
+        1.0
         '''
         # use duration.typeFromNumDict?
         if value not in tools.validDenominatorsSet:
@@ -323,20 +324,8 @@ class MeterTerminal(prebase.ProtoM21Object, SlottedObjectMixin):
         if self.numerator is None or self.denominator is None:
             self._duration = None
         else:
-            self._duration = duration.Duration()
-            try:
-                self._duration.quarterLength = (
-                    (4.0 * self.numerator) / self.denominator
-                )
-            except duration.DurationException:
-                environLocal.printDebug(
-                    ['DurationException encountered',
-                     'numerator/denominator',
-                     self.numerator,
-                     self.denominator
-                     ]
-                )
-                self._duration = None
+            self._duration = duration.Duration(quarterLength=(4.0 * self.numerator) / self.denominator)
+
 
     def _getDuration(self):
         '''

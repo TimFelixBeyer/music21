@@ -101,23 +101,14 @@ class StreamCore(Music21Object):
         # the elements list
         storeSorted = False
         if not ignoreSort:
-            # # if sorted and our insertion is > the highest time, then
-            # # are still inserted
-            # if self.isSorted is True and self.highestTime <= offset:
-            #     storeSorted = True
-            if self.isSorted is True:
-                ht = self.highestTime   # type: ignore
-                if ht < offset:
+            if self.isSorted:
+                if not self._elements:
                     storeSorted = True
-                elif ht == offset:
-                    if not self._elements:
+                else:
+                    highestSortTuple = self._elements[-1].sortTuple()
+                    thisSortTuple = element.sortTuple().modify(offset=offset)
+                    if thisSortTuple >= highestSortTuple:
                         storeSorted = True
-                    else:
-                        highestSortTuple = self._elements[-1].sortTuple()
-                        thisSortTuple = element.sortTuple().modify(offset=offset)
-
-                        if highestSortTuple < thisSortTuple:
-                            storeSorted = True
 
         self.coreSetElementOffset(
             element,
