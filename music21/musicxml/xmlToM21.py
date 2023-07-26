@@ -31,6 +31,7 @@ from music21 import defaults
 from music21 import duration
 from music21 import dynamics
 from music21.common.enums import OrnamentDelay
+from music21.common.numberTools import opFrac, nearestMultiple
 from music21 import editorial
 from music21 import environment
 from music21 import exceptions21
@@ -2193,12 +2194,18 @@ class PartParser(XMLParserBase):
         if mHighestTime == lastTimeSignatureQuarterLength:
             mOffsetShift = mHighestTime
         elif mHighestTime > lastTimeSignatureQuarterLength:
-            if (mHighestTime - lastTimeSignatureQuarterLength) % 1 == 0:
+            diff = mHighestTime - lastTimeSignatureQuarterLength
+            tol = 1e-6
+            if (diff > 1.0
+                  or nearestMultiple(diff, 0.0625)[1] < tol
+                  or nearestMultiple(diff, opFrac(1/12))[1] < tol):
                 mOffsetShift = mHighestTime
             else:
-                mOffsetShift = lastTimeSignatureQuarterLength  # mHighestTime
+                mOffsetShift = lastTimeSignatureQuarterLength
                 warnings.warn(f"""Warning: measure {m.number} in part {self.stream.partName}
-                    is overfull: {mHighestTime} > {lastTimeSignatureQuarterLength}, assuming {mOffsetShift} is correct.""")
+                    is overfull: {mHighestTime} > {lastTimeSignatureQuarterLength},
+                    assuming {mOffsetShift} is correct.""",
+                    MusicXMLWarning)
         elif (mHighestTime == 0.0
               and not m.recurse().notesAndRests.getElementsNotOfClass('Harmony')
               ):
@@ -2210,7 +2217,6 @@ class PartParser(XMLParserBase):
             m.insert(0.0, r)
             mOffsetShift = lastTimeSignatureQuarterLength
             self.lastMeasureWasShort = False
-
         else:  # use time signature
             # for the first measure, this may be a pickup
             # must detect this when writing, as next measures offsets will be
@@ -2602,10 +2608,8 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         '''
         mxDuration = mxObj.find('duration')
         if durationText := strippedText(mxDuration):
-            change = common.numberTools.opFrac(
-                float(durationText) / self.divisions
-            )
-            self.offsetMeasureNote -= change
+            change = opFrac(float(durationText) / self.divisions)
+            self.offsetMeasureNote = opFrac(self.offsetMeasureNote - change)
             # check for negative offsets produced by
             # musicxml durations with float rounding issues
             # https://github.com/cuthbertLab/music21/issues/971
@@ -2617,10 +2621,8 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         '''
         mxDuration = mxObj.find('duration')
         if durationText := strippedText(mxDuration):
-            change = common.numberTools.opFrac(
-                float(durationText) / self.divisions
-            )
-
+            change = opFrac(float(durationText) / self.divisions)
+            # print(self.measureNumber, change, self.offsetMeasureNote, "->", opFrac(self.offsetMeasureNote + change))
             # Create hidden rest (in other words, a spacer)
             # old Finale documents close incomplete final measures with <forward>
             # this will be removed afterward by removeEndForwardRest()
@@ -2630,7 +2632,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             self.insertInMeasureOrVoice(mxObj, r)
 
             # Allow overfilled measures for now -- TODO(someday): warn?
-            self.offsetMeasureNote += change
+            self.offsetMeasureNote = opFrac(self.offsetMeasureNote + change)
             # xmlToNote() sets None
             self.endedWithForwardTag = r
 
@@ -2796,7 +2798,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             self.nLast = c  # update
 
         # only increment Chords after completion
-        self.offsetMeasureNote += offsetIncrement
+        self.offsetMeasureNote = opFrac(self.offsetMeasureNote + offsetIncrement)
         self.endedWithForwardTag = None
 
     def xmlToChord(self, mxNoteList: list[ET.Element]) -> chord.ChordBase:
@@ -5523,7 +5525,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 meth(mxSub)
             # NOT to be done: directive -- deprecated since v2.
             elif tag == 'divisions':
-                self.divisions = common.opFrac(float(mxSub.text))
+                self.divisions = opFrac(float(mxSub.text))
             # TODO: musicxml4: for-part including part-clef
             # TODO: instruments -- int if more than one instrument plays most of the time
             # TODO: part-symbol

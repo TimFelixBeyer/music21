@@ -1475,7 +1475,7 @@ class Expander(t.Generic[StreamType]):
         # use index values instead of an iterator
         i = 0
         repeatTimesFound = 0
-
+        offsetSkip = 0
         while i < len(streamObj):
             if not repeatIndices:
                 break
@@ -1518,7 +1518,11 @@ class Expander(t.Generic[StreamType]):
 
                         if times != 0:
                             mSub.numberSuffix = lowercase_alphabet[(times - 1) % 26]  # just in case
-                        new.append(mSub)
+                        new.insert(offsetSkip, mSub)
+                        if j + 1 < len(streamObj):
+                            offsetSkip += streamObj[j + 1].offset - streamObj[j].offset
+                        else:
+                            offsetSkip += mSub.highestTime - mSub.offset
                         # renumber at end
                         # number += 1
                 # check if we need to clear repeats from next bar
@@ -1550,7 +1554,11 @@ class Expander(t.Generic[StreamType]):
                         stripFirstNextMeasure = False
                     # renumber at end
                     # m.number = number
-                    new.append(m)  # this may be the first version
+                    new.insert(offsetSkip, m)
+                    if i + 1 < len(streamObj):
+                        offsetSkip += streamObj[i + 1].offset - streamObj[i].offset
+                    else:
+                        offsetSkip += m.highestTime - m.offset
                 # number += 1
                 i += 1
         # return the complete stream with just the expanded measures
@@ -1698,15 +1706,21 @@ class Expander(t.Generic[StreamType]):
 
         new = streamObj.__class__()
         for m in streamObjPre:
-            new.append(m)
+            new.insert(m.offset, m)
+
         for sub in streamBracketRepeats:
-            for m in sub:
+            lastStreamOffset = new.highestTime
+            offsets = [lastStreamOffset + m.offset for m in sub]
+            for offset, m in zip(offsets, sub):
                 self._stripRepeatBarlines(m)
-                new.append(m)
+                new.insert(offset, m)
+
         # need 1 more than the highest measure counted
         streamObjPost = streamObj[highestIndexRepeated + 1:]
-        for m in streamObjPost:
-            new.append(m)
+        lastStreamOffset = new.highestTime
+        offsets = [lastStreamOffset + m.offset - streamObjPost[0].offset for m in streamObjPost]
+        for offset, m in zip(offsets, streamObjPost):
+            new.insert(offset, m)
         return new
 
         # raise ExpanderException('condition for inner expansion not caught')
