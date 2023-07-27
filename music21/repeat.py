@@ -1522,7 +1522,7 @@ class Expander(t.Generic[StreamType]):
                         if j + 1 < len(streamObj):
                             offsetSkip += streamObj[j + 1].offset - streamObj[j].offset
                         else:
-                            offsetSkip += mSub.highestTime - mSub.offset
+                            offsetSkip += mSub.highestTime
                         # renumber at end
                         # number += 1
                 # check if we need to clear repeats from next bar
@@ -1558,7 +1558,7 @@ class Expander(t.Generic[StreamType]):
                     if i + 1 < len(streamObj):
                         offsetSkip += streamObj[i + 1].offset - streamObj[i].offset
                     else:
-                        offsetSkip += m.highestTime - m.offset
+                        offsetSkip += m.highestTime
                 # number += 1
                 i += 1
         # return the complete stream with just the expanded measures
