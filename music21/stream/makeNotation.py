@@ -1351,7 +1351,6 @@ def makeTies(
                     # need to make sure that the new measure is processed.
                     measureList.append(mNext)
                     mNextAdd = False
-
         mCount += 1
 
     for measure in returnObj.getElementsByClass(stream.Measure):
