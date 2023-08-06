@@ -4046,7 +4046,7 @@ class MeasureExporter(XMLExporterBase):
             mxVoice.text = str(self.currentVoiceId)
 
         mxType = Element('type')
-        if d.isGrace is True and d.type == 'zero':
+        if d.isGrace and d.type == 'zero':
             # Default type-less grace durations to eighths
             mxType.text = 'eighth'
         else:

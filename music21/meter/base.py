@@ -1438,11 +1438,6 @@ class TimeSignature(TimeSignatureBase):
             # environLocal.printDebug(['at level, got archetype span', depth,
             #                         archetypeSpan])
 
-            if beamNext is None:  # last note or before a non-beamable note (half, whole, etc.)
-                archetypeSpanNextStart = 0.0
-            else:
-                archetypeSpanNextStart = archetype.offsetToSpan(startNext)[0]
-
             # watch for a special case where a duration completely fills
             # the archetype; this generally should not be beamed
             # same if beamPrevious is None and beamNumber == 1 (quarter-eighth in 6/8)
@@ -1536,13 +1531,18 @@ class TimeSignature(TimeSignatureBase):
                 #   dur.type, startNext, archetypeSpan])
                 beamType = 'continue'
 
-            # we stop if the next beam is not in the same beaming archetype
-            # and (as shown above) a valid beam number is not previous
-            elif startNext >= archetypeSpanNextStart:
-                beamType = 'stop'
-
             else:
-                raise TimeSignatureException('cannot match beamType')
+                # we stop if the next beam is not in the same beaming archetype
+                # and (as shown above) a valid beam number is not previous
+                if beamNext is None:  # last note or before a non-beamable note (half, whole, etc.)
+                    archetypeSpanNextStart = 0.0
+                else:
+                    archetypeSpanNextStart = archetype.offsetToSpan(startNext)[0]
+
+                if startNext >= archetypeSpanNextStart:
+                    beamType = 'stop'
+                else:
+                    raise TimeSignatureException('cannot match beamType')
 
             # debugging information displays:
             # if beamPrevious is not None:

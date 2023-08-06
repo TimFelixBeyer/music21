@@ -3338,13 +3338,13 @@ class Music21Object(prebase.ProtoM21Object):
                 + f'{quarterLengthList}, {self.duration.quarterLength}'
             )
 
+        if not quarterLengthList:
+            raise Music21ObjectException(
+                f'cannot split empty by quarter length list.')
         # if nothing to do
         if len(quarterLengthList) == 1:
             # return a copy of self in a list
             return _SplitTuple([copy.deepcopy(self)])
-        elif len(quarterLengthList) <= 1:
-            raise Music21ObjectException(
-                f'cannot split by this quarter length list: {quarterLengthList}.')
 
         eList = []
         spannerList = []  # this does not fully work with trills over multiple splits yet.

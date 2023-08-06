@@ -1251,7 +1251,7 @@ def makeTies(
         if mCount + 1 < len(measureList):
             mNext = measureList[mCount + 1]
             mNextAdd = False  # already present; do not append
-        else:  # create a new measure
+        else:  # create a new measure -> final measure
             mNext = stream.Measure()
             # set offset to last offset plus total length
             mOffset = m.offset
@@ -1350,6 +1350,8 @@ def makeTies(
                     returnObj.insert(mNext.offset, mNext)
                     # need to make sure that the new measure is processed.
                     measureList.append(mNext)
+                    mNextAdd = False
+
         mCount += 1
 
     for measure in returnObj.getElementsByClass(stream.Measure):
