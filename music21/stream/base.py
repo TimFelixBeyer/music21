@@ -7562,7 +7562,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                             break
                                         posDelete.add(j)
                                         current_duration += tied_note.quarterLength
-                                        # print("Merging Duration", notes_and_rests[idx_start].offset, notes_and_rests[idx_start], tied_note.offset, tied_note.measureNumber, tied_note.quarterLength)
                                         break
                                     else:
                                         # We have a start tie
@@ -7652,7 +7651,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     if not notes_and_rests[idx_start].duration.linked:
                         # obscure bug found from some inexact musicxml files.
                         notes_and_rests[idx_start].duration.linked = True
-                    # print("Updating Duration", notes_and_rests[idx_start].offset, notes_and_rests[idx_start].measureNumber, notes_and_rests[idx_start].pitch, notes_and_rests[idx_start].quarterLength, current_duration)
                     notes_and_rests[idx_start].quarterLength = current_duration
 
                     # set tie to None on first note

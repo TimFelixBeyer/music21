@@ -254,10 +254,6 @@ class Test(unittest.TestCase):
 
     def testExpandRepeatA(self):
 
-
-
-
-
         # two repeat bars in a row
         p = stream.Part()
         m1 = stream.Measure(number=1)

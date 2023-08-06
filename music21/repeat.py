@@ -1645,10 +1645,10 @@ class Expander(t.Generic[StreamType]):
             bracketStartIndex = None  # not the startIndex
             # iterate over all provided measures to find the last index
             for i, m in enumerate(streamObj):
-                if id(m) == id(mLast):
+                if m is mLast:
                     endIndex = i
                 # use if: start and end may be the same
-                if id(m) == id(mFirst):
+                if m is mFirst:
                     bracketStartIndex = i
             # error check: probably orphaned spanners
             if endIndex is None or bracketStartIndex is None:

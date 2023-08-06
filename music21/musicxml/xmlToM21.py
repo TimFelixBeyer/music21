@@ -2178,13 +2178,15 @@ class PartParser(XMLParserBase):
         '''
         # note: we cannot assume that the time signature properly
         # describes the offsets w/n this bar. need to look at
-        # offsets within measure; if the .highestTime value is greater
-        # use this as the next offset
+        # offsets within measure; if the .highestTime value is greater, deal with the
+        # conflict
 
         mHighestTime = m.highestTime
-        # warnings.warn(f'{m} {mHighestTime} {self}', MusicXMLWarning)
-        # warnings.warn([self.lastTimeSignature], MusicXMLWarning)
-        # warnings.warn([self.lastTimeSignature.barDuration], MusicXMLWarning)
+
+        if self.lastTimeSignature is not None:
+            lastTimeSignatureQuarterLength = self.lastTimeSignature.barDuration.quarterLength
+        else:
+            lastTimeSignatureQuarterLength = 4.0  # sensible default.
 
         if self.lastTimeSignature is not None:
             lastTimeSignatureQuarterLength = self.lastTimeSignature.barDuration.quarterLength
@@ -2219,19 +2221,15 @@ class PartParser(XMLParserBase):
             self.lastMeasureWasShort = False
         else:  # use time signature
             # for the first measure, this may be a pickup
-            # must detect this when writing, as next measures offsets will be
-            # incorrect
+            # must detect this when writing, as next measures offsets will be incorrect
             if self.lastMeasureOffset == 0.0:
                 # cannot get bar duration proportion if we cannot get a ts
                 if m.barDurationProportion() < 1.0:
                     m.padAsAnacrusis()
                     # environLocal.printDebug(['incompletely filled Measure found on musicxml
                     #    import; interpreting as an anacrusis:', 'paddingLeft:', m.paddingLeft])
-                mOffsetShift = mHighestTime
-
             else:
-                mOffsetShift = mHighestTime  # lastTimeSignatureQuarterLength
-                if self.lastMeasureWasShort is True:
+                if self.lastMeasureWasShort:
                     if m.barDurationProportion() < 1.0:
                         m.padAsAnacrusis()  # probably a pickup after a repeat or phrase boundary
                         # or something
@@ -2244,6 +2242,7 @@ class PartParser(XMLParserBase):
                         self.lastMeasureWasShort = True
                     else:
                         self.lastMeasureWasShort = False
+            mOffsetShift = mHighestTime
 
         self.lastMeasureOffset += mOffsetShift
 
@@ -2600,7 +2599,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         >>> mxBackup = EL('<backup><duration>100</duration></backup>')
         >>> MP.xmlBackup(mxBackup)
         >>> MP.offsetMeasureNote
-        0.9979
+        Fraction(9979, 10000)
 
         >>> MP.xmlBackup(mxBackup)
         >>> MP.offsetMeasureNote
@@ -3655,7 +3654,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         if inputM21 is None:
             return d
 
-    def xmlGraceToGrace(self, mxGrace, noteOrChord):
+    def xmlGraceToGrace(self, mxGrace: ET.Element, noteOrChord: note.Note | chord.Chord):
         '''
         Given a completely formed, non-grace Note or Chord that should become one
         create and return a m21 grace version of the same.
