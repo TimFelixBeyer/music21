@@ -993,7 +993,8 @@ def makeTies(
     '''
     Given a stream containing measures, examine each element in the
     Stream. If the element's duration extends beyond the measure's boundary,
-    create a tied entity, placing the split Note in the next Measure.
+    create a tied entity, placing the split Note in the next Measure. If an element's
+    offset places it completely in the next measure, it will be moved there.
 
     Note that this method assumes that there is appropriate space in the
     next Measure: this will not shift Note objects, but instead allocate
@@ -1298,25 +1299,16 @@ def makeTies(
 
                 if overshot <= 0:
                     continue
-                if eOffset >= mEnd:
-                    continue  # skip elements that begin past measure boundary.
-                    # TODO: put them entirely in the next measure.
-                    # raise stream.StreamException(
-                    #     'element (%s) has offset %s within a measure '
-                    #     'that ends at offset %s' % (e, eOffset, mEnd))
-
-                qLenWithinMeasure = mEnd - eOffset
-                e, eRemain = e.splitAtQuarterLength(
-                    qLenWithinMeasure,
-                    retainOrigin=True,
-                    displayTiedAccidentals=displayTiedAccidentals
-                )
-
                 # manage bridging voices
                 if mNextHasVoices:
                     if mHasVoices:  # try to match voice id
                         if not isinstance(vId, int):
-                            dst = mNext.voices[vId]
+                            try:
+                                dst = mNext.voices[vId]
+                            except KeyError:
+                                v = stream.Voice(id=vId)
+                                mNext.insert(0, v)
+                                dst = v
                         else:
                             dst = mNext.getElementById(vId)
                     # src does not have voice, but dst does
@@ -1330,15 +1322,23 @@ def makeTies(
                         # place in first voice
                         dst = mNext.voices[0]
                     else:  # no voices in either
-                        dst = None
+                        dst = mNext
 
-                if dst is None:
-                    dst = mNext
-
-                # mNext.coreSelfActiveSite(eRemain)
-                # manually set activeSite
-                # cannot use coreInsert here
-                dst.insert(0, eRemain)
+                if eOffset >= mEnd:
+                    # move elements that begin past measure boundary to the next measure.
+                    dst.insert(eOffset - mEnd, e)
+                    returnObj.remove(e, recurse=True)
+                else:
+                    qLenWithinMeasure = mEnd - eOffset
+                    e, eRemain = e.splitAtQuarterLength(
+                        qLenWithinMeasure,
+                        retainOrigin=True,
+                        displayTiedAccidentals=displayTiedAccidentals
+                    )
+                    # mNext.coreSelfActiveSite(eRemain)
+                    # manually set activeSite
+                    # cannot use coreInsert here
+                    dst.insert(0, eRemain)
 
                 # we are not sure that this element fits
                 # completely in the next measure, thus, need to
@@ -1351,6 +1351,7 @@ def makeTies(
                     # need to make sure that the new measure is processed.
                     measureList.append(mNext)
                     mNextAdd = False
+
         mCount += 1
 
     for measure in returnObj.getElementsByClass(stream.Measure):
@@ -2369,6 +2370,22 @@ class Test(unittest.TestCase):
         self.assertEqual(pp[stream.Measure][1].notes.first().duration.quarterLength, 24.0)
         self.assertEqual(len(pp[stream.Measure][2].notes), 1)
         self.assertEqual(pp[stream.Measure][2].notes.first().duration.quarterLength, 24.0)
+
+    def testMakeTiesInNextMeasure(self):
+        from music21 import stream
+        p = stream.Part()
+        m1 = stream.Measure(number=1)
+        m1.insert(0, meter.TimeSignature('4/4'))
+        m1.insert(4.0, note.Note('C4', quarterLength=5.0))
+        m1.insert(5.0, note.Note('D4', quarterLength=5.0))
+        m2 = stream.Measure(number=2)
+        m2.insert(0, note.Note('E4', quarterLength=4.0))
+        p.append(m1)
+        p.insert(4, m2)
+        pp = p.makeTies()
+        self.assertEqual(len(pp[stream.Measure][0].notes), 0)
+        self.assertEqual(len(pp[stream.Measure][1].notes), 3)
+        self.assertEqual(len(pp[stream.Measure][2].notes), 2)
 
     def testSaveAccidentalDisplayStatus(self):
         from music21 import interval

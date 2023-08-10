@@ -7602,7 +7602,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                 print(n.duration.quarterLength, n.measureNumber, n.offset, n.pitch)
                                 raise ValueError(f"Continue tie misused as start tie (?, ?) -> ({n.offset}, {n.pitch})!")
                             # Find end for this one
-                            for j in range(i+1, len(notes_and_rests)):
+                            for j in range(i + 1, len(notes_and_rests)):
                                 if j in posDelete or j in tied:
                                     continue
                                 if n.pitch.step == notes_and_rests[j].pitch.step and n.pitch.isEnharmonic(notes_and_rests[j].pitch):

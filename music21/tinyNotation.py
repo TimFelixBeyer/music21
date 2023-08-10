@@ -1407,7 +1407,7 @@ class Converter:
 
         Currently runs `.makeMeasures` on `.stream` unless `.makeNotation` is `False`.
         '''
-        if self.makeNotation is not False:
+        if self.makeNotation:
             self.stream.makeMeasures(inPlace=True)
 
 

@@ -565,7 +565,7 @@ class StreamFreezer(StreamFreezeThawBase):
 
         N.B. with variants:
 
-        >>> id(s2) == id(v._stream)
+        >>> s2 is v._stream
         False
 
         The method also sets self.streamIds to the returned list:
