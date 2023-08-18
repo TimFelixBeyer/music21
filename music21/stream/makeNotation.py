@@ -1287,6 +1287,9 @@ def makeTies(
             for e in v:
                 if e.classSet.isdisjoint(classFilterList):
                     continue
+                if e not in v:
+                    # may happen because we remove elements from voices during iteration
+                    continue
                 vId = v.id
                 # environLocal.printDebug([
                 #    'Stream.makeTies() iterating over elements in measure',
@@ -1305,6 +1308,14 @@ def makeTies(
                         if not isinstance(vId, int):
                             try:
                                 dst = mNext.voices[vId]
+                                # We have to ensure that the voices remain flat.
+                                # Check if we can add the element to the voice:
+                                if any(n.offset < overshot for n in dst.notes):
+                                    # Need to move into new voice
+                                    v = stream.Voice(id=max(int(v.id) for v in mNext.voices) + 1)
+                                    mNext.insert(0, v)
+                                    dst = v
+
                             except KeyError:
                                 v = stream.Voice(id=vId)
                                 mNext.insert(0, v)
@@ -1325,7 +1336,7 @@ def makeTies(
                         dst = mNext
 
                 if eOffset >= mEnd:
-                    # move elements that begin past measure boundary to the next measure.
+                    # move elements that lie past the measure boundary to the next measure
                     dst.insert(eOffset - mEnd, e)
                     returnObj.remove(e, recurse=True)
                 else:
