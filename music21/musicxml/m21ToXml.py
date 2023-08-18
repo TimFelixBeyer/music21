@@ -3135,11 +3135,7 @@ class MeasureExporter(XMLExporterBase):
 
         allVoices = list(m.voices)
         for i, v in enumerate(allVoices):
-            if i == len(allVoices) - 1:
-                backupAfterwards = False
-            else:
-                backupAfterwards = True
-
+            backupAfterwards = i < len(allVoices) - 1
             # Assumes voices are flat...
             self.parseFlatElements(v, backupAfterwards=backupAfterwards)
 

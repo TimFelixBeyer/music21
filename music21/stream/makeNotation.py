@@ -1305,6 +1305,14 @@ def makeTies(
                         if not isinstance(vId, int):
                             try:
                                 dst = mNext.voices[vId]
+                                # We have to ensure that the voices remain flat.
+                                # Check if we can add the element to the voice:
+                                if any(n.offset < overshot for n in dst.notes):
+                                    # Need to move into new voice
+                                    v = stream.Voice(id=max(int(v.id) for v in mNext.voices) + 1)
+                                    mNext.insert(0, v)
+                                    dst = v
+
                             except KeyError:
                                 v = stream.Voice(id=vId)
                                 mNext.insert(0, v)
