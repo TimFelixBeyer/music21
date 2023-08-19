@@ -1803,23 +1803,11 @@ class Expander(t.Generic[StreamType]):
         repeatBracketsMemo = {}  # store completed brackets
 
         maxProcesses = 100  # safety check
-        while maxProcesses > 0:
-            maxProcesses = maxProcesses - 1
-            # environLocal.printDebug(['process(): top of loop'])
-            # post.show('t')
-            # post = self.processInnermostRepeatBars(post)
+        while self._hasRepeat(streamObj) and maxProcesses > 0:
             streamObj = self._processInnermostRepeatsAndBrackets(
                 streamObj,
                 repeatBracketsMemo=repeatBracketsMemo)
-
-            # post.show('t')
-            if self._hasRepeat(streamObj):
-                pass
-                # environLocal.printDebug(['process() calling:
-                # self.findInnermostRepeatIndices(post)',
-                # self.findInnermostRepeatIndices(post)])
-            else:
-                break  # nothing left to process
+            maxProcesses -= 1
         return streamObj
 
     def _processRepeatExpressionAndRepeats(self, streamObj):
