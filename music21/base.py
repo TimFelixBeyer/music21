@@ -2250,10 +2250,10 @@ class Music21Object(prebase.ProtoM21Object):
             returnSortTuples=True,
             priorityTargetOnly=activeSiteOnly,
         ))
-        maxRecurse = 20
-
         thisElForNext = self
-        while maxRecurse:
+
+        maxRecurse = 20
+        while maxRecurse > 0:
             nextEl = thisElForNext.getContextByClass(
                 className=className,
                 getElementMethod=ElementSearch.AFTER_NOT_SELF,
@@ -2261,27 +2261,19 @@ class Music21Object(prebase.ProtoM21Object):
                 priorityTargetOnly=activeSiteOnly,
             )
 
-            callContinue = False
             for singleSiteContext, unused_positionInContext, unused_recurseType in allSiteContexts:
                 if nextEl is singleSiteContext:
                     nextEl = t.cast('music21.stream.Stream', nextEl)
                     if nextEl and nextEl[0] is not self:  # has elements
                         return nextEl[0]
-
                     thisElForNext = nextEl
-                    callContinue = True
                     break
-
-            if callContinue:
-                maxRecurse -= 1
-                continue
-
-            if nextEl is not self:
-                return nextEl
+            else:
+                if nextEl is not self:
+                    return nextEl
             maxRecurse -= 1
 
-        if maxRecurse == 0:
-            raise Music21Exception('Maximum recursion!')
+        raise Music21Exception('Maximum recursion!')
 
     def previous(self,
                  className: type[Music21Object] | str | None = None,
@@ -2349,30 +2341,22 @@ class Music21Object(prebase.ProtoM21Object):
         #                          getElementMethod=ElementSearch.BEFORE_NOT_SELF)
         #         if prevElPrev and prevElPrev is not self:
         #             return prevElPrev
-        isInPart = False
-        if self.isStream and prevEl is not None:
-            # if self is a Part, ensure that the previous element is not in self
-            for cs, unused1, unused2 in prevEl.contextSites():
-                if cs is self:
-                    isInPart = True
-                    break
+        if prevEl and prevEl is not self:
+            if not (self.isStream and any(True for cs, _, _ in prevEl.contextSites() if cs is self)):
+                return prevEl
 
-        if prevEl and prevEl is not self and not isInPart:
-            return prevEl
-        else:
-            # okay, go up to next level
-            activeS = self.activeSite  # might be None...
-            if activeS is None:
-                return None
-            asTree = activeS.asTree(classList=[className], flatten=False)
-            prevNode = asTree.getNodeBefore(self.sortTuple())
-            if prevNode is None:
-                if className is None or className in activeS.classSet:
-                    return activeS
-                else:
-                    return None
-            else:
-                return prevNode.payload
+        # okay, go up to next level
+        activeS = self.activeSite
+        if activeS is None:
+            return None
+        asTree = activeS.asTree(classList=[className], flatten=False)
+        prevNode = asTree.getNodeBefore(self.sortTuple())
+
+        if prevNode is not None:
+            return prevNode.payload
+        if className is None or className in activeS.classSet:
+            return activeS
+        return None
 
     # end contexts...
     # --------------------------------------------------------------------------------

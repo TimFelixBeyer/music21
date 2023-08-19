@@ -147,30 +147,6 @@ def getUserData():
     return post
 
 
-def _crawlPathUpward(start, target):
-    '''
-    Ascend up paths given a start; return when target file has been found.
-    '''
-    lastDir = start
-    thisDir = lastDir
-    match = None
-    # first, ascend upward
-    while True:
-        environLocal.printDebug(f'at dir: {thisDir}')
-        if match is not None:
-            break
-        for fn in sorted(os.listdir(thisDir)):
-            if fn == target:
-                match = os.path.join(thisDir, fn)
-                break
-        lastDir = thisDir
-        thisDir, junk = os.path.split(thisDir)
-        if thisDir == lastDir:  # at top level
-            break
-    return match
-
-
-
 # ------------------------------------------------------------------------------
 # error objects, not exceptions
 class DialogError:

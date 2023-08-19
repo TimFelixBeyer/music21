@@ -1763,11 +1763,20 @@ class Expander(t.Generic[StreamType]):
         '''
         match = self._daCapoOrSegno()
         # if neither repeats nor segno/capo, then not expandable
-        if match is None and not self._hasRepeat(self._srcMeasureStream):
-            environLocal.printDebug(
-                'no dc/segno, no repeats; is expandable but will not do anything'
-            )
-            return None
+        if match is None:
+            if not self._hasRepeat(self._srcMeasureStream):
+                environLocal.printDebug(
+                    'no dc/segno, no repeats; is expandable but will not do anything'
+                )
+                return None
+        elif match == DaCapo:
+            if not self._daCapoIsCoherent():
+                environLocal.printDebug('dc not coherent')
+                return False
+        elif match == Segno:
+            if not self._dalSegnoIsCoherent():
+                environLocal.printDebug('ds not coherent')
+                return False
 
         if not self.repeatBarsAreCoherent():
             environLocal.printDebug('repeat bars not coherent')
@@ -1777,15 +1786,6 @@ class Expander(t.Generic[StreamType]):
             environLocal.printDebug('repeat brackets are not coherent')
             return False
 
-        if match is not None:
-            if match == DaCapo:
-                if not self._daCapoIsCoherent():
-                    environLocal.printDebug('dc not coherent')
-                    return False
-            elif match == Segno:
-                if not self._dalSegnoIsCoherent():
-                    environLocal.printDebug('ds not coherent')
-                    return False
         return True
 
     def _processRecursiveRepeatBars(self, streamObj, makeDeepCopy=False):
