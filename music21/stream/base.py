@@ -2291,13 +2291,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             offset = offsetOrItemOrList
             item = itemOrNone
         elif itemOrNone is None and isinstance(offsetOrItemOrList, list):
-            i = 0
-            while i < len(offsetOrItemOrList):
-                offset = offsetOrItemOrList[i]
-                item = offsetOrItemOrList[i + 1]
-                # recursively calling insert() here
+            for offset, item in zip(offsetOrItemOrList[::2], offsetOrItemOrList[1::2]):
                 self.insert(offset, item, ignoreSort=ignoreSort)
-                i += 2
             return
         # assume first arg is item, and that offset is local offset of object
         else:
@@ -7300,18 +7295,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             else:
                 return None
 
-        # need to just get .notesAndRests with a nonzero duration,
-        # as there may be other objects in the Measure
-        # that come before the first Note, such as a SystemLayout object
-        # or there could be ChordSymbols with zero (unrealized) durations
-        f = returnObj.flatten()
-        notes_and_rests: StreamType = f.notesAndRests.addFilter(
-            lambda el, _iterator: el.quarterLength > 0
-        ).stream()
-
-        posConnected = []  # temporary storage for index of tied notes
-        posDelete = []  # store deletions to be processed later
-
         def updateEndMatch(nInner) -> bool:
             '''
             updateEndMatch based on nList, iLast, matchByPitch, etc.
@@ -7390,6 +7373,16 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                         return False
             return True
         if preserveVoices:
+            # need to just get .notesAndRests with a nonzero duration,
+            # as there may be other objects in the Measure
+            # that come before the first Note, such as a SystemLayout object
+            # or there could be ChordSymbols with zero (unrealized) durations
+            f = returnObj.flatten()
+            notes_and_rests: StreamType = f.notesAndRests.addFilter(
+                lambda el, _iterator: el.quarterLength > 0
+            ).stream()
+            posConnected = []  # temporary storage for index of tied notes
+            posDelete = []  # store deletions to be processed later
             for i in range(len(notes_and_rests)):
                 endMatch = None  # can be True, False, or None
                 n = notes_and_rests[i]
@@ -9628,7 +9621,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             useStreams = list(returnStream.recurse(streamsOnly=True, includeSelf=True))
 
         for useStream in useStreams:
-            rests_lacking_durations: list[note.Rest] = []
             # coreSetElementOffset() will immediately set isSorted = False,
             # but we need to know if the stream was originally sorted to know
             # if it's worth "looking ahead" to the next offset. If a stream

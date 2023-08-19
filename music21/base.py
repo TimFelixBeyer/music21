@@ -2366,15 +2366,12 @@ class Music21Object(prebase.ProtoM21Object):
 
     def _getActiveSite(self):
         # can be None
-        if WEAKREF_ACTIVE:
-            if self._activeSite is None:  # leave None
-                return None
-            else:  # even if current activeSite is not a weakref, this will work
-                # environLocal.printDebug(['_getActiveSite() called:',
-                #                          'self._activeSite', self._activeSite])
-                return common.unwrapWeakref(self._activeSite)
-        else:  # pragma: no cover
-            return self._activeSite
+        if WEAKREF_ACTIVE and self._activeSite is not None:
+            # even if current activeSite is not a weakref, this will work
+            # environLocal.printDebug(['_getActiveSite() called:',
+            #                          'self._activeSite', self._activeSite])
+            return common.unwrapWeakref(self._activeSite)
+        return self._activeSite
 
     def _setActiveSite(self, site: stream.Stream | None):
         # environLocal.printDebug(['_setActiveSite() called:', 'self', self, 'site', site])
@@ -2398,12 +2395,9 @@ class Music21Object(prebase.ProtoM21Object):
         else:
             self._activeSiteStoredOffset = None
 
-        if WEAKREF_ACTIVE:
-            if site is None:  # leave None alone
-                self._activeSite = None
-            else:
-                self._activeSite = common.wrapWeakref(site)
-        else:  # pragma: no cover
+        if WEAKREF_ACTIVE and site is not None:
+            self._activeSite = common.wrapWeakref(site)
+        else:
             self._activeSite = site
 
     activeSite = property(_getActiveSite,
@@ -2542,23 +2536,18 @@ class Music21Object(prebase.ProtoM21Object):
         #                           self.id, 'id(self)', id(self), self.__class__])
         activeSiteWeakRef = self._activeSite
         if activeSiteWeakRef is not None:
-            activeSite = self.activeSite
-            if activeSite is None:
+            if self.activeSite is None:
                 # it has died since last visit, as is the case with short-lived streams like
                 # .getElementsByClass, so we will return the most recent position
                 return self._activeSiteStoredOffset or 0.0
 
             try:
-                o = activeSite.elementOffset(self)
+                return self.activeSite.elementOffset(self)
             except SitesException:
                 environLocal.printDebug(
                     'Not in Stream: changing activeSite to None and returning _naiveOffset')
                 self.activeSite = None
-                o = self._naiveOffset
-        else:
-            o = self._naiveOffset
-
-        return o
+        return self._naiveOffset
 
     @offset.setter
     def offset(self, value: OffsetQLIn):
@@ -2681,18 +2670,15 @@ class Music21Object(prebase.ProtoM21Object):
         music21.sites.SitesException: an entry for this object 0x... is not stored in
             stream <music21.stream.Stream aloneStream>
         '''
-        useSiteNoFalse: stream.Stream | None
-        if useSite is False:  # False or a Site; since None is a valid site, default is False
-            useSiteNoFalse = self.activeSite
-        else:
-            useSiteNoFalse = useSite
+        if useSite is False:
+            useSite = self.activeSite
 
         foundOffset: OffsetQL | OffsetSpecial
-        if useSiteNoFalse is None:
+        if useSite is None:
             foundOffset = self.offset
         else:
             try:
-                foundOffset = useSiteNoFalse.elementOffset(self, returnSpecial=True)
+                foundOffset = useSite.elementOffset(self, returnSpecial=True)
             except SitesException:
                 if raiseExceptionOnMiss:
                     raise
@@ -2739,8 +2725,9 @@ class Music21Object(prebase.ProtoM21Object):
 
     @duration.setter
     def duration(self, durationObj: Duration):
-        durationObjAlreadyExists = False
-        if self._duration is not None:
+        if self._duration is None:
+            durationObjAlreadyExists = False
+        else:
             self._duration.client = None
             durationObjAlreadyExists = True
 

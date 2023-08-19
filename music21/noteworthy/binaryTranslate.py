@@ -707,17 +707,14 @@ class NWCStaff:
 
                 # print('lyric Size: ', lyricSize)
                 junk = p.readLEShort()
-                continueIt = True
                 maxRead = 1000
-                while continueIt is True and maxRead > 0:
+                while maxRead > 0:
                     syllable = p.readToNUL()
+                    if syllable != b'':
+                        break
+                    syllables.append(syllable)
                     # environLocal.warn([p.parsePosition, syllable, 'syllable'])
                     maxRead -= 1
-                    # print('syllable: ', syllable)
-                    if syllable == b'':
-                        continueIt = False
-                    else:
-                        syllables.append(syllable)
                 p.parsePosition = parsePositionStart + lyricBlockSize
                 lyrics.append(syllables)
             # print(syllables)

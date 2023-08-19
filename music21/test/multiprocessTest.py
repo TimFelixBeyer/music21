@@ -161,12 +161,11 @@ def mainPoolRunner(testGroup=('test',), restoreEnvironmentDefaults=False, leaveO
         res = pool.imap_unordered(runOneModuleWithoutImp,
                                     ((modGather, fp) for fp in pathsToRun))
 
-        continueIt = True
         timeouts = 0
         eventsProcessed = 0
         summaryOutput = []
 
-        while continueIt is True:
+        while True:
             try:
                 newResult = res.next(timeout=1)
                 if timeouts >= 5:
@@ -206,9 +205,9 @@ def mainPoolRunner(testGroup=('test',), restoreEnvironmentDefaults=False, leaveO
                     pool.close()
                     sys.exit()
             except StopIteration:
-                continueIt = False
                 pool.close()
                 pool.join()
+                break
             except Exception as excp:  # pylint: disable=broad-exception-caught
                 eventsProcessed += 1
                 exceptionLog = ModuleResponse(
