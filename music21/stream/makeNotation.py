@@ -535,8 +535,7 @@ def makeMeasures(
     o = 0.0  # initial position of first measure is assumed to be zero
     measureCount = 0
     lastTimeSignature = None
-    while True:
-        # TODO: avoid while True
+    while measureCount == 0 or o < oMax:
         m = stream.Measure()
         m.number = measureCount + 1
         # environLocal.printDebug([
@@ -586,10 +585,7 @@ def makeMeasures(
         post.coreInsert(o, m)  # insert measure
         # increment by meter length
         o += thisTimeSignature.barDuration.quarterLength
-        if o >= oMax:  # may be zero
-            break  # if length of this measure exceeds last offset
-        else:
-            measureCount += 1
+        measureCount += 1
 
     post.coreElementsChanged()
 

@@ -3462,8 +3462,8 @@ class Interval(IntervalBase):
 
         if halfStepsToFix != 0:
             while halfStepsToFix >= 12:  # small loop. faster than calculating.
-                halfStepsToFix = halfStepsToFix - 12
-                pitch2.octave = pitch2.octave - 1
+                halfStepsToFix -= 12
+                pitch2.octave -= 1
 
             # this will raise an exception if greater than 4
             if abs(halfStepsToFix) > maxAccidental:
@@ -3509,12 +3509,11 @@ class Interval(IntervalBase):
         if useImplicitOctave is True:
             pitch2.octave = None
 
-        if not inPlace:
-            return pitch2
-        else:
+        if inPlace:
             pitch1.name = pitch2.name
             pitch1.octave = pitch2.octave
             return pitch1  # do not return on inPlace for public methods
+        return pitch2
 
     def reverse(self):
         '''

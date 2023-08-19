@@ -314,7 +314,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
         return self.getRealized()
 
     @property
-    def velocity(self) -> int:
+    def velocity(self) -> int | None:
         '''
         Get or set the velocity value, a numerical value between 0 and 127 and
         available setting amplitude on each Note or Pitch in chord.

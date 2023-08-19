@@ -1565,8 +1565,8 @@ class Expander(t.Generic[StreamType]):
         return new
 
     def _processInnermostRepeatsAndBrackets(self,
-                                            streamObj,
-                                            repeatBracketsMemo=None):
+                                            streamObj: stream.StreamType,
+                                            repeatBracketsMemo=None) -> stream.StreamType:
         '''
         Return a new complete Stream with repeats and brackets
         expanded.

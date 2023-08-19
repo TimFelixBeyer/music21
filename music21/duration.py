@@ -417,12 +417,10 @@ def quarterLengthToNonPowerOf2Tuplet(
     '''
     qFrac = fractions.Fraction.from_float(1 / float(qLen)).limit_denominator(DENOM_LIMIT)
     qFracOrg = qFrac
-    if qFrac.numerator < qFrac.denominator:
-        while qFrac.numerator < qFrac.denominator:
-            qFrac = qFrac * 2
-    elif qFrac.numerator > qFrac.denominator * 2:
-        while qFrac.numerator > qFrac.denominator * 2:
-            qFrac = qFrac / 2
+    while qFrac.numerator < qFrac.denominator:
+        qFrac = qFrac * 2
+    while qFrac.numerator > qFrac.denominator * 2:
+        qFrac = qFrac / 2
     # qFrac will always be expressed in lowest terms
 
     closestSmallerType, unused_match = quarterLengthToClosestType(qLen / qFrac.denominator)

@@ -280,14 +280,12 @@ class TimespanTree(trees.OffsetTree):
             message = f'PitchedTimespan {pitchedTimespan!r}, must be an PitchedTimespan'
             raise TimespanTreeException(message)
         verticality = self.getVerticalityAt(pitchedTimespan.offset)
-        while verticality is not None:
-            verticality = verticality.nextVerticality
-            if verticality is None:
-                return None
+        while (verticality := verticality.nextVerticality) is not None:
             for nextPitchedTimespan in verticality.startTimespans:
                 if (nextPitchedTimespan.getParentageByClass(classList) is
                         pitchedTimespan.getParentageByClass(classList)):
                     return nextPitchedTimespan
+        return None
 
     def findPreviousPitchedTimespanInSameStreamByClass(self, pitchedTimespan, classList=None):
         r'''
@@ -324,14 +322,12 @@ class TimespanTree(trees.OffsetTree):
             message = f'PitchedTimespan {pitchedTimespan!r}, must be an PitchedTimespan'
             raise TimespanTreeException(message)
         verticality = self.getVerticalityAt(pitchedTimespan.offset)
-        while verticality is not None:
-            verticality = verticality.previousVerticality
-            if verticality is None:
-                return None
+        while (verticality := verticality.previousVerticality) is not None:
             for previousPitchedTimespan in verticality.startTimespans:
                 if (previousPitchedTimespan.getParentageByClass(classList) is
                         pitchedTimespan.getParentageByClass(classList)):
                     return previousPitchedTimespan
+        return None
 
     def getVerticalityAtOrBefore(self, offset):
         r'''

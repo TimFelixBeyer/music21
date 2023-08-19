@@ -2366,15 +2366,12 @@ class Music21Object(prebase.ProtoM21Object):
 
     def _getActiveSite(self):
         # can be None
-        if WEAKREF_ACTIVE:
-            if self._activeSite is None:  # leave None
-                return None
-            else:  # even if current activeSite is not a weakref, this will work
-                # environLocal.printDebug(['_getActiveSite() called:',
-                #                          'self._activeSite', self._activeSite])
-                return common.unwrapWeakref(self._activeSite)
-        else:  # pragma: no cover
-            return self._activeSite
+        if WEAKREF_ACTIVE and self._activeSite is not None:
+            # even if current activeSite is not a weakref, this will work
+            # environLocal.printDebug(['_getActiveSite() called:',
+            #                          'self._activeSite', self._activeSite])
+            return common.unwrapWeakref(self._activeSite)
+        return self._activeSite
 
     def _setActiveSite(self, site: stream.Stream | None):
         # environLocal.printDebug(['_setActiveSite() called:', 'self', self, 'site', site])
@@ -2398,12 +2395,9 @@ class Music21Object(prebase.ProtoM21Object):
         else:
             self._activeSiteStoredOffset = None
 
-        if WEAKREF_ACTIVE:
-            if site is None:  # leave None alone
-                self._activeSite = None
-            else:
-                self._activeSite = common.wrapWeakref(site)
-        else:  # pragma: no cover
+        if WEAKREF_ACTIVE and site is not None:
+            self._activeSite = common.wrapWeakref(site)
+        else:
             self._activeSite = site
 
     activeSite = property(_getActiveSite,
@@ -2542,23 +2536,18 @@ class Music21Object(prebase.ProtoM21Object):
         #                           self.id, 'id(self)', id(self), self.__class__])
         activeSiteWeakRef = self._activeSite
         if activeSiteWeakRef is not None:
-            activeSite = self.activeSite
-            if activeSite is None:
+            if self.activeSite is None:
                 # it has died since last visit, as is the case with short-lived streams like
                 # .getElementsByClass, so we will return the most recent position
                 return self._activeSiteStoredOffset or 0.0
 
             try:
-                o = activeSite.elementOffset(self)
+                return self.activeSite.elementOffset(self)
             except SitesException:
                 environLocal.printDebug(
                     'Not in Stream: changing activeSite to None and returning _naiveOffset')
                 self.activeSite = None
-                o = self._naiveOffset
-        else:
-            o = self._naiveOffset
-
-        return o
+        return self._naiveOffset
 
     @offset.setter
     def offset(self, value: OffsetQLIn):
@@ -2681,18 +2670,15 @@ class Music21Object(prebase.ProtoM21Object):
         music21.sites.SitesException: an entry for this object 0x... is not stored in
             stream <music21.stream.Stream aloneStream>
         '''
-        useSiteNoFalse: stream.Stream | None
-        if useSite is False:  # False or a Site; since None is a valid site, default is False
-            useSiteNoFalse = self.activeSite
-        else:
-            useSiteNoFalse = useSite
+        if useSite is False:
+            useSite = self.activeSite
 
         foundOffset: OffsetQL | OffsetSpecial
-        if useSiteNoFalse is None:
+        if useSite is None:
             foundOffset = self.offset
         else:
             try:
-                foundOffset = useSiteNoFalse.elementOffset(self, returnSpecial=True)
+                foundOffset = useSite.elementOffset(self, returnSpecial=True)
             except SitesException:
                 if raiseExceptionOnMiss:
                     raise
@@ -2739,8 +2725,9 @@ class Music21Object(prebase.ProtoM21Object):
 
     @duration.setter
     def duration(self, durationObj: Duration):
-        durationObjAlreadyExists = False
-        if self._duration is not None:
+        if self._duration is None:
+            durationObjAlreadyExists = False
+        else:
             self._duration.client = None
             durationObjAlreadyExists = True
 
@@ -2950,8 +2937,8 @@ class Music21Object(prebase.ProtoM21Object):
     def containerHierarchy(
         self,
         *,
-        followDerivation=True,
-        includeNonStreamDerivations=False
+        followDerivation: bool = True,
+        includeNonStreamDerivations: bool = False
     ):
         '''
         Return a list of Stream subclasses that this object
@@ -3012,37 +2999,35 @@ class Music21Object(prebase.ProtoM21Object):
         '''
         post = []
         focus = self
-        endMe = 200
-        while endMe > 0:
-            endMe = endMe - 1  # do not go forever
+        maxRecursions = 200
+        while maxRecursions > 0:
             # collect activeSite unless activeSite is None;
             # if so, try to get rootDerivation
             candidate = focus.activeSite
             # environLocal.printDebug(['containerHierarchy(): activeSite found:', candidate])
             if candidate is None:  # nothing more to derive
                 # if this is a Stream, we might find a root derivation
-                if followDerivation is True and hasattr(focus, 'derivation'):
+                if followDerivation and hasattr(focus, 'derivation'):
                     # environLocal.printDebug(['containerHierarchy():
                     # found rootDerivation:', focus.rootDerivation])
-                    alt = focus.derivation.rootDerivation
-                    if alt is None:
+                    candidate = focus.derivation.rootDerivation
+                    if candidate is None:
                         return post
-                    else:
-                        candidate = alt
                 else:
                     return post
-            if includeNonStreamDerivations is True or candidate.isStream:
+            if includeNonStreamDerivations or candidate.isStream:
                 post.append(candidate)
             focus = candidate
+            maxRecursions -= 1
         return post
 
     def splitAtQuarterLength(
         self,
         quarterLength,
         *,
-        retainOrigin=True,
-        addTies=True,
-        displayTiedAccidentals=False
+        retainOrigin: bool = True,
+        addTies: bool = True,
+        displayTiedAccidentals: bool = False
     ) -> _SplitTuple:
         # noinspection PyShadowingNames
         '''
@@ -3165,7 +3150,7 @@ class Music21Object(prebase.ProtoM21Object):
                 + f'at this quarterLength ({quarterLength})'
             )
 
-        if retainOrigin is True:
+        if retainOrigin:
             e = self
         else:
             e = copy.deepcopy(self)
@@ -3206,9 +3191,6 @@ class Music21Object(prebase.ProtoM21Object):
                         eRemainList = getattr(eRemain, listType)
                         eRemainList.append(thisExpression)
 
-        if abs(quarterLength - self.duration.quarterLength) < 0:
-            quarterLength = self.duration.quarterLength
-
         lenEnd = self.duration.quarterLength - quarterLength
         lenStart = self.duration.quarterLength - lenEnd
 
@@ -3228,17 +3210,13 @@ class Music21Object(prebase.ProtoM21Object):
             if e.tie is not None:
                 # the last tie of what was formally a start should
                 # continue
-                if e.tie.type == 'start':
-                    # keep start  if already set
+                if e.tie.type in ('start', 'continue'):
                     forceEndTieType = 'continue'
                 # a stop was ending a previous tie; we know that
                 # the first is now a "continue" type
                 elif e.tie.type == 'stop':
                     forceEndTieType = 'stop'
                     e.tie.type = 'continue'
-                elif e.tie.type == 'continue':
-                    forceEndTieType = 'continue'
-                    # keep continue if already set
             else:
                 # not sure why this is not being picked up by isinstance check
                 e.tie = tie.Tie('start')  # pylint: disable=attribute-defined-outside-init
@@ -3324,7 +3302,7 @@ class Music21Object(prebase.ProtoM21Object):
 
         if not quarterLengthList:
             raise Music21ObjectException(
-                f'cannot split empty by quarter length list.')
+                'cannot split empty by quarter length list.')
         # if nothing to do
         if len(quarterLengthList) == 1:
             # return a copy of self in a list

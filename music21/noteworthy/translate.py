@@ -451,13 +451,12 @@ class NoteworthyTranslator:
             minPosition = 1
             dictionary = 'dictionaryTreble'
 
-        while positionNote < minPosition or positionNote > (minPosition + 6):
-            if positionNote < minPosition:
-                positionNote = positionNote + 7
-                octave = octave - 1
-            if positionNote > (minPosition + 6):
-                positionNote = positionNote - 7
-                octave = octave + 1
+        while positionNote < minPosition:
+            positionNote += 7
+            octave -= 1
+        while positionNote > (minPosition + 6):
+            positionNote -= 7
+            octave += 1
         noteName = dictionaries[dictionary][positionNote]
 
         return (noteName, octave)
