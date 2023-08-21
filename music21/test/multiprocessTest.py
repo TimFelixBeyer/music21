@@ -200,7 +200,6 @@ def mainPoolRunner(testGroup=('test',), restoreEnvironmentDefaults=False, leaveO
                     print(str(timeouts) + ' ', end='', flush=True)
                 if timeouts > maxTimeout and eventsProcessed > 0:
                     print('\nToo many delays, giving up...', flush=True)
-                    continueIt = False
                     printSummary(summaryOutput, timeStart, pathsToRun)
                     pool.close()
                     sys.exit()

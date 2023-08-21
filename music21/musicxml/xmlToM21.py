@@ -866,7 +866,20 @@ class MusicXMLImporter(XMLParserBase):
         for sp in rm:
             self.spannerBundle.remove(sp)
 
+        # Fill gaps with rests where needed
         s.coreElementsChanged()
+        for m in s[stream.Measure]:
+            for v in m.voices:
+                if v:  # do not bother with empty voices
+                    # the musicDataMethods use insertCore, thus the voices need to run
+                    # coreElementsChanged
+                    v.coreElementsChanged()
+                    # Fill mid-measure gaps, and find end of measure gaps by ref to measure stream
+                    # https://github.com/cuthbertlab/music21/issues/444
+                    v.makeRests(refStreamOrTimeRange=m,
+                                fillGaps=True,
+                                inPlace=True,
+                                hideRests=True)
         s.definesExplicitSystemBreaks = self.definesExplicitSystemBreaks
         s.definesExplicitPageBreaks = self.definesExplicitPageBreaks
         for p in s.parts:
@@ -1981,6 +1994,7 @@ class PartParser(XMLParserBase):
         # is called in adjustTimeAttributesFromMeasure()
         self.stream.insert(self.lastMeasureOffset, m)
         self.adjustTimeAttributesFromMeasure(m)
+        m.coreElementsChanged()
         # TODO: musicxml4: listening
 
         return m
@@ -2176,7 +2190,7 @@ class PartParser(XMLParserBase):
             tol = 1e-6
             if (diff > 1.0
                   or nearestMultiple(diff, 0.0625)[1] < tol
-                  or nearestMultiple(diff, opFrac(1/12))[1] < tol):
+                  or nearestMultiple(diff, opFrac(1 / 12))[1] < tol):
                 mOffsetShift = mHighestTime
             else:
                 mOffsetShift = lastTimeSignatureQuarterLength
@@ -2533,19 +2547,8 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 if methName is not None:
                     meth = getattr(self, methName)
                     meth(mxObj)
-
-        if self.useVoices is True:
-            for v in self.stream.iter().voices:
-                if v:  # do not bother with empty voices
-                    # the musicDataMethods use insertCore, thus the voices need to run
-                    # coreElementsChanged
-                    v.coreElementsChanged()
-                    # Fill mid-measure gaps, and find end of measure gaps by ref to measure stream
-                    # https://github.com/cuthbertlab/music21/issues/444
-                    v.makeRests(refStreamOrTimeRange=self.stream,
-                                fillGaps=True,
-                                inPlace=True,
-                                hideRests=True)
+        for v in self.stream[stream.Voice]:
+            v.coreElementsChanged()
         self.stream.coreElementsChanged()
 
         if (self.restAndNoteCount['rest'] == 1
@@ -3602,7 +3605,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
 
             # Second check against qLen (raw), now with tuplets
             # if not almost equal, create unlinked Duration and set raw qLen
-            tol = min(0.5 / divisions, 1e-3) # MY CHANGE: increase tol 1e-7->1e-3 to get 9ths
+            tol = min(0.5 / divisions, 1e-3)  # MY CHANGE: increase tol 1e-7->1e-3 to get 9ths
             # print(d.quarterLength, qLen, tol, isclose(d.quarterLength, qLen, abs_tol=tol))
             if not isclose(d.quarterLength, qLen, abs_tol=tol):
                 d.linked = False

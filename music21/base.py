@@ -27,7 +27,7 @@ available after importing `music21`.
 <class 'music21.base.Music21Object'>
 
 >>> music21.VERSION_STR
-'9.2.0b2'
+'9.2.0b3'
 
 Alternatively, after doing a complete import, these classes are available
 under the module "base":
@@ -2342,7 +2342,9 @@ class Music21Object(prebase.ProtoM21Object):
         #         if prevElPrev and prevElPrev is not self:
         #             return prevElPrev
         if prevEl and prevEl is not self:
-            if not (self.isStream and any(True for cs, _, _ in prevEl.contextSites() if cs is self)):
+            if not self.isStream:
+                return prevEl
+            if all(cs is not self for cs, _, _ in prevEl.contextSites()):
                 return prevEl
 
         # okay, go up to next level
