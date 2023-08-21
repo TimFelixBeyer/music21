@@ -4396,10 +4396,9 @@ class Pitch(prebase.ProtoM21Object):
             if c.accidental is not None:
                 if abs(c.accidental.alter) > alterLimit:
                     break
-            if c not in post:
-                post.append(c)
-            else:  # we are looping
+            if c in post:  # are we looping?
                 break
+            post.append(c)
         # iterative scan downward
         c = self
         while True:
@@ -4412,10 +4411,9 @@ class Pitch(prebase.ProtoM21Object):
             if c.accidental is not None:
                 if abs(c.accidental.alter) > alterLimit:
                     break
-            if c not in post:
-                post.append(c)
-            else:  # we are looping
+            if c in post:  # are we looping?
                 break
+            post.append(c)
         return post
 
     # --------------------------------------------------------------------------

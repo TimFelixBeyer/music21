@@ -353,7 +353,8 @@ class StreamFreezer(StreamFreezeThawBase):
         >>> n.getOffsetBySite(s)
         Traceback (most recent call last):
         music21.sites.SitesException: an entry for this object <music21.note.Note D#>
-               is not stored in stream <music21.stream.Stream stream s>
+               is not stored in stream <music21.stream.Stream stream s> or its
+               derivation origin.
         >>> n.getOffsetBySite(s2)
         20.0
 
@@ -419,7 +420,8 @@ class StreamFreezer(StreamFreezeThawBase):
         >>> n1.getOffsetBySite(s)
         Traceback (most recent call last):
         music21.sites.SitesException: an entry for this object <music21.note.Note C#> is
-             not stored in stream <music21.stream.Measure 0 offset=0.0>
+             not stored in stream <music21.stream.Measure 0 offset=0.0> or its
+             derivation origin.
 
         Trying it again, but now with substreams:
 

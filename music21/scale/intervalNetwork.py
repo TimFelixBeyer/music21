@@ -1909,9 +1909,9 @@ class IntervalNetwork:
                 foundPitches = []  # just for membership comparison
                 i = 0
                 j = 0
-                preventPermanentRecursion = 9999
-                while preventPermanentRecursion > 0:
-                    preventPermanentRecursion -= 1
+                maxRecursion = 9999
+                while maxRecursion > 0 and i < len(post) and j < len(pre):
+                    maxRecursion -= 1
                     if i < len(post) and post[i] not in foundPitches:
                         foundPitches.append(post[i])
                         merged.append((post[i], postNodeId[i]))
@@ -1920,10 +1920,6 @@ class IntervalNetwork:
                         foundPitches.append(pre[j])
                         merged.append((pre[j], preNodeId[j]))
                     j += 1
-                    # after increment, will be eq to len of list
-                    # when both complete, break
-                    if i >= len(post) and j >= len(pre):
-                        break
                 # transfer to two lists
                 mergedPitches = []
                 mergedNodes = []

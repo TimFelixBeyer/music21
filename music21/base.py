@@ -939,7 +939,8 @@ class Music21Object(prebase.ProtoM21Object):
         >>> n.getOffsetBySite(s2)
         Traceback (most recent call last):
         music21.sites.SitesException: an entry for this object <music21.note.Note A-> is not
-              stored in stream <music21.stream.Stream notContainingStream>
+              stored in stream <music21.stream.Stream notContainingStream> or its derivation
+              origin.
 
         Consider this use of derivations:
 
@@ -986,41 +987,37 @@ class Music21Object(prebase.ProtoM21Object):
         if site is None:
             return self._naiveOffset
 
-        try:
-            a = None
-            tryOrigin: Music21Object = self
-            originMemo = set()
-            maxSearch = 100
-            while a is None:
-                try:
-                    a = site.elementOffset(tryOrigin, returnSpecial=returnSpecial)
-                except AttributeError as ae:
-                    raise SitesException(
-                        f'You were using {site!r} as a site, when it is not a Stream...'
-                    ) from ae
-                except Music21Exception as e:  # currently StreamException, but will change
-                    if tryOrigin in site._endElements:
-                        if returnSpecial is True:
-                            return OffsetSpecial.AT_END
-                        else:
-                            return site.highestTime
+        tryOrigin: Music21Object = self
+        originMemo = set()
+        maxSearch = 100
+        while maxSearch > 0:
+            try:
+                return site.elementOffset(tryOrigin, returnSpecial=returnSpecial)
+            except AttributeError as ae:
+                raise SitesException(
+                    f'You were using {site!r} as a site, when it is not a Stream...'
+                ) from ae
+            except SitesException as e:
+                if tryOrigin in site._endElements:
+                    if returnSpecial:
+                        return OffsetSpecial.AT_END
+                    else:
+                        return site.highestTime
 
-                    possiblyNoneTryOrigin = self.derivation.origin
-                    if possiblyNoneTryOrigin is None:
-                        raise e
-                    tryOrigin = possiblyNoneTryOrigin
+                possiblyNoneTryOrigin = self.derivation.origin
+                if possiblyNoneTryOrigin is None:
+                    break
+                tryOrigin = possiblyNoneTryOrigin
 
-                    if id(tryOrigin) in originMemo:
-                        raise e
-                    originMemo.add(id(tryOrigin))
-                    maxSearch -= 1  # prevent infinite recursive searches...
-                    if maxSearch < 0:
-                        raise e
-            return a
-        except SitesException as se:
-            raise SitesException(
-                f'an entry for this object {self!r} is not stored in stream {site!r}'
-            ) from se
+                if id(tryOrigin) in originMemo:
+                    break
+                originMemo.add(id(tryOrigin))
+                maxSearch -= 1  # prevent infinite recursive searches...
+
+        raise SitesException(
+            f'an entry for this object {self!r} is not stored in stream {site!r} or its'
+            ' derivation origin.'
+        )
 
     def setOffsetBySite(self,
                         site: stream.Stream | None,

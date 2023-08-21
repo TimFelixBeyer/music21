@@ -1147,7 +1147,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> thisTrebleClef.getOffsetBySite(m)
         Traceback (most recent call last):
         music21.sites.SitesException: an entry for this object <music21.clef.TrebleClef> is not
-              stored in stream <music21.stream.Measure 10 offset=0.0>
+              stored in stream <music21.stream.Measure 10 offset=0.0> or its derivation origin.
 
         The `.clef` appears in a `.show()` or other call
         just like any other element
@@ -1789,29 +1789,27 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
             # Anything that messes with ._elements or ._endElements should be in core.py
             # TODO: move it...
-            matchedEndElement = False
             baseElementCount = len(self._elements)
-            matchOffset = 0.0  # to avoid possibility of undefined
 
             if indexInStream < baseElementCount:
                 match = self._elements.pop(indexInStream)
+                matchedEndElement = False
             else:
                 match = self._endElements.pop(indexInStream - baseElementCount)
                 matchedEndElement = True
 
-            if match is not None:
-                if shiftOffsets is True:
-                    matchOffset = self.elementOffset(match)
+            if shiftOffsets:
+                matchOffset = self.elementOffset(match)
 
-                try:
-                    del self._offsetDict[id(match)]
-                except KeyError:  # pragma: no cover
-                    pass
-                self.coreElementsChanged(clearIsSorted=False)
-                match.sites.remove(self)
-                match.activeSite = None
+            try:
+                del self._offsetDict[id(match)]
+            except KeyError:  # pragma: no cover
+                pass
+            self.coreElementsChanged(clearIsSorted=False)
+            match.sites.remove(self)
+            match.activeSite = None
 
-            if shiftOffsets is True and matchedEndElement is False:
+            if shiftOffsets and not matchedEndElement:
                 matchDuration = match.duration.quarterLength
                 shiftedRegionStart = matchOffset + matchDuration
                 if (i + 1) < len(targetList):
@@ -2127,7 +2125,15 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # might change sorting, but not flatness.  Maybe other things can be False too.
         self.coreElementsChanged(updateIsFlat=False)
 
-    def elementOffset(self, element, returnSpecial=False):
+    @overload
+    def elementOffset(self, element, returnSpecial: t.Literal[False] = False) -> OffsetQL:
+        return 0.0  # astroid 1015
+
+    @overload
+    def elementOffset(self, element, returnSpecial: t.Literal[True] = True) -> OffsetQLSpecial:
+        return 0.0  # astroid 1015
+
+    def elementOffset(self, element, returnSpecial=False) -> OffsetQL | OffsetQLSpecial:
         '''
         Return the offset as an opFrac (float or Fraction) from the offsetMap.
         highly optimized for speed.
@@ -7018,7 +7024,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         makeNotation.makeTies(returnStream, meterStream=meterStream, inPlace=True)
 
+
         for m in returnStream.getElementsByClass(Measure):
+            m.flattenUnnecessaryVoices(inPlace=True)
             makeNotation.splitElementsToCompleteTuplets(m, recurse=True, addTies=True)
             makeNotation.consolidateCompletedTuplets(m, recurse=True, onlyIfTied=True)
 
@@ -9765,29 +9773,22 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         for e in eToProcess:
             # if qlList values are greater than the found duration, skip
-            if opFrac(sum(quarterLengthList)) > e.quarterLength:
+            if opFrac(sum(quarterLengthList)) == e.quarterLength:
+                qlProcess = quarterLengthList
+            elif opFrac(sum(quarterLengthList)) > e.quarterLength:
                 continue
-            elif not opFrac(sum(quarterLengthList)) == e.quarterLength:
+            else:
                 # try to map a list that is of sufficient duration
                 qlProcess = []
                 i = 0
-                while True:
+                while opFrac(sum(qlProcess)) < e.quarterLength:
                     qlProcess.append(
                         quarterLengthList[i % len(quarterLengthList)])
                     i += 1
-                    sumQL = opFrac(sum(qlProcess))
-                    if sumQL >= e.quarterLength:
-                        break
-            else:
-                qlProcess = quarterLengthList
-
-            # environLocal.printDebug(['got qlProcess', qlProcess,
-            # 'for element', e, e.quarterLength])
-
-            if not opFrac(sum(qlProcess)) == e.quarterLength:
-                raise StreamException(
-                    'cannot map quarterLength list into element Duration: %s, %s' % (
-                        sum(qlProcess), e.quarterLength))
+                if not opFrac(sum(qlProcess)) == e.quarterLength:
+                    raise StreamException(
+                        'cannot map quarterLength list into element Duration: %s, %s' % (
+                            sum(qlProcess), e.quarterLength))
 
             post = e.splitByQuarterLengths(qlProcess, addTies=addTies)
             # remove e from the source

@@ -1157,7 +1157,8 @@ def makeTies(
         {0.0} <music21.stream.Voice 2>
             {0.0} <music21.note.Note B>
     {1.0} <music21.stream.Measure 2 offset=1.0>
-        {0.0} <music21.note.Note C>
+        {0.0} <music21.stream.Voice 0x...>
+            {0.0} <music21.note.Note C>
 
     >>> for n in p2.recurse().notes:
     ...     print(n, n.tie)
@@ -1245,7 +1246,7 @@ def makeTies(
         activeTS = meterStream.getElementAtOrBefore(m.offset)
 
         # get next measure; we may not need it, but have it ready
-        if mCount + 1 < len(measureList):
+        if mCount < len(measureList) - 1:
             mNext = measureList[mCount + 1]
             mNextAdd = False  # already present; do not append
         else:  # create a new measure -> final measure
@@ -1360,9 +1361,6 @@ def makeTies(
                     mNextAdd = False
 
         mCount += 1
-
-    for measure in returnObj.getElementsByClass(stream.Measure):
-        measure.flattenUnnecessaryVoices(inPlace=True)
 
     if not inPlace:
         return returnObj
