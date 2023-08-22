@@ -1494,7 +1494,7 @@ class GenericInterval(IntervalBase):
         offsetFromKey = pAlter - stepAlter
 
         newPitch = self.transposePitch(p, inPlace=inPlace)
-        if inPlace is True:
+        if inPlace:
             newPitch = p
 
         newAccidentalByStep = k.accidentalByStep(newPitch.step)
@@ -1506,7 +1506,7 @@ class GenericInterval(IntervalBase):
         elif newPitch.accidental is not None:
             newPitch.accidental = None
 
-        if inPlace is False:
+        if not inPlace:
             return newPitch
 
     def getDiatonic(self, specifier: Specifier | str) -> DiatonicInterval:
@@ -1710,20 +1710,11 @@ class DiatonicInterval(IntervalBase):
         >>> e == 'd4'
         False
         '''
-        if not hasattr(other, 'generic'):
-            return False
-        elif not hasattr(other, 'specifier'):
-            return False
-
-        # untested...
-        # if self.direction != other.direction:
-        #    return False
-        if (self.generic == other.generic
-            and self.specifier == other.specifier
-                and self.direction == other.direction):
-            return True
-        else:
-            return False
+        return (hasattr(other, 'generic')
+                and hasattr(other, 'specifier')
+                and self.generic == other.generic
+                and self.specifier == other.specifier
+                and self.direction == other.direction)
 
     def __hash__(self):
         return id(self) >> 4
@@ -1748,7 +1739,7 @@ class DiatonicInterval(IntervalBase):
         >>> interval.DiatonicInterval('P', 4).niceName
         'Perfect Fourth'
         '''
-        return self.specifier.niceName + ' ' + self.generic.niceName
+        return f'{self.specifier.niceName} {self.generic.niceName}'
 
     @property
     def specificName(self) -> str:
@@ -1769,7 +1760,7 @@ class DiatonicInterval(IntervalBase):
         >>> interval.DiatonicInterval('Augmented', 'Twelfth').simpleName
         'A5'
         '''
-        return str(self.specifier) + str(self.generic.simpleUndirected)
+        return f'{self.specifier}{self.generic.simpleUndirected}'
 
     @property
     def simpleNiceName(self) -> str:
@@ -1779,7 +1770,7 @@ class DiatonicInterval(IntervalBase):
         >>> interval.DiatonicInterval('d', 14).simpleNiceName
         'Diminished Seventh'
         '''
-        return self.specifier.niceName + ' ' + self.generic.simpleNiceName
+        return f'{self.specifier.niceName} {self.generic.simpleNiceName}'
 
     @property
     def semiSimpleName(self) -> str:
@@ -1792,7 +1783,7 @@ class DiatonicInterval(IntervalBase):
         >>> interval.DiatonicInterval('Diminished', 'Descending Octave').semiSimpleName
         'd8'
         '''
-        return str(self.specifier) + str(self.generic.semiSimpleUndirected)
+        return f'{self.specifier}{self.generic.semiSimpleUndirected}'
 
     @property
     def semiSimpleNiceName(self) -> str:
@@ -1805,7 +1796,7 @@ class DiatonicInterval(IntervalBase):
         >>> interval.DiatonicInterval('Diminished', 'Descending Octave').semiSimpleNiceName
         'Diminished Octave'
         '''
-        return self.specifier.niceName + ' ' + self.generic.semiSimpleNiceName
+        return f'{self.specifier.niceName} {self.generic.semiSimpleNiceName}'
 
     @property
     def direction(self) -> Direction:
@@ -1838,19 +1829,14 @@ class DiatonicInterval(IntervalBase):
         <Direction.OBLIQUE: 0>
 
         '''
-        if self.generic.undirected != 1:
+        if self.generic.undirected != 1 or self.specifier == Specifier.PERFECT:
             return self.generic.direction
-
-        if self.specifier == Specifier.PERFECT:
-            return self.generic.direction  # should be oblique
-
         # assume in the absence of other evidence,
         # that augmented unisons are ascending and dim are descending
         if perfSpecifiers.index(self.specifier) <= perfSpecifiers.index(Specifier.DIMINISHED):
             # orderedPerfSpecs is not the same as .value.
             return Direction.DESCENDING
-        else:
-            return Direction.ASCENDING
+        return Direction.ASCENDING
 
     @property
     def directedName(self) -> str:
@@ -1860,7 +1846,7 @@ class DiatonicInterval(IntervalBase):
         >>> interval.DiatonicInterval('Minor', -6).directedName
         'm-6'
         '''
-        return str(self.specifier) + str(self.generic.directed)
+        return f'{self.specifier}{self.generic.directed}'
 
     @property
     def directedNiceName(self) -> str:

@@ -152,7 +152,7 @@ class VexflowPickler:
 
         if urls is None:
             urls = self.defaults
-        if self.useLocal is False:
+        if not self.useLocal:
             loadM21formatted = self.loadM21Template.format(m21URI=urls['m21URI'],
                                                            requireURI=urls['requireURI'],)
         else:

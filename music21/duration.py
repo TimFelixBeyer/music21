@@ -1789,7 +1789,7 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         return True
 
     def _reprInternal(self):
-        if self.linked is True:
+        if self.linked:
             return str(self.quarterLength)
         else:
             return f'unlinked type:{self.type} quarterLength:{self.quarterLength}'
@@ -1858,13 +1858,13 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         return self._linked
 
     def _setLinked(self, value: bool):
-        if value not in (True, False):
+        if not isinstance(value, bool):
             raise TypeError(f'Linked can only be True or False, not {value}')
         if self._quarterLengthNeedsUpdating:
             self._updateQuarterLength()
-        if value is False and self._linked is True:
+        if not value and self._linked:
             self._unlinkedType = self.type
-        elif value is True and self._linked is False:
+        elif value and not self._linked:
             self._quarterLengthNeedsUpdating = True
             self._componentsNeedUpdating = True
 
@@ -2503,7 +2503,7 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
 
         * Changed in v7: made private.  And faster
         '''
-        if self.linked is False:
+        if not self.linked:
             return
 
         if self._dotGroups == (0,) and not self.tuplets and len(self.components) == 1:
@@ -2914,13 +2914,13 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         return self._qtrLength
 
     def _setQuarterLength(self, value: OffsetQLIn):
-        if self.linked is False:
+        if not self.linked:
             self._qtrLength = value
         elif (self._qtrLength != value
                 or self._componentsNeedUpdating  # skip a type update for next type check
                 or self.type == 'inexpressible'):
             value = opFrac(value)
-            if value == 0.0 and self.linked is True:
+            if value == 0.0 and self.linked:
                 self.clear()
             self._tuplets = ()
             self._qtrLength = value
@@ -3045,7 +3045,7 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         >>> a.quarterLength
         0.25
         '''
-        if self.linked is False:
+        if not self.linked:
             if self._unlinkedType is None:  # pragma: no cover
                 raise DurationException(
                     'linked property setter failed to set _unlinkedType, please open a bug report'
@@ -3183,7 +3183,7 @@ class GraceDuration(Duration):
         # will later be removed
         if self._componentsNeedUpdating:
             self._updateComponents()
-        self.linked = False
+        self.linked: bool = False
         self.quarterLength = 0.0
         newComponents = []
         for c in self.components:
@@ -3334,16 +3334,15 @@ class TupletFixer:
 
         self.allTupletGroups = []
         currentTupletGroup: list[note.GeneralNote] = []
-        tupletActive = False
+        tupletActive: bool = False
         for n in self.streamIn.notesAndRests:
             if not n.duration.tuplets:  # most common case first
-                if tupletActive is True:
+                if tupletActive:
                     self.allTupletGroups.append(currentTupletGroup)
                     currentTupletGroup = []
                     tupletActive = False
                 continue
-            if tupletActive is False:
-                tupletActive = True
+            tupletActive = True
             currentTupletGroup.append(n)
             if incorporateGroupings and n.duration.tuplets[0].type == 'stop':
                 self.allTupletGroups.append(currentTupletGroup)

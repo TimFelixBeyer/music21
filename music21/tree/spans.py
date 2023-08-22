@@ -142,7 +142,7 @@ class Timespan:
 
         return type(self)(offset=offset, endTime=endTime)
 
-    def canMerge(self, other):
+    def canMerge(self, other) -> tuple[bool, str]:
         '''
         returns a tuple of (True or False) if these timespans can be merged
         with the second element being a message or None.
@@ -190,7 +190,7 @@ class Timespan:
             <Timespan 6.0 10.0>: not contiguous
         '''
         can, message = self.canMerge(other)
-        if can is False:
+        if not can:
             raise TimespanException(message)
 
         if self.offset < other.offset:
@@ -552,7 +552,7 @@ class PitchedTimespan(ElementTimespan):
         '''
         return self.element.pitches
 
-    def canMerge(self, other):
+    def canMerge(self, other) -> tuple[bool, str]:
         '''
         sub-method of base canMerge that checks to see if the pitches are the same.
 
@@ -617,10 +617,8 @@ class PitchedTimespan(ElementTimespan):
 
         '''
         can, message = super().canMerge(other)
-        if can is True:
-            if self.pitches != other.pitches:
-                message = f'Cannot merge {self} with {other}: different pitches'
-                can = False
+        if can and self.pitches != other.pitches:
+            return (False, f'Cannot merge {self} with {other}: different pitches')
         return (can, message)
 
 

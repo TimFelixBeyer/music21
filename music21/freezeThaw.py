@@ -213,7 +213,7 @@ class StreamFreezer(StreamFreezeThawBase):
 
         self.subStreamFreezers = {}  # this will keep track of sub freezers for spanners
 
-        if streamObj is not None and fastButUnsafe is False:
+        if streamObj is not None and not fastButUnsafe:
             # deepcopy necessary because we mangle sites in the objects
             # before serialization
             self.stream = copy.deepcopy(streamObj)

@@ -1579,13 +1579,13 @@ class CorpusDocumenter(Documenter):
         # worksAreVirtual = corpusWork.virtual
         # if worksAreVirtual:
         #     workTitle += ' (*virtual*)'
-        if isSingleWork is False:
+        if not isSingleWork:
             result.append(workTitle)
             result.append('')
         procedure = self.getRstWorkFileDictFormat
         # if worksAreVirtual:
         #     procedure = self.getRstVirtualWorkFileDictFormat
-        if isSingleWork is False:
+        if not isSingleWork:
             for corpusFile in corpusWork.files:
                 result.extend(['- ' + procedure(corpusFile), ''])
         else:

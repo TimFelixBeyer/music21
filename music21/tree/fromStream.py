@@ -251,7 +251,7 @@ def asTree(
                     offset=flatOffset,
                     endTime=endTime)
                 inner_outputTree.insert(pitchedTimespan)
-            elif groupOffsets is False:
+            elif not groupOffsets:
                 # for sortTuples
                 position = element.sortTuple(lastParentage)
                 flatPosition = position.modify(offset=flatOffset)
@@ -266,10 +266,10 @@ def asTree(
 
     if useTimespans:
         treeClass = timespanTree.TimespanTree
-    elif groupOffsets is False:
-        treeClass = trees.ElementTree
-    else:
+    elif groupOffsets:
         treeClass = trees.OffsetTree
+    else:
+        treeClass = trees.ElementTree
 
     # this lets us use the much faster populateFromSortedList -- the one-time
     # sort in C is faster than the node implementation.
@@ -278,16 +278,15 @@ def asTree(
 
     # check to see if we can shortcut and make a Tree very fast from a sorted list.
     if (inputStream.isSorted
-            and groupOffsets is False  # currently we can't populate for an OffsetTree*
+            and not groupOffsets  # currently we can't populate for an OffsetTree*
             and (inputStream.isFlat or flatten is False)):
         outputTree: trees.OffsetTree | trees.ElementTree = treeClass(source=inputStream)
         return makeFastShallowTreeFromSortedStream(inputStream,
                                                    outputTree=outputTree,
                                                    classList=classList)
-    else:
-        return recurseGetTreeByClass(inputStream,
-                                     currentParentage=(inputStream,),
-                                     initialOffset=0.0)
+    return recurseGetTreeByClass(inputStream,
+                                    currentParentage=(inputStream,),
+                                    initialOffset=0.0)
 
 def makeFastShallowTreeFromSortedStream(
     inputStream: stream.Stream,

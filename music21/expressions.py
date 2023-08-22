@@ -81,52 +81,49 @@ def realizeOrnaments(
 
     if not hasattr(srcObject, 'expressions'):
         return [srcObject]
-    elif not srcObject.expressions:
+    if not srcObject.expressions:
         return [srcObject]
-    else:
-        preExpandList = []
-        postExpandList = []
 
-        loopBuster = 100
-        while loopBuster:
-            if t.TYPE_CHECKING:
-                # if it was set to None, we break out of the loop, so we won't get here
-                assert srcObject is not None
-            loopBuster -= 1
-            thisExpression = srcObject.expressions[0]
-            if hasattr(thisExpression, 'realize'):
-                preExpand, newSrcObject, postExpand = thisExpression.realize(
-                    srcObject, keySig=keySig
-                )
-                for i in preExpand:
-                    preExpandList.append(i)
-                for i in postExpand:
-                    postExpandList.append(i)
-                if newSrcObject is None:
-                    # some ornaments eat up the entire source object. Trills for instance
-                    srcObject = newSrcObject
-                    break
-                newSrcObject.expressions = srcObject.expressions[1:]
+    preExpandList = []
+    postExpandList = []
+
+    maxSearch = 100
+    while maxSearch:
+        if t.TYPE_CHECKING:
+            # if it was set to None, we break out of the loop, so we won't get here
+            assert srcObject is not None
+        maxSearch -= 1
+        thisExpression = srcObject.expressions[0]
+        if hasattr(thisExpression, 'realize'):
+            preExpand, newSrcObject, postExpand = thisExpression.realize(
+                srcObject, keySig=keySig
+            )
+            for i in preExpand:
+                preExpandList.append(i)
+            for i in postExpand:
+                postExpandList.append(i)
+            if newSrcObject is None:
+                # some ornaments eat up the entire source object. Trills for instance
                 srcObject = newSrcObject
-                if t.TYPE_CHECKING:
-                    # if newSrcObject/srcObject were None, we would have broken out of the loop
-                    assert srcObject is not None
-                if not srcObject.expressions:
-                    break
-            else:  # cannot realize this object
-                srcObject.expressions = srcObject.expressions[1:]
-                if not srcObject.expressions:
-                    break
+                break
+            newSrcObject.expressions = srcObject.expressions[1:]
+            srcObject = newSrcObject
+            if t.TYPE_CHECKING:
+                # if newSrcObject/srcObject were None, we would have broken out of the loop
+                assert srcObject is not None
+            if not srcObject.expressions:
+                break
+        else:  # cannot realize this object
+            srcObject.expressions = srcObject.expressions[1:]
+            if not srcObject.expressions:
+                break
 
-        retList = []
-        # TODO: use extend...
-        for i in preExpandList:
-            retList.append(i)
-        if srcObject is not None:
-            retList.append(srcObject)
-        for i in postExpandList:
-            retList.append(i)
-        return retList
+    retList = preExpandList
+    if srcObject is not None:
+        retList.append(srcObject)
+    for i in postExpandList:
+        retList.append(i)
+    return retList
 
 
 # ------------------------------------------------------------------------------
