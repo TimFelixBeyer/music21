@@ -1319,6 +1319,10 @@ def makeTies(
                                 dst = v
                         else:
                             dst = mNext.getElementById(vId)
+                            if dst is None:
+                                v = stream.Voice(id=vId)
+                                mNext.insert(0, v)
+                                dst = v
                     # src does not have voice, but dst does
                     else:  # place in top-most voice
                         dst = mNext.voices[0]
