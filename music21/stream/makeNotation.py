@@ -974,7 +974,7 @@ def makeRests(
             returnObj.setElementOffset(m, accumulatedTime)
             accumulatedTime += m.highestTime
 
-    if inPlace is not True:
+    if not inPlace:
         return returnObj
 
 def makeTies(

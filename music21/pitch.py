@@ -4106,10 +4106,8 @@ class Pitch(prebase.ProtoM21Object):
         '''
         # sigh...mypy
         if inPlace:
-            self._getEnharmonicHelper(inPlace=True, up=True)
-            return None
-        else:
-            return self._getEnharmonicHelper(inPlace=False, up=True)
+            return self._getEnharmonicHelper(inPlace=True, up=True)
+        return self._getEnharmonicHelper(inPlace=False, up=True)
 
 
     @overload
@@ -4750,7 +4748,6 @@ class Pitch(prebase.ProtoM21Object):
 
         if not inPlace:
             return src
-        return None
 
     def transposeAboveTarget(self: PitchType,
                              target,
@@ -5015,29 +5012,22 @@ class Pitch(prebase.ProtoM21Object):
 
         pitchPastAll = pitchPastMeasure + pitchPast
 
-        if overrideStatus is False:  # go with what we have defined
-            if acc is None:
-                pass  # no accidental defined; we may need to add one
-            elif acc.displayStatus is None:  # not set; need to set
-                # configure based on displayStatus alone, continue w/ normal
-                pass
-            elif acc.displayStatus in (True, False):
+        if not overrideStatus:  # go with what we have defined
+            if acc is not None and acc.displayStatus in (True, False):
                 return  # exit: already set, do not override
+            # no accidental defined; we may need to add one
+            # or displayStatus not set; need to set
+            # configure based on displayStatus alone, continue w/ normal
 
         # remove the never possibilities.
         if acc is not None and acc.displayType == 'never':
             acc.displayStatus = False
             return
 
-        if lastNoteWasTied is True:
+        if lastNoteWasTied:
             if acc is not None:
-                if acc.displayType != 'even-tied':
-                    acc.displayStatus = False
-                else:
-                    acc.displayStatus = True
-                return
-            else:
-                return  # exit: nothing more to do
+                acc.displayStatus = (acc.displayType == 'even-tied')
+            return  # exit: nothing more to do
 
         if (
             otherSimultaneousPitches
@@ -5092,7 +5082,7 @@ class Pitch(prebase.ProtoM21Object):
         # here tied and always are treated the same; we assume that
         # making ties sets the displayStatus, and thus we would not be
         # overriding that display status here
-        if (cautionaryAll is True
+        if (cautionaryAll
             or (acc is not None
                 and acc.displayType in ('even-tied', 'always'))):
             # show all accidentals, even if past encountered
@@ -5178,14 +5168,11 @@ class Pitch(prebase.ProtoM21Object):
 
             # store whether these match at the same octave; needed for some
             # comparisons even if not matching pitchSpace
-            if self.octave == pitchPastAll[i].octave:
-                octaveMatch = True
-            else:
-                octaveMatch = False
+            octaveMatch = self.octave == pitchPastAll[i].octave
 
             # repeats of the same pitch immediately following, in the same measure
             # where one previous pitch has displayStatus = True; don't display
-            if (continuousRepeatsInMeasure is True
+            if (continuousRepeatsInMeasure
                     and pPast.accidental is not None
                     and pPast.accidental.displayStatus is True):
                 # only needed if one has a natural and this does not
@@ -5208,8 +5195,8 @@ class Pitch(prebase.ProtoM21Object):
                 #   should not show accidental if cautionaryNotImmediateRepeat is False
 
                 # if not in the same octave, and not in the key sig, do show accidental
-                if (self._nameInKeySignature(alteredPitches) is False
-                    and (octaveMatch is False
+                if (not self._nameInKeySignature(alteredPitches)
+                    and (not octaveMatch
                          or pPast.accidental.displayStatus is False)):
                     displayAccidentalIfNoPreviousAccidentals = True
                     continue
@@ -5224,29 +5211,24 @@ class Pitch(prebase.ProtoM21Object):
                   and pPast.accidental.name == 'natural'
                   and (pSelf.accidental is None
                        or pSelf.accidental.name == 'natural')):
-                if continuousRepeatsInMeasure is True:  # an immediate repeat; do not show
+                if continuousRepeatsInMeasure:  # an immediate repeat; do not show
                     # unless we are altering the key signature and in
                     # a different register
-                    if (self._stepInKeySignature(alteredPitches) is True
+                    if (self._stepInKeySignature(alteredPitches)
                             and octaveMatch is False):
                         set_displayStatus(True)
                     else:
                         if acc is not None:
                             acc.displayStatus = False
-                # if we match the step in a key signature, and we want
-                # cautionary not immediate repeated
-                elif (self._stepInKeySignature(alteredPitches) is True
-                      and cautionaryNotImmediateRepeat is True):
-                    set_displayStatus(True)
-
-                # cautionaryNotImmediateRepeat is False
-                # but the previous note was not in this measure,
-                # so do the previous step anyhow
-                elif (self._stepInKeySignature(alteredPitches) is True
-                      and cautionaryNotImmediateRepeat is False
-                      and pPastInMeasure is False):
-                    set_displayStatus(True)
-
+                elif self._stepInKeySignature(alteredPitches):
+                    # if we match the step in a key signature, and we want
+                    # cautionary not immediate repeated
+                    if cautionaryNotImmediateRepeat:
+                        set_displayStatus(True)
+                    elif not pPastInMeasure:
+                        # the previous note was not in this measure,
+                        # so do the previous step anyhow
+                        set_displayStatus(True)
                 # other cases: already natural in past usage, do not need
                 # natural again (and not in key sig)
                 else:
@@ -5262,9 +5244,9 @@ class Pitch(prebase.ProtoM21Object):
                   and pPast.accidental.name != 'natural'
                   and (pSelf.accidental is None
                        or pSelf.accidental.displayStatus is False)):
-                if octaveMatch is False and cautionaryPitchClass is False:
+                if not (octaveMatch or cautionaryPitchClass):
                     continue
-                if (octaveMatch is False
+                if (not octaveMatch
                         and acc is not None
                         and acc.displayType == 'if-absolutely-necessary'):
                     continue
@@ -5310,13 +5292,13 @@ class Pitch(prebase.ProtoM21Object):
             # if A# to A# and not immediately repeated:
             # default is to show accidental
             # if cautionaryNotImmediateRepeat is False, will not be shown
-            elif (continuousRepeatsInMeasure is False
+            elif (not continuousRepeatsInMeasure
                   and pPast.accidental is not None
                   and pSelf.accidental is not None
                   and pPast.accidental.name == pSelf.accidental.name
                   and acc is not None  # redundant.  for mypy
                   and octaveMatch is True):
-                if (cautionaryNotImmediateRepeat is False
+                if (not cautionaryNotImmediateRepeat
                         and pPast.accidental.displayStatus is not False):
                     # do not show (unless previous note's accidental wasn't displayed
                     # because of a tie or some other reason)
@@ -5329,10 +5311,7 @@ class Pitch(prebase.ProtoM21Object):
                     # in case of ties...
                     displayAccidentalIfNoPreviousAccidentals = True
                 else:
-                    if not self._nameInKeySignature(alteredPitches):
-                        acc.displayStatus = True
-                    else:
-                        acc.displayStatus = False
+                    acc.displayStatus = not self._nameInKeySignature(alteredPitches)
                     setFromPitchPast = True
                     return
 
@@ -5342,10 +5321,10 @@ class Pitch(prebase.ProtoM21Object):
         # if we have no previous matches for this pitch and there is
         # an accidental: show, unless in alteredPitches.
         # cases of displayAlways and related are matched above
-        if displayAccidentalIfNoPreviousAccidentals is True:
+        if displayAccidentalIfNoPreviousAccidentals:
             # not the first pitch of this nameWithOctave in the measure
             # but, because of ties, the first to be displayed
-            if self._nameInKeySignature(alteredPitches) is False:
+            if not self._nameInKeySignature(alteredPitches):
                 set_displayStatus(True)
             else:
                 if acc is not None:

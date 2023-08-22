@@ -1746,7 +1746,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         # TODO: Add an option to renumber measures
         # TODO: Shift offsets if recurse is True
-        if shiftOffsets is True and recurse is True:  # pragma: no cover
+        if shiftOffsets and recurse:  # pragma: no cover
             raise StreamException(
                 'Cannot do both shiftOffsets and recurse search at the same time...yet')
 
@@ -1776,7 +1776,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             except StreamException as se:
                 if not isinstance(target, base.Music21Object):
                     raise TypeError(f'{target} is not a Music21Object; got {type(target)}') from se
-                if recurse is True:
+                if recurse:
                     for s in self.recurse(streamsOnly=True):
                         try:
                             indexInStream = s.index(target)

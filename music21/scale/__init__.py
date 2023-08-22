@@ -2041,7 +2041,7 @@ class ConcreteScale(Scale):
         if scaleDeg is None:
             raise ScaleException('Unknown scale degree for this pitch')
 
-        if chromatic is True:
+        if chromatic:
             if accidental is None:
                 return syllableDict[scaleDeg][0]
             else:

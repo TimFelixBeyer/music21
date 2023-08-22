@@ -977,14 +977,14 @@ class GeneralNote(base.Music21Object):
         >>> r.duration
         <music21.duration.GraceDuration unlinked type:eighth quarterLength:0.0>
         '''
-        if inPlace is False:
+        if not inPlace:
             e = copy.deepcopy(self)
         else:
             e = self
 
         e.duration = e.duration.getGraceDuration(appoggiatura=appoggiatura)
 
-        if inPlace is False:
+        if not inPlace:
             return e
 
 

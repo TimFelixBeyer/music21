@@ -684,7 +684,7 @@ class StreamCore(Music21Object):
         '''
         sb = self.spannerBundle
         sIter: StreamIterator | RecursiveIterator
-        if recurse is True:
+        if recurse:
             sIter = self.recurse()  # type: ignore
         else:
             sIter = self.iter()  # type: ignore
