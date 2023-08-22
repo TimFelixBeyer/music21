@@ -135,7 +135,7 @@ class StreamIterator(prebase.ProtoM21Object, Sequence[M21ObjType]):
                  restoreActiveSites: bool = True,
                  activeInformation: ActiveInformation | None = None,
                  ignoreSorting: bool = False):
-        if not ignoreSorting and srcStream.isSorted is False and srcStream.autoSort:
+        if not ignoreSorting and not srcStream.isSorted and srcStream.autoSort:
             srcStream.sort()
         self.srcStream: StreamType = srcStream
         self.elementIndex: int = 0
