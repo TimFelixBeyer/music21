@@ -23,6 +23,7 @@ import string
 import typing as t
 
 from music21.common.types import StreamType
+from music21.common.decorators import inPlace
 from music21 import environment
 from music21 import exceptions21
 from music21 import expressions
@@ -406,7 +407,8 @@ repeatExpressionReference = [
 ]
 
 # ------------------------------
-def insertRepeatEnding(s, start, end, endingNumber: int = 1, *, inPlace=False):
+@inPlace(default=False, deepcopy=False, derivation='insertRepeatEnding')
+def insertRepeatEnding(s: stream.Stream, start, end, endingNumber: int = 1, *, inPlace=False):
     '''
     Designates a range of measures as being repeated endings (i.e. first and second endings)
     within a stream s, where s either contains measures,
@@ -434,20 +436,10 @@ def insertRepeatEnding(s, start, end, endingNumber: int = 1, *, inPlace=False):
     >>> len(c1.parts.first().getElementsByClass(spanner.RepeatBracket))
     2
     '''
-
-    if not inPlace:
-        s.coreCopyAsDerivation('insertRepeatEnding')
-
-    if s is None:
-        return None  # or raise an exception!
-
     if not s.hasMeasures():
         for part in s.parts:
             insertRepeatEnding(part, start, end, endingNumber, inPlace=True)
-        if inPlace:
-            return
-        else:
-            return s
+        return s
 
     measures = [s.measure(i) for i in range(start, end + 1)]
     rb = spanner.RepeatBracket(measures, number=endingNumber)
@@ -457,13 +449,10 @@ def insertRepeatEnding(s, start, end, endingNumber: int = 1, *, inPlace=False):
     rbOffset = measures[0].getOffsetBySite(s)
     s.insert(rbOffset, rb)
 
-    if inPlace is True:
-        return
-    else:
-        return s
+    return s
 
-
-def insertRepeat(s, start, end, *, inPlace=False):
+@inPlace(default=False, deepcopy=False, derivation='insertRepeat')
+def insertRepeat(s, start, end):
     # noinspection PyShadowingNames
     '''
     Given a stream s, inserts a start-repeat at the beginning of the
@@ -498,20 +487,10 @@ def insertRepeat(s, start, end, *, inPlace=False):
     'end'
 
     '''
-
-    if s is None:
-        return None
-
-    if not inPlace:
-        s.coreCopyAsDerivation('insertRepeat')
-
     if not s.hasMeasures():
         for part in s.parts:
             insertRepeat(part, start, end, inPlace=True)
-        if inPlace:
-            return
-        else:
-            return s
+        return s
 
     from music21 import bar
     s.measure(end).rightBarline = bar.Repeat(direction='end', times=2)
@@ -520,13 +499,10 @@ def insertRepeat(s, start, end, *, inPlace=False):
     if start != 1 or RepeatFinder(s).getQuarterLengthOfPickupMeasure() != 0:
         s.measure(start).leftBarline = bar.Repeat(direction='start')
 
-    if inPlace:
-        return
-    else:
-        return s
+    return s
 
-
-def deleteMeasures(s, toDelete, *, inPlace=False, correctMeasureNumbers=True):
+@inPlace(default=False, deepcopy=False, derivation='deleteMeasures')
+def deleteMeasures(s, toDelete, *, correctMeasureNumbers=True):
     # noinspection PyShadowingNames
     '''
     Given a Stream `s` and a list of numbers, toDelete, removes each measure
@@ -573,31 +549,22 @@ def deleteMeasures(s, toDelete, *, inPlace=False, correctMeasureNumbers=True):
     '''
     from music21 import stream
 
-    if s is None:
-        return None
-
-    if not inPlace:
-        s = s.coreCopyAsDerivation('deleteMeasures')
-
     if s.hasMeasures():
         for mNumber in toDelete:
             try:
                 removeMe = s.measure(mNumber)
+                if removeMe is not None:
+                    s.remove(removeMe)
             except exceptions21.Music21Exception:  # More specific?
-                removeMe = None
+                pass
 
-            if removeMe is not None:
-                s.remove(removeMe)
     else:
         for part in s.parts:
             deleteMeasures(part,
                            toDelete,
                            inPlace=True,
                            correctMeasureNumbers=correctMeasureNumbers)
-        if inPlace:
-            return None
-        else:
-            return s
+        return s
 
     # correct the measure numbers
     if correctMeasureNumbers:
@@ -612,11 +579,7 @@ def deleteMeasures(s, toDelete, *, inPlace=False, correctMeasureNumbers=True):
             for measure in measures:
                 measure.number = i
                 i += 1
-
-    if inPlace:
-        return None
-    else:
-        return s
+    return s
 
 
 # from musicxml

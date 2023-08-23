@@ -25,7 +25,7 @@ import unittest
 
 from music21 import beam
 from music21 import common
-from music21.common.decorators import cacheMethod
+from music21.common.decorators import cacheMethod, inPlace
 from music21 import derivation
 from music21.duration import Duration
 from music21 import environment
@@ -4576,7 +4576,8 @@ class Chord(ChordBase):
         if not match:
             raise ChordException(f'the given pitch is not in the Chord: {pitchTarget}')
 
-    def simplifyEnharmonics(self, *, inPlace=False, keyContext=None):
+    @inPlace(default=False, deepcopy=True)
+    def simplifyEnharmonics(self, *, keyContext=None):
         '''
         Calls `pitch.simplifyMultipleEnharmonics` on the pitches of the chord.
 
@@ -4598,17 +4599,11 @@ class Chord(ChordBase):
         >>> c.pitches
         (<music21.pitch.Pitch D->, <music21.pitch.Pitch F>, <music21.pitch.Pitch A->)
         '''
-        if inPlace:
-            returnObj = self
-        else:
-            returnObj = copy.deepcopy(self)
 
         pitches = pitch.simplifyMultipleEnharmonics(self.pitches, keyContext=keyContext)
         for i in range(len(pitches)):
-            returnObj._notes[i].pitch = pitches[i]
-
-        if inPlace is False:
-            return returnObj
+            self._notes[i].pitch = pitches[i]
+        return self
 
     def sortAscending(self, *, inPlace=False):
         return self.sortDiatonicAscending(inPlace=inPlace)
@@ -4672,6 +4667,7 @@ class Chord(ChordBase):
         newChord._notes.sort(key=lambda x: x.pitch.frequency)
         return newChord
 
+    @inPlace(default=False, deepcopy=True)
     def transpose(self, value, *, inPlace=False):
         '''
         Transpose the Chord by the user-provided value. If the value
@@ -4711,21 +4707,15 @@ class Chord(ChordBase):
             intervalObj = value
         else:  # try to process
             intervalObj = interval.Interval(value)
-        if not inPlace:
-            post = copy.deepcopy(self)
-        else:
-            post = self
+
         # call transpose on component Notes
-        for n in post._notes:
+        for n in self._notes:
             n.transpose(intervalObj, inPlace=True)
-        # for p in post.pitches:
+        # for p in self.pitches:
         #     # we are either operating on self or a copy; always use inPlace
         #     p.transpose(intervalObj, inPlace=True)
         #     # pitches.append(intervalObj.transposePitch(p))
-        if not inPlace:
-            return post
-        else:
-            return None
+        return self
 
     # PUBLIC PROPERTIES #
 

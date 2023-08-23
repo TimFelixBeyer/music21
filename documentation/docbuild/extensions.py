@@ -17,25 +17,21 @@ _DOC_IGNORE_MODULE_OR_PACKAGE = True
 
 def fixLines(lines):
     newLines = []
-    omitting = False
-    for i, line in enumerate(lines):
-        if ' #_DOCS_SHOW ' in line and omitting is not True:
-            newLines.append(line.replace(' #_DOCS_SHOW ', ' '))
-        elif '# _DOCS_SHOW' in line and omitting is not True:
-            newLines.append(line.replace('# _DOCS_SHOW', ' '))
-        elif '#_DOCS_HIDE' in line or '# _DOCS_HIDE' in line:
-            continue
+    include = True
+    for line in lines:
+        if ' #_DOCS_SHOW ' in line:
+            if include:
+                newLines.append(line.replace(' #_DOCS_SHOW ', ' '))
+        elif '# _DOCS_SHOW' in line:
+            if include:
+                newLines.append(line.replace('# _DOCS_SHOW', ' '))
         elif 'OMIT_FROM_DOCS' in line:
-            omitting = True
-            continue
+            include = False
         elif 'RESUME_DOCS' in line:
-            omitting = False
-            continue
+            include = True
         elif '#_RAISES_ERROR' in line:
             newLines.append(line.replace(' #_RAISES_ERROR', ' '))
-        elif omitting is True:
-            continue
-        else:
+        elif include:
             newLines.append(line)
     lines[:] = newLines
 

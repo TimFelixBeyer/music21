@@ -237,7 +237,7 @@ class JupyterNotebookReSTWriter(ReSTWriter):
     def run(self):
         for jupyterNotebookFilePath in self.jupyterNotebookFilePaths:
             nbConvertReturnCode = self.convertOneNotebook(jupyterNotebookFilePath)
-            if nbConvertReturnCode is True:
+            if nbConvertReturnCode:
                 self.cleanupNotebookAssets(jupyterNotebookFilePath)
                 print(f'\tWROTE   {common.relativepath(jupyterNotebookFilePath)}')
             else:

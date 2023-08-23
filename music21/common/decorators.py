@@ -11,7 +11,10 @@
 # ------------------------------------------------------------------------------
 from __future__ import annotations
 
+import copy
 from functools import wraps
+import typing as t
+from typing import overload
 import warnings
 
 from music21 import exceptions21
@@ -187,6 +190,59 @@ def cacheMethod(method):
         return instance._cache[funcName]
 
     return inner
+
+
+def inPlace(default, deepcopy=True, derivation=None):
+    """Decorator to allow a function to be called inPlace or not.
+    Simplifies a lot of common patterns.
+    Usually an inPlace function works as follows:
+
+    if inPlace:
+        returnObj = copy.deepcopy(arg)  # or: arg.coreCopyAsDerivation(derivation)
+    else:
+        returnObj = arg
+    ..
+    (function body)
+    ..
+    if not inPlace
+        return returnObj
+
+    This decorator does all of that for you.
+
+    Parameters
+    ----------
+    default : bool
+        If True, the function will be called inPlace by default.
+    deepcopy : bool, optional
+        Whether to deepcopy, by default True
+    derivation : _type_, optional
+        If der, by default None
+    """
+    def decorator(func):
+
+        @overload
+        def wrapper(arg, *args, inPlace=t.Literal[True], **kwargs):
+            return func(arg, *args, **kwargs)
+
+        @overload
+        def wrapper(arg, *args, inPlace=t.Literal[False], **kwargs):
+            return None
+
+        def wrapper(arg, *args, inPlace=default, **kwargs):
+            if not inPlace:
+                if deepcopy:
+                    assert derivation is None
+                    arg = copy.deepcopy(arg)
+                else:
+                    assert derivation is not None
+                    arg = arg.coreCopyAsDerivation(derivation)
+            # Call the original function with the modified argument
+            result = func(arg, *args, **kwargs)
+
+            if not inPlace:
+                return result
+        return wrapper
+    return decorator
 
 
 if __name__ == '__main__':

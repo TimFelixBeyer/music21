@@ -1359,7 +1359,7 @@ class GenericInterval(IntervalBase):
         else:
             return GenericInterval(self.undirected * (-1 * self.direction))
 
-    def transposePitch(self, p: pitch.Pitch, *, inPlace=False):
+    def transposePitch(self, p: pitch.Pitch, inPlace=False):
         '''
         transpose a pitch, retaining the accidental if any.
 
@@ -1397,17 +1397,15 @@ class GenericInterval(IntervalBase):
         useImplicitOctave = p.octave is None
         pitchDNN = p.diatonicNoteNum
 
-        if inPlace:
-            newPitch = p
-        else:
-            newPitch = copy.deepcopy(p)
+        if not inPlace:
+            p = copy.deepcopy(p)
 
-        newPitch.diatonicNoteNum = pitchDNN + self.staffDistance
-        if useImplicitOctave is True:
-            newPitch.octave = None
+        p.diatonicNoteNum = pitchDNN + self.staffDistance
+        if useImplicitOctave:
+            p.octave = None
 
         if not inPlace:
-            return newPitch
+            return p
 
     def transposePitchKeyAware(
         self,
@@ -2414,7 +2412,7 @@ class ChromaticInterval(IntervalBase):
         specifier, generic = convertSemitoneToSpecifierGeneric(self.semitones)
         return DiatonicInterval(specifier, generic)
 
-    def transposePitch(self, p: pitch.Pitch, *, inPlace=False):
+    def transposePitch(self, p: pitch.Pitch, inPlace=False):
         # noinspection PyShadowingNames
         '''
         Given a :class:`~music21.pitch.Pitch` object, return a new,
@@ -2468,25 +2466,18 @@ class ChromaticInterval(IntervalBase):
 
         * Changed in v6: added inPlace
         '''
-        if p.octave is None:
-            useImplicitOctave = True
-        else:
-            useImplicitOctave = False
-        pps = p.ps
-
         if not inPlace:
             newPitch = copy.deepcopy(p)
         else:
             newPitch = p
+        useImplicitOctave = p.octave is None
 
-        newPitch.ps = pps + self.semitones
-        if useImplicitOctave is True:
+        newPitch.ps += self.semitones
+        if useImplicitOctave:
             newPitch.octave = None
 
         if not inPlace:
             return newPitch
-
-
 # ------------------------------------------------------------------------------
 def _stringToDiatonicChromatic(
     value: str

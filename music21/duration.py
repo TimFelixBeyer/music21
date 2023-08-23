@@ -385,7 +385,7 @@ def dottedMatch(qLen: OffsetQLIn,
             durType, match = quarterLengthToClosestType(preDottedLength)
         except DurationException:
             continue
-        if match is True:
+        if match:
             return (dots, durType)
     return (False, False)
 
@@ -1203,7 +1203,7 @@ class Tuplet(prebase.ProtoM21Object):
         return base_rep
 
     def _checkFrozen(self):
-        if self.frozen is True:
+        if self.frozen:
             raise TupletException(
                 'A frozen tuplet (or one attached to a duration) has immutable length.')
 
@@ -1801,20 +1801,14 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         if self._componentsNeedUpdating:
             return common.defaultDeepcopy(self, memo, ignoreAttributes={'client'})
 
-        if (len(self._components) == 1
-                and self._dotGroups == (0,)
-                and self._linked is True
-                and not self._tuplets):  # 99% of notes...
-            # ignore all but components
-            return self.__class__(durationTuple=self._components[0])
-        elif (not self._components
-              and self._dotGroups == (0,)
-              and not self._tuplets
-              and self._linked is True):
-            # ignore all
-            return self.__class__()
-        else:
-            return common.defaultDeepcopy(self, memo, ignoreAttributes={'client'})
+        if self._linked and self._dotGroups == (0,) and not self._tuplets:
+            if len(self._components) == 1:  # 99% of notes...
+                # ignore all but components
+                return self.__class__(durationTuple=self._components[0])
+            if not self._components:
+                # ignore all
+                return self.__class__()
+        return common.defaultDeepcopy(self, memo, ignoreAttributes={'client'})
 
     # PRIVATE METHODS #
 
@@ -2281,7 +2275,7 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
 
         # create grace duration
         gd: GraceDuration
-        if appoggiatura is True:
+        if appoggiatura:
             gd = AppoggiaturaDuration()
         else:
             gd = GraceDuration()
@@ -2312,7 +2306,7 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         Returns False if there was no need to inform the client (like nothing has changed)
         or if `.client` is None.  Otherwise returns True.
         '''
-        if self._quarterLengthNeedsUpdating is True:
+        if self._quarterLengthNeedsUpdating:
             old_qtrLength = self._qtrLength
             self._updateQuarterLength()
             if self._qtrLength == old_qtrLength:
@@ -2716,7 +2710,7 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
             components[i] = durationTupleFromTypeDots(dt.type, value)
         self._components = tuple(components)
         self._quarterLengthNeedsUpdating = True
-        if self.linked is True:
+        if self.linked:
             self.expressionIsInferred = False
         self.informClient()
 
@@ -3064,13 +3058,12 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         if value not in ordinalTypeFromNum and value not in ('inexpressible', 'complex'):
             raise ValueError(f'no such type exists: {value}')
 
-        if self.linked is True:
+        if self.linked:
             nt = durationTupleFromTypeDots(value, self.dots)
             self.components = (nt,)
             self._quarterLengthNeedsUpdating = True
             self.expressionIsInferred = False
             self.informClient()
-
         else:
             self._unlinkedType = value
 

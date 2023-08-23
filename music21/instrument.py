@@ -31,6 +31,7 @@ import typing as t
 
 from music21 import base
 from music21 import common
+from music21.common.decorators import inPlace
 from music21 import environment
 from music21.exceptions21 import InstrumentException
 from music21 import interval
@@ -43,10 +44,8 @@ if t.TYPE_CHECKING:
 
 environLocal = environment.Environment('instrument')
 
-
-def unbundleInstruments(streamIn: stream.Stream,
-                        *,
-                        inPlace=False) -> stream.Stream | None:
+@inPlace(default=False, deepcopy=False, derivation='unbundleInstruments')
+def unbundleInstruments(s: stream.Stream) -> stream.Stream | None:
     # noinspection PyShadowingNames
     '''
     takes a :class:`~music21.stream.Stream` that has :class:`~music21.note.NotRest` objects
@@ -66,10 +65,6 @@ def unbundleInstruments(streamIn: stream.Stream,
     {1.0} <music21.instrument.Cowbell 'Cowbell'>
     {1.0} <music21.note.Unpitched object at 0x...>
     '''
-    if inPlace is True:
-        s = streamIn
-    else:
-        s = streamIn.coreCopyAsDerivation('unbundleInstruments')
 
     for thisObj in s:
         if isinstance(thisObj, note.NotRest):
@@ -78,14 +73,10 @@ def unbundleInstruments(streamIn: stream.Stream,
             if i is not None:
                 off = thisObj.offset
                 s.insert(off, i)
+    return s
 
-    if inPlace is False:
-        return s
-
-
-def bundleInstruments(streamIn: stream.Stream,
-                      *,
-                      inPlace=False) -> stream.Stream | None:
+@inPlace(default=False, deepcopy=False, derivation='bundleInstruments')
+def bundleInstruments(s: stream.Stream) -> stream.Stream | None:
     # noinspection PyShadowingNames
     '''
     >>> up1 = note.Unpitched()
@@ -107,11 +98,6 @@ def bundleInstruments(streamIn: stream.Stream,
     Cowbell
 
     '''
-    if inPlace is True:
-        s = streamIn
-    else:
-        s = streamIn.coreCopyAsDerivation('bundleInstruments')
-
     lastInstrument = None
 
     for thisObj in s:
@@ -120,9 +106,7 @@ def bundleInstruments(streamIn: stream.Stream,
             s.remove(thisObj)
         elif isinstance(thisObj, note.NotRest):
             thisObj.storedInstrument = lastInstrument
-
-    if inPlace is False:
-        return s
+    return s
 
 
 class Instrument(base.Music21Object):
@@ -1130,7 +1114,7 @@ class UnpitchedPercussion(Percussion):
         modifier = modifier.lower().strip()
         # BEN: to-do, pull out hyphens, spaces, etc.
 
-        if self.inGMPercMap is True and modifier.lower() in self._modifierToPercMapPitch:
+        if self.inGMPercMap and modifier.lower() in self._modifierToPercMapPitch:
             self.percMapPitch = self._modifierToPercMapPitch[modifier.lower()]
 
             # normalize modifiers...
@@ -1817,7 +1801,8 @@ def ensembleNameBySize(number):
         return ensembleNamesBySize[int(number)]
 
 
-def deduplicate(s: stream.Stream, inPlace: bool = False) -> stream.Stream:
+@inPlace(default=False, deepcopy=False, derivation='instrument.deduplicate')
+def deduplicate(s: stream.Stream) -> stream.Stream:
     '''
     Check every offset in `s` for multiple instrument instances.
     If the `.partName` can be standardized across instances,
@@ -1868,15 +1853,10 @@ def deduplicate(s: stream.Stream, inPlace: bool = False) -> stream.Stream:
     '''
     from music21 import stream
 
-    if inPlace:
-        returnObj = s
+    if not s.hasPartLikeStreams():
+        substreams: Iterable[stream.Stream] = [s]
     else:
-        returnObj = s.coreCopyAsDerivation('instrument.deduplicate')
-
-    if not returnObj.hasPartLikeStreams():
-        substreams: Iterable[stream.Stream] = [returnObj]
-    else:
-        substreams = returnObj.getElementsByClass(stream.Stream)
+        substreams = s.getElementsByClass(stream.Stream)
 
     for sub in substreams:
         oTree = OffsetTree(sub[Instrument].stream())
@@ -1922,7 +1902,7 @@ def deduplicate(s: stream.Stream, inPlace: bool = False) -> stream.Stream:
                         inst.partName = partName
                         inst.instrumentName = instrumentName
 
-    return returnObj
+    return s
 
 
 # For lookup by MIDI Program

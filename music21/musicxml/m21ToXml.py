@@ -5270,7 +5270,7 @@ class MeasureExporter(XMLExporterBase):
 
         self.setPrintStyle(mx, expression)
         # TODO: trill-sound
-        if hasattr(expression, 'placement') and expression.placement is not None:
+        if getattr(expression, 'placement', None) is not None:
             mx.set('placement', expression.placement)
         if isinstance(expression, expressions.Fermata):
             mx.set('type', str(expression.type))
@@ -6007,7 +6007,7 @@ class MeasureExporter(XMLExporterBase):
         mxDirectionType = SubElement(mxDirection, 'direction-type')
         mxDirectionType.append(mxObj)
         if m21Obj is not None:
-            if hasattr(m21Obj, 'placement') and m21Obj.placement is not None:
+            if getattr(m21Obj, 'placement', None) is not None:
                 mxDirection.set('placement', m21Obj.placement)
             self.setOffsetOptional(m21Obj, mxDirection, setSound=setSound)
 
@@ -6325,7 +6325,7 @@ class MeasureExporter(XMLExporterBase):
                 mxPerMinute = SubElement(mxMetro, 'per-minute')  # TODO: font.
                 mxPerMinute.text = str(common.numToIntOrFloat(numbers[0]))
 
-        if hasattr(ti, 'parentheses') and ti.parentheses:
+        if getattr(ti, 'parentheses', False):
             mxMetro.set('parentheses', 'yes')  # only attribute
         else:
             mxMetro.set('parentheses', 'no')  # only attribute

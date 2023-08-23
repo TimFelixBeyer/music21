@@ -976,11 +976,10 @@ def translateNoteWithDurationToBytes(n: note.GeneralNote, includeTieByte=True):
     '''
     firstByte = translateNoteToByte(n)
     secondByte = translateDurationToBytes(n)
-    thirdByte = translateNoteTieToByte(n)
-    if includeTieByte is True:
+    if includeTieByte:
+        thirdByte = translateNoteTieToByte(n)
         return firstByte + secondByte + thirdByte
-    else:
-        return firstByte + secondByte
+    return firstByte + secondByte
 
 
 def translateNoteTieToByte(n: note.GeneralNote):

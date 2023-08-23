@@ -25,6 +25,7 @@ import unittest
 from music21 import base
 from music21 import beam
 from music21 import common
+from music21.common.decorators import inPlace
 from music21.duration import Duration
 from music21 import environment
 from music21 import exceptions21
@@ -882,7 +883,8 @@ class GeneralNote(base.Music21Object):
 
 
     # --------------------------------------------------------------------------
-    def augmentOrDiminish(self, scalar, *, inPlace=False):
+    @inPlace(default=False, deepcopy=True)
+    def augmentOrDiminish(self, scalar):
         '''
         Given a scalar greater than zero, return a Note with a scaled Duration.
         If `inPlace` is True, this is done in-place and the method returns None.
@@ -917,19 +919,8 @@ class GeneralNote(base.Music21Object):
         '''
         if not scalar > 0:
             raise NoteException('scalar must be greater than zero')
-
-        if inPlace:
-            post = self
-        else:  # slight speedup could happen by setting duration to Zero before copying.
-            post = copy.deepcopy(self)
-
-        # this is never True.
-        post.duration = post.duration.augmentOrDiminish(scalar)
-
-        if not inPlace:
-            return post
-        else:
-            return None
+        self.duration = self.duration.augmentOrDiminish(scalar)
+        return self
 
     # --------------------------------------------------------------------------
     def getGrace(self, *, appoggiatura=False, inPlace=False):

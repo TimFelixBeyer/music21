@@ -32,6 +32,7 @@ from music21 import meter
 from music21 import note
 from music21 import pitch
 
+from music21.common.decorators import inPlace
 from music21.common.numberTools import opFrac
 from music21.common.types import StreamType, OffsetQL
 from music21.exceptions21 import StreamException
@@ -49,10 +50,10 @@ environLocal = environment.Environment(__file__)
 # -----------------------------------------------------------------------------
 
 
+@inPlace(default=False, deepcopy=False, derivation='makeBeams')
 def makeBeams(
     s: StreamType,
     *,
-    inPlace=False,
     setStemDirections=True,
     failOnNoTimeSignature=False,
 ) -> StreamType | None:
@@ -128,18 +129,11 @@ def makeBeams(
     '''
     from music21 import stream
 
-    # environLocal.printDebug(['calling Stream.makeBeams()'])
-    if not inPlace:  # make a copy
-        returnObj = s.coreCopyAsDerivation('makeBeams')
-    else:
-        returnObj = s
-
-    # if s.isClass(Measure):
     mColl: list[stream.Measure]
-    if isinstance(returnObj, stream.Measure):
-        mColl = [returnObj]  # store a list of measures for processing
+    if isinstance(s, stream.Measure):
+        mColl = [s]  # store a list of measures for processing
     else:
-        mColl = list(returnObj.getElementsByClass(stream.Measure))  # a list of measures
+        mColl = list(s.getElementsByClass(stream.Measure))  # a list of measures
         if not mColl:
             raise stream.StreamException(
                 'cannot process a stream that is neither a Measure nor has no Measures')
@@ -222,11 +216,10 @@ def makeBeams(
 
     del mColl  # remove Stream no longer needed
     if setStemDirections:
-        setStemDirectionForBeamGroups(returnObj)
+        setStemDirectionForBeamGroups(s)
 
-    returnObj.streamStatus.beams = True
-    if inPlace is not True:
-        return returnObj
+    s.streamStatus.beams = True
+    return s
 
 
 def makeMeasures(

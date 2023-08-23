@@ -28,6 +28,7 @@ import unittest
 
 from music21 import base
 from music21 import common
+from music21.common.decorators import inPlace
 from music21.common.objects import SlottedObjectMixin
 from music21.common.types import StepName
 from music21 import defaults
@@ -4151,10 +4152,10 @@ class Pitch(prebase.ProtoM21Object):
         else:
             return self._getEnharmonicHelper(inPlace=False, up=False)
 
+    @inPlace(default=False, deepcopy=True)
     def simplifyEnharmonic(
         self: PitchType,
         *,
-        inPlace=False,
         mostCommon=False
     ) -> PitchType | None:
         '''
@@ -4208,42 +4209,33 @@ class Pitch(prebase.ProtoM21Object):
         >>> [p.simplifyEnharmonic().ps for p in pList]
         [71.0, 60.0]
         '''
-
-        if inPlace:
-            returnObj = self
-        else:
-            returnObj = copy.deepcopy(self)
-
-        if returnObj.accidental is not None:
-            if (abs(returnObj.accidental.alter) < 2.0
-                    and returnObj.name not in ('E#', 'B#', 'C-', 'F-')):
+        if self.accidental is not None:
+            if (abs(self.accidental.alter) < 2.0
+                    and self.name not in ('E#', 'B#', 'C-', 'F-')):
                 pass
             else:
                 # by resetting the pitch space value, we will get a simpler
                 # enharmonic spelling
                 saveOctave = self.octave
-                returnObj.ps = self.ps
+                self.ps = self.ps
                 if saveOctave is None:
-                    returnObj.octave = None
+                    self.octave = None
 
         if mostCommon:
-            if returnObj.name == 'D#':
-                returnObj.step = 'E'
-                returnObj.accidental = Accidental('flat')
-            elif returnObj.name == 'A#':
-                returnObj.step = 'B'
-                returnObj.accidental = Accidental('flat')
-            elif returnObj.name == 'G-':
-                returnObj.step = 'F'
-                returnObj.accidental = Accidental('sharp')
-            elif returnObj.name == 'D-':
-                returnObj.step = 'C'
-                returnObj.accidental = Accidental('sharp')
+            if self.name == 'D#':
+                self.step = 'E'
+                self.accidental = Accidental('flat')
+            elif self.name == 'A#':
+                self.step = 'B'
+                self.accidental = Accidental('flat')
+            elif self.name == 'G-':
+                self.step = 'F'
+                self.accidental = Accidental('sharp')
+            elif self.name == 'D-':
+                self.step = 'C'
+                self.accidental = Accidental('sharp')
 
-        if inPlace:
-            return None
-        else:
-            return returnObj
+        return self
 
     def getEnharmonic(self: PitchType, *, inPlace=False) -> PitchType | None:
         '''
@@ -4649,13 +4641,12 @@ class Pitch(prebase.ProtoM21Object):
 
     # --------------------------------------------------------------------------
     # utilities for pitch object manipulation
-
+    @inPlace(default=False, deepcopy=True)
     def transposeBelowTarget(
         self: PitchType,
         target,
         *,
         minimize=False,
-        inPlace=False
     ) -> PitchType | None:
         # noinspection PyShadowingNames
         '''
@@ -4724,36 +4715,25 @@ class Pitch(prebase.ProtoM21Object):
         '''
         if self.octave is None:
             raise PitchException('Cannot call transposeBelowTarget with an octaveless Pitch.')
+        assert self.octave is not None
 
-        if inPlace:
-            src = self
-        else:
-            src = copy.deepcopy(self)
-        assert src.octave is not None
-
-        while True:
+        while self.ps > target.ps:
             # ref 20, min 10, lower ref.
             # ref 5, min 10, do not lower.
-            if src.ps - target.ps <= 0:
-                break
             # lower one octave
-            src.octave -= 1
+            self.octave -= 1
         # case where self is below target and minimize is True
         if minimize:
-            while True:
-                if target.ps - src.ps < 12:
-                    break
-                else:
-                    src.octave += 1
+            while target.ps - self.ps >= 12:
+                self.octave += 1
 
-        if not inPlace:
-            return src
+        return self
 
+    @inPlace(default=False, deepcopy=True)
     def transposeAboveTarget(self: PitchType,
                              target,
                              *,
-                             minimize=False,
-                             inPlace=False) -> PitchType | None:
+                             minimize=False) -> PitchType | None:
         '''
         Given a source Pitch, shift it up octaves until it is above the target.
 
@@ -4809,32 +4789,20 @@ class Pitch(prebase.ProtoM21Object):
         '''
         if self.octave is None:
             raise PitchException('Cannot call transposeAboveTarget with an octaveless Pitch.')
-
-        if inPlace:
-            src = self
-        else:
-            src = copy.deepcopy(self)
-        assert src.octave is not None
+        assert self.octave is not None
 
         # case where self is below target
-        while True:
+        while self.ps < target.ps:
             # ref 20, max 10, do not raise ref.
             # ref 5, max 10, raise ref to above max.
-            if src.ps - target.ps >= 0:
-                break
             # raise one octave
-            src.octave += 1
+            self.octave += 1
         # case where self is above target and minimize is True
         if minimize:
-            while True:
-                if src.ps - target.ps < 12:
-                    break
-                else:
-                    src.octave -= 1
+            while self.ps - target.ps >= 12:
+                self.octave -= 1
 
-        if not inPlace:
-            return src
-        return None
+        return self
 
     # --------------------------------------------------------------------------
 

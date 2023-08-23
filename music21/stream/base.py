@@ -40,6 +40,7 @@ import warnings
 from music21 import base
 from music21 import bar
 from music21 import common
+from music21.common.decorators import inPlace
 from music21.common.enums import GatherSpanners, OffsetSpecial
 from music21.common.numberTools import opFrac
 from music21.common.types import (
@@ -5242,13 +5243,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     ) -> StreamType:
         pass
 
+    @inPlace(default=False, deepcopy=True)
     def _transposeByInstrument(
         self: StreamType,
         *,
         reverse: bool = False,
         transposeKeySignature: bool = True,
         preserveAccidentalDisplay: bool = False,
-        inPlace: bool = False,
     ) -> StreamType | None:
         '''
         Transpose the Stream according to each instrument's transposition.
@@ -5260,19 +5261,14 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         TODO: Fill out -- expose publicly?
         '''
-        if not inPlace:  # make a copy
-            returnObj = copy.deepcopy(self)
-        else:
-            returnObj = self
-
-        instrument_stream = returnObj.getInstruments(recurse=True)
+        instrument_stream = self.getInstruments(recurse=True)
         instrument_map: dict[instrument.Instrument, OffsetQL] = {}
         for inst in instrument_stream:
             # keep track of original durations of each instrument
             instrument_map[inst] = inst.duration.quarterLength
             # this loses the expression of duration, but should be fine for instruments.
 
-        instrument_stream.duration = returnObj.duration
+        instrument_stream.duration = self.duration
         # inPlace=False here because we are only doing calculations
         # toWrittenPitch() shouldn't be inserting extra instruments
         instrument_stream = instrument_stream.extendDuration('Instrument', inPlace=False)
@@ -5291,7 +5287,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 continue
             start = inst.offset
             end = start + inst.quarterLength
-            focus: Stream = returnObj.flatten().getElementsByOffset(
+            focus: Stream = self.flatten().getElementsByOffset(
                 start,
                 end,
                 includeEndBoundary=False,
@@ -5311,7 +5307,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         for inst, original_ql in instrument_map.items():
             inst.duration.quarterLength = original_ql
 
-        return returnObj
+        return self
 
     def _treatAtSoundingPitch(self) -> bool | str:
         '''
@@ -5354,11 +5350,11 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         return at_sounding
 
+    @inPlace(default=False, deepcopy=False, derivation='toSoundingPitch')
     def toSoundingPitch(
         self,
         *,
         preserveAccidentalDisplay: bool = False,
-        inPlace=False
     ):
         # noinspection PyShadowingNames
         '''
@@ -5415,38 +5411,32 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         from music21 import spanner
 
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('toSoundingPitch')
-        else:
-            returnObj = self
-
-        if returnObj.hasPartLikeStreams() or 'Opus' in returnObj.classSet:
-            for partLike in returnObj.getElementsByClass(Stream):
+        if self.hasPartLikeStreams() or 'Opus' in self.classSet:
+            for partLike in self.getElementsByClass(Stream):
                 # call on each part
                 partLike.toSoundingPitch(
                     inPlace=True,
                     preserveAccidentalDisplay=preserveAccidentalDisplay
                 )
-            returnObj.atSoundingPitch = True
-            return returnObj if not inPlace else None
+            self.atSoundingPitch = True
+            return self
 
-        at_sounding = returnObj._treatAtSoundingPitch()
+        at_sounding = self._treatAtSoundingPitch()
 
         if at_sounding is False:
             # transposition defined on instrument goes from written to sounding
-            returnObj._transposeByInstrument(
+            self._transposeByInstrument(
                 reverse=False,
                 preserveAccidentalDisplay=preserveAccidentalDisplay,
                 inPlace=True
             )
-            for container in returnObj.recurse(streamsOnly=True, includeSelf=True):
+            for container in self.recurse(streamsOnly=True, includeSelf=True):
                 container.atSoundingPitch = True
 
-        for ottava in returnObj[spanner.Ottava]:
+        for ottava in self[spanner.Ottava]:
             ottava.performTransposition()
 
-        if not inPlace:
-            return returnObj  # the Stream or None
+        return self
 
     def toWrittenPitch(
         self,
@@ -6666,7 +6656,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             displayTiedAccidentals=displayTiedAccidentals,
             classFilterList=classFilterList,
         )
-
     def makeBeams(self, *, inPlace=False, setStemDirections=True, failOnNoTimeSignature=False):
         '''
         Return a new Stream, or modify the Stream in place, with beams applied to all
@@ -14034,7 +14023,7 @@ class Score(Stream):
                 measureNumber,
                 collect=(clef.Clef, meter.TimeSignature, instrument.Instrument, key.KeySignature),
                 gatherSpanners=GatherSpanners.ALL,
-                indicesNotNumbers=False):
+                indicesNotNumbers=False) -> Score:
         '''
         Given a measure number (or measure index, if indicesNotNumbers is True)
         return another Score object which contains multiple parts but each of which has only a
