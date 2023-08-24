@@ -27,6 +27,7 @@ import enum
 import math
 import re
 import typing as t
+from typing import overload
 
 from music21 import base
 from music21 import common
@@ -729,11 +730,27 @@ class IntervalBase(base.Music21Object):
         newNote.pitch = newPitch
         return newNote
 
+    @overload
     @abc.abstractmethod
     def transposePitch(self,
                        pitch1: pitch.Pitch,
                        *,
-                       inPlace: bool = False):
+                       inPlace: bool = t.Literal[False]) -> pitch.Pitch:
+        return pitch1
+
+    @overload
+    @abc.abstractmethod
+    def transposePitch(self,
+                       pitch1: pitch.Pitch,
+                       *,
+                       inPlace: bool = t.Literal[True]) -> None:
+        return None
+
+    @abc.abstractmethod
+    def transposePitch(self,
+                       pitch1: pitch.Pitch,
+                       *,
+                       inPlace: bool = False) -> pitch.Pitch | None:
         '''
         IntervalBase does not know how to do this, so it must be overridden in
         derived classes.
@@ -1359,7 +1376,15 @@ class GenericInterval(IntervalBase):
         else:
             return GenericInterval(self.undirected * (-1 * self.direction))
 
-    def transposePitch(self, p: pitch.Pitch, inPlace=False):
+    @overload
+    def transposePitch(self, p: pitch.Pitch, inPlace=t.Literal[True]) -> pitch.Pitch:
+        return p
+
+    @overload
+    def transposePitch(self, p: pitch.Pitch, inPlace=t.Literal[False]) -> None:
+        return None
+
+    def transposePitch(self, p: pitch.Pitch, inPlace=False) -> pitch.Pitch | None:
         '''
         transpose a pitch, retaining the accidental if any.
 
@@ -2107,7 +2132,16 @@ class DiatonicInterval(IntervalBase):
 
         return ChromaticInterval(semitones)
 
-    def transposePitch(self, p: pitch.Pitch, *, inPlace=False):
+    @overload
+    def transposePitch(self, p: pitch.Pitch, *, inPlace=t.Literal[True]) -> pitch.Pitch:
+        return p
+
+    @overload
+    def transposePitch(self, p: pitch.Pitch, *, inPlace=t.Literal[False]) -> None:
+        return None
+
+
+    def transposePitch(self, p: pitch.Pitch, *, inPlace=False) -> pitch.Pitch | None:
         # noinspection PyShadowingNames
         '''
         Calls transposePitch from a full interval object.
@@ -3292,12 +3326,30 @@ class Interval(IntervalBase):
         cCents = self.chromatic.cents
         return cCents - dCents
 
+    @overload
     def transposePitch(self,
                        p: pitch.Pitch,
                        *,
                        reverse=False,
                        maxAccidental: int | None = 4,
-                       inPlace=False):
+                       inPlace=t.Literal[False]) -> pitch.Pitch:
+        return p
+
+    @overload
+    def transposePitch(self,
+                       p: pitch.Pitch,
+                       *,
+                       reverse=False,
+                       maxAccidental: int | None = 4,
+                       inPlace=t.Literal[True]) -> None:
+        return None
+
+    def transposePitch(self,
+                       p: pitch.Pitch,
+                       *,
+                       reverse=False,
+                       maxAccidental: int | None = 4,
+                       inPlace=False) -> pitch.Pitch | None:
         '''
         Given a :class:`~music21.pitch.Pitch` object, return a new,
         transposed Pitch, that is transformed

@@ -192,7 +192,8 @@ def cacheMethod(method):
     return inner
 
 
-def inPlace(default, deepcopy=True, derivation=None):
+T = t.TypeVar('T')
+def inPlace(default, deepcopy=None, derivation=None, passthrough=False):
     """Decorator to allow a function to be called inPlace or not.
     Simplifies a lot of common patterns.
     Usually an inPlace function works as follows:
@@ -218,30 +219,37 @@ def inPlace(default, deepcopy=True, derivation=None):
     derivation : _type_, optional
         If der, by default None
     """
-    def decorator(func):
+    if deepcopy is None and derivation is None:
+        raise ValueError('Cannot use inPlace=False without deepcopy or derivation')
+    if deepcopy is not None and derivation is not None:
+        raise ValueError('Cannot use both deepcopy and derivation')
 
+    def decorator(func: t.Callable[..., T]):
         @overload
-        def wrapper(arg, *args, inPlace=t.Literal[True], **kwargs):
+        def inPlaceWrapper(arg, *args, inPlace=t.Literal[False], **kwargs) -> T:
             return func(arg, *args, **kwargs)
 
         @overload
-        def wrapper(arg, *args, inPlace=t.Literal[False], **kwargs):
+        def inPlaceWrapper(arg, *args, inPlace=t.Literal[True], **kwargs) -> None:
             return None
 
-        def wrapper(arg, *args, inPlace=default, **kwargs):
+        def inPlaceWrapper(arg, *args, inPlace=default, **kwargs) -> T | None:
             if not inPlace:
-                if deepcopy:
-                    assert derivation is None
+                if derivation is not None:
+                    arg = arg.coreCopyAsDerivation(derivation)
+                elif deepcopy:
                     arg = copy.deepcopy(arg)
                 else:
-                    assert derivation is not None
-                    arg = arg.coreCopyAsDerivation(derivation)
+                    raise ValueError('Cannot use inPlace=False without deepcopy or derivation')
             # Call the original function with the modified argument
-            result = func(arg, *args, **kwargs)
+            if passthrough:
+                result = func(arg, *args, inPlace=inPlace, **kwargs)
+            else:
+                result = func(arg, *args, **kwargs)
 
             if not inPlace:
                 return result
-        return wrapper
+        return inPlaceWrapper
     return decorator
 
 

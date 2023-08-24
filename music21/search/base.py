@@ -303,7 +303,6 @@ def streamSearchBase(thisStreamOrIterator, searchList, algorithm=None):
     if algorithm is None:
         raise SearchException('algorithm must be a function not None')
 
-    result = None
     if 'StreamIterator' in thisStreamOrIterator.classes:
         thisStreamIterator = thisStreamOrIterator
     else:
@@ -319,6 +318,7 @@ def streamSearchBase(thisStreamOrIterator, searchList, algorithm=None):
     if searchLength > streamLength:
         return foundEls
 
+    result = None
     for startPosition, streamEls in enumerate(windowed(streamIteratorEls, searchLength)):
         for j in range(searchLength):
             streamEl = streamEls[j]

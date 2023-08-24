@@ -1584,15 +1584,15 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         if not self.isSorted and self.autoSort:
             self.sort()  # will set isSorted to True
 
+        objId = id(el)
+
         if 'index' in self._cache and self._cache['index'] is not None:
             try:
-                return self._cache['index'][id(el)]
+                return self._cache['index'][objId]
             except KeyError:
                 pass  # not in cache
         else:
             self._cache['index'] = {}
-
-        objId = id(el)
 
         count = 0
 
@@ -5350,7 +5350,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         return at_sounding
 
-    @inPlace(default=False, deepcopy=False, derivation='toSoundingPitch')
+    @inPlace(default=False, derivation='toSoundingPitch')
     def toSoundingPitch(
         self,
         *,
@@ -5438,12 +5438,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         return self
 
+    @inPlace(default=False, derivation='toWrittenPitch')
     def toWrittenPitch(
         self,
         *,
         ottavasToSounding: bool = False,
         preserveAccidentalDisplay: bool = False,
-        inPlace: bool = False
     ):
         '''
         If not at written pitch, transpose all Pitch elements to
@@ -5482,14 +5482,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         * Changed in v9: no transposition instead of exception if atSoundingPitch is 'unknown'
         '''
         from music21 import spanner
-
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('toWrittenPitch')
-        else:
-            returnObj = self
-
-        if returnObj.hasPartLikeStreams() or 'Opus' in returnObj.classes:
-            for partLike in returnObj.getElementsByClass('Stream'):
+        if self.hasPartLikeStreams() or 'Opus' in self.classes:
+            for partLike in self.getElementsByClass('Stream'):
                 # call on each part
                 if t.TYPE_CHECKING:
                     assert isinstance(partLike, Stream)
@@ -5498,28 +5492,27 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     ottavasToSounding=ottavasToSounding,
                     preserveAccidentalDisplay=preserveAccidentalDisplay
                 )
-            returnObj.atSoundingPitch = False
+            self.atSoundingPitch = False
         else:
-            at_sounding = returnObj._treatAtSoundingPitch()
+            at_sounding = self._treatAtSoundingPitch()
             if at_sounding is True:
                 # need to reverse to go to written
-                returnObj._transposeByInstrument(
+                self._transposeByInstrument(
                     reverse=True,
                     preserveAccidentalDisplay=preserveAccidentalDisplay,
                     inPlace=True
                 )
-                for container in returnObj.recurse(streamsOnly=True, includeSelf=True):
+                for container in self.recurse(streamsOnly=True, includeSelf=True):
                     container.atSoundingPitch = False
 
         if ottavasToSounding:
-            for ottava in returnObj[spanner.Ottava]:
+            for ottava in self[spanner.Ottava]:
                 ottava.performTransposition()
         else:
-            for ottava in returnObj[spanner.Ottava]:
+            for ottava in self[spanner.Ottava]:
                 ottava.undoTransposition()
 
-        if not inPlace:
-            return returnObj
+        return self
 
     # --------------------------------------------------------------------------
     def getTimeSignatures(self, *,
@@ -5787,7 +5780,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         )
         return post.first()
 
-    def invertDiatonic(self, inversionNote=note.Note('C4'), *, inPlace=False):
+    @inPlace(default=False, derivation='invertDiatonic')
+    def invertDiatonic(self, inversionNote=note.Note('C4')):
         '''
         inverts a stream diatonically around the given note (by default, middle C)
 
@@ -5846,12 +5840,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         * Changed in v5: inPlace is False by default.
         '''
-        if inPlace:
-            returnStream = self
-        else:
-            returnStream = self.coreCopyAsDerivation('invertDiatonic')
-
-        keySigSearch = returnStream.recurse().getElementsByClass(key.KeySignature)
+        keySigSearch = self.recurse().getElementsByClass(key.KeySignature)
 
         quickSearch = True
         if not keySigSearch:
@@ -5863,7 +5852,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             quickSearch = False
 
         inversionDNN = inversionNote.pitch.diatonicNoteNum
-        for n in returnStream[note.NotRest]:
+        for n in self[note.NotRest]:
             n.pitch.diatonicNoteNum = (2 * inversionDNN) - n.pitch.diatonicNoteNum
             if quickSearch:  # use previously found
                 n.pitch.accidental = ourKey.accidentalByStep(n.pitch.step)
@@ -5874,8 +5863,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if n.pitch.accidental is not None:
                 n.pitch.accidental.displayStatus = None
 
-        if not inPlace:
-            return returnStream
+        return self
 
     # -------------------------------------------------------------------------
     # offset manipulation
@@ -6674,6 +6662,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             failOnNoTimeSignature=failOnNoTimeSignature,
         )
 
+    @inPlace(default=False, derivation='makeAccidentals')
     def makeAccidentals(
         self,
         *,
@@ -6685,7 +6674,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         searchKeySignatureByContext: bool = False,
         cautionaryPitchClass: bool = True,
         cautionaryAll: bool = False,
-        inPlace: bool = False,
         overrideStatus: bool = False,
         cautionaryNotImmediateRepeat: bool = True,
         tiePitchSet: set[str] | None = None
@@ -6744,11 +6732,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         All arguments are keyword only.
         '''
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('makeAccidentals')
-        else:
-            returnObj = self
-
         # need to reset these lists unless values explicitly provided
         if pitchPast is None:
             pitchPast = []
@@ -6784,7 +6767,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         # need to move through notes in order
         # recurse to capture notes in substreams: https://github.com/cuthbertLab/music21/issues/577
-        noteIterator = returnObj.recurse().notesAndRests
+        noteIterator = self.recurse().notesAndRests
 
         # environLocal.printDebug(['alteredPitches', alteredPitches])
         # environLocal.printDebug(['pitchPast', pitchPast])
@@ -6803,10 +6786,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     pitchPast = []
                 last_measure = e.activeSite
             if isinstance(e, note.Note):
-                if e.pitch.nameWithOctave in tiePitchSet:
-                    lastNoteWasTied = True
-                else:
-                    lastNoteWasTied = False
+                lastNoteWasTied = e.pitch.nameWithOctave in tiePitchSet
 
                 e.pitch.updateAccidentalDisplay(
                     pitchPast=pitchPast,
@@ -6841,10 +6821,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
                 for n in list(e):
                     p = n.pitch
-                    if p.nameWithOctave in tiePitchSet:
-                        lastNoteWasTied = True
-                    else:
-                        lastNoteWasTied = False
+                    lastNoteWasTied = p.nameWithOctave in tiePitchSet
 
                     otherSimultaneousPitches = [other for other in e.pitches if other is not p]
 
@@ -6893,10 +6870,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             else:
                 tiePitchSet.clear()
 
-        returnObj.streamStatus.accidentals = True
+        self.streamStatus.accidentals = True
 
-        if not inPlace:
-            return returnObj
+        return self
 
     def haveAccidentalsBeenMade(self):
         # could be called: hasAccidentalDisplayStatusSet
@@ -6910,6 +6886,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         return self.streamStatus.accidentals
 
+    @inPlace(default=False, derivation='makeNotation', passthrough=True)
     def makeNotation(self: StreamType,
                      *,
                      meterStream=None,
@@ -6960,37 +6937,30 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         * Changed in v7: `inPlace=True` returns `None`.
         '''
-        # determine what is the object to work on first
-        returnStream: StreamType | Stream[t.Any]
-        if inPlace:
-            returnStream = self
-        else:
-            returnStream = self.coreCopyAsDerivation('makeNotation')
-
         # if 'finalBarline' in subroutineKeywords:
         #     lastBarlineType = subroutineKeywords['finalBarline']
         # else:
         #     lastBarlineType = 'final'
 
         # retrieve necessary spanners; insert only if making a copy
-        returnStream.coreGatherMissingSpanners(
+        self.coreGatherMissingSpanners(
             insert=not inPlace,
             # definitely do NOT put a constrainingSpannerBundle constraint
         )
         # only use inPlace arg on first usage
-        if not returnStream.hasMeasures():
+        if not self.hasMeasures():
             # only try to make voices if no Measures are defined
-            returnStream.makeVoices(inPlace=True, fillGaps=True)
+            self.makeVoices(inPlace=True, fillGaps=True)
             # if this is not inPlace, it will return a newStream; if
             # inPlace, this returns None
             # use inPlace=True, as already established above
-            returnStream.makeMeasures(
+            self.makeMeasures(
                 meterStream=meterStream,
                 refStreamOrTimeRange=refStreamOrTimeRange,
                 inPlace=True,
                 bestClef=bestClef)
 
-            if not returnStream.hasMeasures():
+            if not self.hasMeasures():
                 raise StreamException(
                     f'no measures found in stream with {len(self)} elements')
 
@@ -6998,9 +6968,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # pitches from last measure are passed
         # this needs to be called before makeTies
         # note that this functionality is also placed in Part
-        if not returnStream.streamStatus.accidentals:
+        if not self.streamStatus.accidentals:
             makeNotation.makeAccidentalsInMeasureStream(
-                returnStream,
+                self,
                 pitchPast=pitchPast,
                 pitchPastMeasure=pitchPastMeasure,
                 useKeySignature=useKeySignature,
@@ -7011,17 +6981,17 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 cautionaryNotImmediateRepeat=cautionaryNotImmediateRepeat,
                 tiePitchSet=tiePitchSet)
 
-        makeNotation.makeTies(returnStream, meterStream=meterStream, inPlace=True)
+        makeNotation.makeTies(self, meterStream=meterStream, inPlace=True)
 
 
-        for m in returnStream.getElementsByClass(Measure):
+        for m in self.getElementsByClass(Measure):
             m.flattenUnnecessaryVoices(inPlace=True)
             makeNotation.splitElementsToCompleteTuplets(m, recurse=True, addTies=True)
             makeNotation.consolidateCompletedTuplets(m, recurse=True, onlyIfTied=True)
 
-        if not returnStream.streamStatus.beams:
+        if not self.streamStatus.beams:
             try:
-                makeNotation.makeBeams(returnStream, inPlace=True)
+                makeNotation.makeBeams(self, inPlace=True)
             except meter.MeterException as me:
                 warnings.warn(str(me))
 
@@ -7029,13 +6999,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # makeBeams was causing the duration's tuplet to lose its type setting
         # check for tuplet brackets one measure at a time
         # this means that they will never extend beyond one measure
-        for m in returnStream.getElementsByClass(Measure):
+        for m in self.getElementsByClass(Measure):
             if not m.streamStatus.tuplets:
                 makeNotation.makeTupletBrackets(m, inPlace=True)
+        return self
 
-        if not inPlace:
-            return returnStream
-
+    @inPlace(default=False, derivation='extendDuration')
     def extendDuration(self, objClass, *, inPlace=False):
         '''
         Given a Stream and an object class name, go through the Stream
@@ -7082,25 +7051,18 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> stream2[-1].offset
         40.0
         '''
-
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('extendDuration')
-        else:
-            returnObj = self
-
-        qLenTotal = returnObj.duration.quarterLength
-        elements = list(returnObj.getElementsByClass(objClass))
+        qLenTotal = self.duration.quarterLength
+        elements = list(self.getElementsByClass(objClass))
 
         for element, nextElement in zip(elements, elements[1:]):
-            span = returnObj.elementOffset(nextElement) - returnObj.elementOffset(element)
+            span = self.elementOffset(nextElement) - self.elementOffset(element)
             element.duration.quarterLength = span
 
         # handle last element
         if elements:
             elements[-1].duration.quarterLength = (qLenTotal
-                                                   - returnObj.elementOffset(elements[-1]))
-        if not inPlace:
-            return returnObj
+                                                   - self.elementOffset(elements[-1]))
+        return self
 
     @overload
     def stripTies(
@@ -7122,10 +7084,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     ) -> StreamType:
         return self
 
+    @inPlace(default=False, derivation='stripTies')
     def stripTies(
         self: StreamType,
         *,
-        inPlace: bool = False,
         matchByPitch: bool = True,
         preserveVoices: bool = True,
     ) -> StreamType | None:
@@ -7263,34 +7225,23 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         * Changed in v7: `matchByPitch` defaults True
         '''
         # environLocal.printDebug(['calling stripTies'])
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('stripTies')
-        else:
-            returnObj = self
-
         # Clear existing beaming because notes may be deleted at any level of hierarchy
-        returnObj.streamStatus.beams = False
+        self.streamStatus.beams = False
 
-        if returnObj.hasPartLikeStreams():
+        if self.hasPartLikeStreams():
             # part-like does not necessarily mean that the next level down is a stream.Part
             # object or that this is a stream.Score object, so do not substitute
             # returnObj.parts for this...
-            for p in returnObj.getElementsByClass(Stream):
+            for p in self.getElementsByClass(Stream):
                 # already copied if necessary; edit in place
                 p.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices)
-            if not inPlace:
-                return returnObj
-            else:
-                return None
+            return self
 
-        if returnObj.hasVoices():
-            for v in returnObj.voices:
+        if self.hasVoices():
+            for v in self.voices:
                 # already copied if necessary; edit in place
                 v.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices)
-            if not inPlace:
-                return returnObj
-            else:
-                return None
+            return self
 
         def updateEndMatch(nInner) -> bool:
             '''
@@ -7374,7 +7325,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # as there may be other objects in the Measure
             # that come before the first Note, such as a SystemLayout object
             # or there could be ChordSymbols with zero (unrealized) durations
-            f = returnObj.flatten()
+            f = self.flatten()
             notes_and_rests: StreamType = f.notesAndRests.addFilter(
                 lambda el, _iterator: el.quarterLength > 0
             ).stream()
@@ -7492,16 +7443,16 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     posConnected = []  # reset to empty
         else:
             # Flatten all chords
-            for c in returnObj.recurse().getElementsByClass('Chord'):
+            for c in self.recurse().getElementsByClass('Chord'):
                 for noteObj in c.notes:
                     noteObj.duration = c.duration
                     c.activeSite.insert(c.offset, noteObj)
                 c.activeSite.remove(c)
             ties = {"start": 0, "continue": 0, "stop": 0}
-            for n in returnObj.flatten().notes:
+            for n in self.flatten().notes:
                 if n.tie is not None:
                     ties[n.tie.type] += 1
-            f = returnObj.flatten()
+            f = self.flatten()
             notes_and_rests: StreamType = f.notes.stream()#.addFilter(
             #     lambda el, _iterator: el.quarterLength > 0
             # ).stream()
@@ -7657,10 +7608,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             nTarget = notes_and_rests[i]
             # Recurse rather than depend on the containers being Measures
             # https://github.com/cuthbertLab/music21/issues/266
-            returnObj.remove(nTarget, recurse=True)
+            self.remove(nTarget, recurse=True)
 
-        if not inPlace:
-            return returnObj
+        return self
 
     def extendTies(self, ignoreRests=False, pitchAttr='nameWithOctave'):
         '''
@@ -9168,14 +9118,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
     # --------------------------------------------------------------------------
     # transformations
-
+    @inPlace(default=False, derivation='transpose')
     def transpose(
         self,
         value: str | int | 'music21.interval.IntervalBase',
         /,
         *,
-        inPlace=False,
-        recurse=True,
+         recurse=True,
         classFilterList=None
     ):
         # noinspection PyShadowingNames
@@ -9220,11 +9169,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         * Changed in v8: first value is position only, all other values are keyword only
         '''
         # only change the copy
-        if not inPlace:
-            post = self.coreCopyAsDerivation('transpose')
-        else:
-            post = self
-
         intv: interval.Interval | interval.GenericInterval
         if isinstance(value, (int, str)):
             intv = interval.Interval(value)
@@ -9247,9 +9191,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # this will get all elements at this level and downward.
         sIterator: iterator.StreamIterator
         if recurse is True:
-            sIterator = post.recurse()
+            sIterator = self.recurse()
         else:
-            sIterator = post.iter()
+            sIterator = self.iter()
 
         if classFilterList:
             sIterator = sIterator.addFilter(filters.ClassFilter(classFilterList))
@@ -9267,14 +9211,11 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                             intv.transposePitchKeyAware(p, k, inPlace=True)
                 else:
                     e.transpose(intv, inPlace=True)
+        return self
 
-        if not inPlace:
-            return post
-        else:
-            return None
-
+    @inPlace(default=False, derivation='scaleOffsets')
     def scaleOffsets(self, amountToScale, *, anchorZero='lowest',
-                     anchorZeroRecurse=None, inPlace=False):
+                     anchorZeroRecurse=None):
         '''
         Scale all offsets by a multiplication factor given
         in `amountToScale`. Durations are not altered.
@@ -9317,32 +9258,27 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         if not amountToScale > 0:
             raise StreamException('amountToScale must be greater than zero')
 
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('scaleOffsets')
-        else:
-            returnObj = self
-
         # first, get the offset shift requested
         if anchorZero in ['lowest']:
-            offsetShift = Fraction(returnObj.lowestOffset)
+            offsetShift = Fraction(self.lowestOffset)
         elif anchorZero in ['highest']:
-            offsetShift = Fraction(returnObj.highestOffset)
+            offsetShift = Fraction(self.highestOffset)
         elif anchorZero in [None]:
             offsetShift = Fraction(0, 1)
         else:
             raise StreamException(f'an anchorZero value of {anchorZero} is not accepted')
 
-        for e in returnObj._elements:
+        for e in self._elements:
 
             # subtract the offset shift (and lowestOffset of 80 becomes 0)
             # then apply the amountToScale
-            o = (returnObj.elementOffset(e) - offsetShift) * amountToScale
+            o = (self.elementOffset(e) - offsetShift) * amountToScale
             # after scaling, return the shift taken away
             o += offsetShift
 
             # environLocal.printDebug(['changing offset', o, scalar, offsetShift])
 
-            returnObj.coreSetElementOffset(e, o)
+            self.coreSetElementOffset(e, o)
             # need to look for embedded Streams, and call this method
             # on them, with inPlace , as already copied if
             # inPlace is != True
@@ -9353,10 +9289,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                anchorZeroRecurse=anchorZeroRecurse,
                                inPlace=True)
 
-        returnObj.coreElementsChanged()
-        if not inPlace:
-            return returnObj
+        self.coreElementsChanged()
+        return self
 
+    @inPlace(default=False, derivation='scaleDurations')
     def scaleDurations(self, amountToScale, *, inPlace=False):
         '''
         Scale all durations by a provided scalar. Offsets are not modified.
@@ -9370,18 +9306,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         if not amountToScale > 0:
             raise StreamException('amountToScale must be greater than zero')
 
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('scaleDurations')
-        else:
-            returnObj = self
-
-        for e in returnObj.recurse().getElementsNotOfClass('Stream'):
+        for e in self.recurse().getElementsNotOfClass('Stream'):
             e.duration = e.duration.augmentOrDiminish(amountToScale)
+        return self
 
-        if inPlace is not True:
-            return returnObj
-
-    def augmentOrDiminish(self, amountToScale, *, inPlace=False):
+    @inPlace(default=False, derivation='augmentOrDiminish')
+    def augmentOrDiminish(self, amountToScale):
         '''
         Given a number greater than zero,
         multiplies the current quarterLength of the
@@ -9391,19 +9321,14 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         set to True, modifies the durations of each
         element within the stream.
 
-
         A number of 0.5 will halve the durations and relative
         offset positions; a number of 2 will double the
         durations and relative offset positions.
-
-
 
         Note that the default for inPlace is the opposite
         of what it is for augmentOrDiminish on a Duration.
         This is done purposely to reflect the most common
         usage.
-
-
 
         >>> s = stream.Stream()
         >>> n = note.Note()
@@ -9419,25 +9344,20 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         if not amountToScale > 0:
             raise StreamException('amountToScale must be greater than zero')
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('augmentOrDiminish')
-        else:
-            returnObj = self
-
         # inPlace is True as a copy has already been made if nec
-        returnObj.scaleOffsets(amountToScale=amountToScale, anchorZero='lowest',
+        self.scaleOffsets(amountToScale=amountToScale, anchorZero='lowest',
                                anchorZeroRecurse=None, inPlace=True)
-        returnObj.scaleDurations(amountToScale=amountToScale, inPlace=True)
+        self.scaleDurations(amountToScale=amountToScale, inPlace=True)
 
         # do not need to call elements changed, as called in sub methods
-        return returnObj
+        return self
 
+    @inPlace(default=False, derivation='quantize')
     def quantize(
         self,
         quarterLengthDivisors: Iterable[int] = (),
         processOffsets: bool = True,
         processDurations: bool = True,
-        inPlace: bool = False,
         recurse: bool = False,
     ):
         # noinspection PyShadowingNames
@@ -9608,14 +9528,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     return next_el, look_ahead_result
             return None, None
 
-        if inPlace is False:
-            returnStream = self.coreCopyAsDerivation('quantize')
-        else:
-            returnStream = self
-
-        useStreams = [returnStream]
+        useStreams = [self]
         if recurse is True:
-            useStreams = list(returnStream.recurse(streamsOnly=True, includeSelf=True))
+            useStreams = list(self.recurse(streamsOnly=True, includeSelf=True))
 
         for useStream in useStreams:
             # coreSetElementOffset() will immediately set isSorted = False,
@@ -9664,8 +9579,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             useStream.coreElementsChanged(updateIsFlat=False)
             useStream.remove(rests_lacking_durations)
 
-        if inPlace is False:
-            return returnStream
+        return self
 
     def expandRepeats(self: StreamType, copySpanners: bool = True) -> StreamType:
         '''
@@ -9730,6 +9644,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         specified is manipulated.
 
         '''
+        # can't wrap this as we need access to original (pre-copy) stream
         if not inPlace:  # make a copy
             returnObj = self.coreCopyAsDerivation('sliceByQuarterLengths')
         else:
@@ -9792,7 +9707,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         if not inPlace:
             return returnObj
 
-    def sliceByGreatestDivisor(self, *, addTies=True, inPlace=False):
+    @inPlace(default=False, derivation='sliceByGreatestDivisor')
+    def sliceByGreatestDivisor(self, *, addTies=True):
         '''
         Slice all :class:`~music21.duration.Duration` objects on all Notes and Rests of this Stream.
         Duration are sliced according to the approximate GCD found in all durations.
@@ -9800,19 +9716,14 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # when operating on a Stream, this should take all durations found
         # and use the approximateGCD to get a min duration; then, call sliceByQuarterLengths
 
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('sliceByGreatestDivisor')
-        else:
-            returnObj = self
-
-        if returnObj.hasMeasures():
+        if self.hasMeasures():
             # call on component measures
-            for m in returnObj.getElementsByClass(Measure):
+            for m in self.getElementsByClass(Measure):
                 m.sliceByGreatestDivisor(addTies=addTies, inPlace=True)
-            return returnObj  # exit
+            return self  # exit
 
         uniqueQuarterLengths = set()
-        for e in returnObj.notesAndRests:
+        for e in self.notesAndRests:
             if e.quarterLength not in uniqueQuarterLengths:
                 uniqueQuarterLengths.add(e.quarterLength)
 
@@ -9822,18 +9733,16 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         divisor = common.approximateGCD(uniqueQuarterLengths)
 
         # process in place b/c a copy, if necessary, has already been made
-        returnObj.sliceByQuarterLengths(quarterLengthList=[divisor],
+        self.sliceByQuarterLengths(quarterLengthList=[divisor],
                                         target=None, addTies=addTies, inPlace=True)
+        return self
 
-        if not inPlace:
-            return returnObj
-
+    @inPlace(default=False, derivation='sliceAtOffsets')
     def sliceAtOffsets(
         self,
         offsetList,
         target=None,
         addTies=True,
-        inPlace=False,
         displayTiedAccidentals=False
     ):
         # noinspection PyShadowingNames
@@ -9849,35 +9758,30 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> [(e.offset, e.quarterLength) for e in s]
         [(0.0, 1.0), (1.0, 1.0), (2.0, 1.0), (3.0, 1.0)]
         '''
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('sliceAtOffsets')
-        else:
-            returnObj = self
-
-        if returnObj.hasMeasures():
+        if self.hasMeasures():
             # call on component measures
-            for m in returnObj.getElementsByClass(Measure):
+            for m in self.getElementsByClass(Measure):
                 # offset values are not relative to measure; need to
                 # shift by each measure's offset
-                offsetListLocal = [o - m.getOffsetBySite(returnObj) for o in offsetList]
+                offsetListLocal = [o - m.getOffsetBySite(self) for o in offsetList]
                 m.sliceAtOffsets(offsetList=offsetListLocal,
                                  addTies=addTies,
                                  inPlace=True,
                                  displayTiedAccidentals=displayTiedAccidentals)
-            return returnObj  # exit
+            return self  # exit
 
-        if returnObj.hasPartLikeStreams():
+        if self.hasPartLikeStreams():
             # part-like requires getting Streams, not Parts
-            for p in returnObj.getElementsByClass(Stream):
-                offsetListLocal = [o - p.getOffsetBySite(returnObj) for o in offsetList]
+            for p in self.getElementsByClass(Stream):
+                offsetListLocal = [o - p.getOffsetBySite(self) for o in offsetList]
                 p.sliceAtOffsets(offsetList=offsetListLocal,
                                  addTies=addTies,
                                  inPlace=True,
                                  displayTiedAccidentals=displayTiedAccidentals)
-            return returnObj  # exit
+            return self  # exit
 
         # list of start, start+dur, element, all in abs offset time
-        offsetMap = returnObj.offsetMap()
+        offsetMap = self.offsetMap()
 
         offsetList = [opFrac(o) for o in offsetList]
 
@@ -9911,16 +9815,15 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     # only need to insert eNext, as eComplete was modified
                     # in place due to retainOrigin option
                     # insert at o, not oCut (duration into element)
-                    returnObj.coreInsert(o, eNext)
+                    self.coreInsert(o, eNext)
                     oStartNext = o
-        returnObj.coreElementsChanged()
-        if inPlace is False:
-            return returnObj
+        self.coreElementsChanged()
+        return self
 
+    @inPlace(default=False, derivation='sliceByBeat')
     def sliceByBeat(self,
                     target=None,
                     addTies=True,
-                    inPlace=False,
                     displayTiedAccidentals=False):
         '''
         Slice all elements in the Stream that have a Duration at
@@ -9928,32 +9831,26 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         * Changed in v7: return None if inPlace is True
         '''
-
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('sliceByBeat')
-        else:
-            returnObj = self
-
-        if returnObj.hasMeasures():
+        if self.hasMeasures():
             # call on component measures
-            for m in returnObj.getElementsByClass(Measure):
+            for m in self.getElementsByClass(Measure):
                 m.sliceByBeat(target=target,
                               addTies=addTies,
                               inPlace=True,
                               displayTiedAccidentals=displayTiedAccidentals)
-            return returnObj  # exit
+            return self  # exit
 
-        if returnObj.hasPartLikeStreams():
-            for p in returnObj.getElementsByClass(Part):
+        if self.hasPartLikeStreams():
+            for p in self.getElementsByClass(Part):
                 p.sliceByBeat(target=target,
                               addTies=addTies,
                               inPlace=True,
                               displayTiedAccidentals=displayTiedAccidentals)
-            return returnObj  # exit
+            return self  # exit
 
         # this will return a default
         # using this method to work on Stream, not just Measures
-        tsStream = returnObj.getTimeSignatures(returnDefault=True)
+        tsStream = self.getTimeSignatures(returnDefault=True)
 
         if not tsStream:
             raise StreamException('no time signature was found')
@@ -9962,14 +9859,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             raise StreamException('not yet implemented: slice by changing time signatures')
 
         offsetList = tsStream[0].getBeatOffsets()
-        returnObj.sliceAtOffsets(offsetList,
+        self.sliceAtOffsets(offsetList,
                                  target=target,
                                  addTies=addTies,
                                  inPlace=True,
                                  displayTiedAccidentals=displayTiedAccidentals)
-
-        if not inPlace:
-            return returnObj
+        return self
 
     # --------------------------------------------------------------------------
     # get boolean information from the Stream
@@ -11279,7 +11174,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
     # --------------------------------------------------------------------------
     # voice processing routines
-
+    @inPlace(default=False, derivation='makeVoices')
     def makeVoices(self, *, inPlace=False, fillGaps=True):
         '''
         If this Stream has overlapping Notes or Chords, this method will isolate
@@ -11302,14 +11197,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # this method may not always
         # produce the optimal voice assignment based on context (register
         # chord formation, etc
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('makeVoices')
-        else:
-            returnObj = self
         # must be sorted
-        if not returnObj.isSorted:
-            returnObj.sort()
-        olDict = returnObj.notes.stream().getOverlaps()
+        if not self.isSorted:
+            self.sort()
+        olDict = self.notes.stream().getOverlaps()
         # environLocal.printDebug(['makeVoices(): olDict', olDict])
         # find the max necessary voices by finding the max number
         # of elements in each group; these may not all be necessary
@@ -11318,9 +11209,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if len(group) > maxVoiceCount:
                 maxVoiceCount = len(group)
         if maxVoiceCount == 1:  # nothing to do here
-            if not inPlace:
-                return returnObj
-            return None
+            return self
 
         # store all voices in a list
         voices = []
@@ -11329,8 +11218,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         # iterate through all elements; if not in an overlap, place in
         # voice 1, otherwise, distribute
-        for e in returnObj.notes:
-            o = e.getOffsetBySite(returnObj)
+        for e in self.notes:
+            o = e.getOffsetBySite(self)
             # cannot match here by offset, as olDict keys are representative
             # of the first overlapped offset, not all contained offsets
             # if o not in olDict:  # place in a first voices
@@ -11343,21 +11232,19 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     v.insert(o, e)
                     break
             # remove from source
-            returnObj.remove(e)
+            self.remove(e)
         # remove any unused voices (possible if overlap group has sus)
         for v in voices:
             if v:  # skip empty voices
-                returnObj.insert(0, v)
+                self.insert(0, v)
         if fillGaps:
-            returnObj.makeRests(fillGaps=True,
-                                inPlace=True,
-                                timeRangeFromBarDuration=True,
-                                )
+            self.makeRests(fillGaps=True,
+                           inPlace=True,
+                           timeRangeFromBarDuration=True)
         # remove rests in returnObj
-        returnObj.removeByClass('Rest')
+        self.removeByClass('Rest')
         # elements changed will already have been called
-        if not inPlace:
-            return returnObj
+        return self
 
     def _maxVoiceCount(self, *, countById=False) -> int | tuple[int, list[str]]:
         '''
@@ -11701,7 +11588,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         return self.voicesToParts()
 
-    def flattenUnnecessaryVoices(self, *, force=False, inPlace=False):
+    @inPlace(default=False, deepcopy=True)
+    def flattenUnnecessaryVoices(self, *, force=False):
         '''
         If this Stream defines one or more internal voices, do the following:
 
@@ -11732,40 +11620,29 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         * Changed in v5: inPlace is default False and a keyword only arg.
         '''
-        if not self.voices:
-            return None  # do not make copy; return immediately
-
-        if not inPlace:  # make a copy
-            returnObj = copy.deepcopy(self)
-        else:
-            returnObj = self
-
         # collect voices for removal and for flattening
         remove = []
         flatten = []
-        for v in returnObj.voices:
+        for v in self.voices:
             if not v:  # might add other criteria
                 remove.append(v)
             else:
                 flatten.append(v)
 
         for v in remove:
-            returnObj.remove(v)
+            self.remove(v)
 
         if len(flatten) == 1 or force:  # always flatten 1
             for v in flatten:  # usually one unless force
                 # get offset of voice in returnObj
-                shiftOffset = v.getOffsetBySite(returnObj)
+                shiftOffset = v.getOffsetBySite(self)
                 for e in v.elements:
                     # insert shift + offset w/ voice
-                    returnObj.coreInsert(shiftOffset + e.getOffsetBySite(v), e)
-                returnObj.remove(v)
-            returnObj.coreElementsChanged()
+                    self.coreInsert(shiftOffset + e.getOffsetBySite(v), e)
+                self.remove(v)
+            self.coreElementsChanged()
 
-        if not inPlace:
-            return returnObj
-        else:
-            return None
+        return self
 
     # --------------------------------------------------------------------------
     # Lyric control
@@ -11908,7 +11785,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
 
     # ---- Variant Activation Methods
-    def activateVariants(self, group=None, *, matchBySpan=True, inPlace=False):
+    @inPlace(default=False, derivation='activateVariants')
+    def activateVariants(self, group=None, *, matchBySpan=True):
         '''
         For any :class:`~music21.variant.Variant` objects defined in this Stream
         (or selected by matching the `group` parameter),
@@ -12118,18 +11996,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             {4.0} <music21.bar.Barline type=final>
         '''
         from music21 import variant
-        if not inPlace:  # make a copy if inPlace is False
-            returnObj = self.coreCopyAsDerivation('activateVariants')
-        else:
-            returnObj = self
-
         # Define Lists to cache variants
         elongationVariants = []
         deletionVariants = []
 
         # Loop through all variants, deal with replacement variants and
         # save insertion and deletion for later.
-        for v in returnObj.getElementsByClass(variant.Variant):
+        for v in self.getElementsByClass(variant.Variant):
             if group is not None and group not in v.groups:
                 continue  # skip those that are not part of this group
 
@@ -12143,7 +12016,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 deletionVariants.append(v)
             # Deal with cases in which variant is the same length as what it replaces first.
             elif lengthType == 'replacement':
-                returnObj._insertReplacementVariant(v, matchBySpan)
+                self._insertReplacementVariant(v, matchBySpan)
 
         # Now deal with deletions before insertion variants.
         # For keeping track of which measure numbers have been removed
@@ -12156,7 +12029,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         deletedRegionsForRemoval = []
         for v in deletionVariants:
             (deletedRegion, vDeletedMeasures, vInsertedMeasuresTuple
-             ) = returnObj._insertDeletionVariant(v, matchBySpan)  # deletes and inserts
+             ) = self._insertDeletionVariant(v, matchBySpan)  # deletes and inserts
             deletedRegionsForRemoval.append(deletedRegion)  # Saves the deleted region
             deletedMeasures.extend(vDeletedMeasures)  # Saves the deleted measure numbers
             # saves the inserted numberless measures (this will be empty unless there are
@@ -12165,23 +12038,23 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             insertedMeasures.append(vInsertedMeasuresTuple)
 
         # Squeeze out the gaps that were saved.
-        returnObj._removeOrExpandGaps(deletedRegionsForRemoval, isRemove=True, inPlace=True)
+        self._removeOrExpandGaps(deletedRegionsForRemoval, isRemove=True, inPlace=True)
 
         # Before we can deal with insertions, we have to expand the stream to make space.
         insertionRegionsForExpansion = []  # For saving the insertion regions
         # go through all elongation variants to find the insertion regions.
         for v in elongationVariants:
             lengthDifference = v.replacementDuration - v.containedHighestTime
-            insertionStart = v.getOffsetBySite(returnObj) + v.replacementDuration
+            insertionStart = v.getOffsetBySite(self) + v.replacementDuration
             # Saves the information for each gap to be expanded
             insertionRegionsForExpansion.append((insertionStart, -1 * lengthDifference, [v]))
 
         # Expands the appropriate gaps in the stream.
-        returnObj._removeOrExpandGaps(insertionRegionsForExpansion, isRemove=False, inPlace=True)
+        self._removeOrExpandGaps(insertionRegionsForExpansion, isRemove=False, inPlace=True)
         # Now deal with elongation variants properly
         for v in elongationVariants:
             (vInsertedMeasuresTuple, vDeletedMeasures
-             ) = returnObj._insertInsertionVariant(v, matchBySpan)  # deletes and inserts
+             ) = self._insertInsertionVariant(v, matchBySpan)  # deletes and inserts
             insertedMeasures.append(vInsertedMeasuresTuple)
             # Saves the numberless inserted measures
             # Saves deleted measures if any (it is unlikely that there will be unless
@@ -12190,15 +12063,11 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             deletedMeasures.extend(vDeletedMeasures)
 
         # Now fix measure numbers given the saved information
-        returnObj._fixMeasureNumbers(deletedMeasures, insertedMeasures)
+        self._fixMeasureNumbers(deletedMeasures, insertedMeasures)
 
         # have to clear cached variants, as they are no longer the same
-        returnObj.coreElementsChanged()
-
-        if not inPlace:
-            return returnObj
-        else:
-            return None
+        self.coreElementsChanged()
+        return self
 
     def _insertReplacementVariant(self, v, matchBySpan=True):
         # noinspection PyShadowingNames
@@ -12623,6 +12492,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         return (highestMeasure, insertedMeasures), deletedMeasures
 
+    @inPlace(default=False, deepcopy=True, passthrough=True)
     def _removeOrExpandGaps(self, listOffsetDurExemption,
                             isRemove=True, inPlace=False):
         '''
@@ -12666,12 +12536,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         {25.0} <music21.note.Note G>
         {31.0} <music21.note.Note F>
         '''
-        if inPlace is True:
-            returnObj = self
-        else:
-            returnObj = copy.deepcopy(self)
-
-        returnObjDuration = returnObj.duration.quarterLength
+        returnObjDuration = self.duration.quarterLength
 
         # If any classes should be exempt from gap closing or expanding, this deals with those.
         if isRemove is True:
@@ -12688,7 +12553,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     includeEnd = True
 
                 shiftDur = shiftDur + durationAmount
-                for e in returnObj.getElementsByOffset(startOffset + durationAmount,
+                for e in self.getElementsByOffset(startOffset + durationAmount,
                                                        endOffset,
                                                        includeEndBoundary=includeEnd,
                                                        mustFinishInSpan=False,
@@ -12699,8 +12564,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     if not inPlace and e.derivation.originId in exemptObjectSet:
                         continue
 
-                    elementOffset = e.getOffsetBySite(returnObj)
-                    returnObj.coreSetElementOffset(e, elementOffset - shiftDur)
+                    elementOffset = e.getOffsetBySite(self)
+                    self.coreSetElementOffset(e, elementOffset - shiftDur)
         else:
             shiftDur = 0.0
             shiftsDict = {}
@@ -12724,7 +12589,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 shiftDur, endOffset, includeEnd, exemptObjects, exemptShift = shiftsDict[offset]
                 # for speed and ID not == checking
                 exemptObjectSet = set(id(e) for e in exemptObjects)
-                for e in returnObj.getElementsByOffset(offset,
+                for e in self.getElementsByOffset(offset,
                                                        endOffset,
                                                        includeEndBoundary=includeEnd,
                                                        mustFinishInSpan=False,
@@ -12734,20 +12599,16 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                         id(e) in exemptObjectSet
                         or (not inPlace and e.derivation.originId in exemptObjectSet)
                     ):
-                        elementOffset = e.getOffsetBySite(returnObj)
-                        returnObj.coreSetElementOffset(e, elementOffset + exemptShift)
+                        elementOffset = e.getOffsetBySite(self)
+                        self.coreSetElementOffset(e, elementOffset + exemptShift)
                         continue
 
-                    elementOffset = e.getOffsetBySite(returnObj)
-                    returnObj.coreSetElementOffset(e, elementOffset + shiftDur)
+                    elementOffset = e.getOffsetBySite(self)
+                    self.coreSetElementOffset(e, elementOffset + shiftDur)
 
         # ran coreSetElementOffset
-        returnObj.coreElementsChanged()
-
-        if inPlace is True:
-            return
-        else:
-            return returnObj
+        self.coreElementsChanged()
+        return self
 
     def _fixMeasureNumbers(self, deletedMeasures, insertedMeasures):
         # noinspection PyShadowingNames
@@ -13257,8 +13118,8 @@ class Measure(Stream):
                 setattr(self, attr, getattr(other, attr))
 
     # -------------------------------------------------------------------------
+    @inPlace(default=False, deepcopy=True)
     def makeNotation(self,
-                     inPlace=False,
                      **subroutineKeywords):
         # noinspection PyShadowingNames
         '''
@@ -13283,29 +13144,24 @@ class Measure(Stream):
         # do this before deepcopy...
 
         # assuming we are not trying to get context of previous measure
-        if not inPlace:  # make a copy
-            m = copy.deepcopy(self)
-        else:
-            m = self
-
         srkCopy = subroutineKeywords.copy()
 
         for illegalKey in ('meterStream', 'refStreamOrTimeRange', 'bestClef'):
             if illegalKey in srkCopy:
                 del srkCopy[illegalKey]
 
-        m.makeAccidentals(searchKeySignatureByContext=True, inPlace=True, **srkCopy)
+        self.makeAccidentals(searchKeySignatureByContext=True, inPlace=True, **srkCopy)
         # makeTies is for cross-bar associations, and cannot be used
         # at just the measure level
         # m.makeTies(meterStream, inPlace=True)
 
         # must have a time signature before calling make beams
-        if m.timeSignature is None:
+        if self.timeSignature is None:
             # get a time signature if not defined, searching the context if
             # necessary
-            contextMeters = m.getTimeSignatures(searchContext=True,
+            contextMeters = self.getTimeSignatures(searchContext=True,
                                                 returnDefault=False)
-            defaultMeters = m.getTimeSignatures(searchContext=False,
+            defaultMeters = self.getTimeSignatures(searchContext=False,
                                                 returnDefault=True)
             if contextMeters:
                 ts = contextMeters[0]
@@ -13315,19 +13171,16 @@ class Measure(Stream):
                 except (StreamException, meter.MeterException):
                     # there must be one here
                     ts = defaultMeters[0]
-            m.timeSignature = ts  # a Stream; get the first element
+            self.timeSignature = ts  # a Stream; get the first element
 
-        makeNotation.splitElementsToCompleteTuplets(m, recurse=True, addTies=True)
-        makeNotation.consolidateCompletedTuplets(m, recurse=True, onlyIfTied=True)
+        makeNotation.splitElementsToCompleteTuplets(self, recurse=True, addTies=True)
+        makeNotation.consolidateCompletedTuplets(self, recurse=True, onlyIfTied=True)
 
-        m.makeBeams(inPlace=True)
-        for m_or_v in [m, *m.voices]:
+        self.makeBeams(inPlace=True)
+        for m_or_v in [self, *self.voices]:
             makeNotation.makeTupletBrackets(m_or_v, inPlace=True)
 
-        if not inPlace:
-            return m
-        else:
-            return None
+        return self
 
     def barDurationProportion(self, barDuration=None):
         '''
@@ -13833,6 +13686,7 @@ class Part(Stream):
         do not need to be done every time.
     ''')
 
+    @inPlace(default=False, derivation='makeAccidentals')
     def makeAccidentals(
         self,
         *,
@@ -13865,12 +13719,7 @@ class Part(Stream):
 
         * Changed in v7: `inPlace` defaults False
         '''
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('makeAccidentals')
-        else:
-            returnObj = self
-        # process make accidentals for each measure
-        measureStream = returnObj.getElementsByClass(Measure)
+        measureStream = self.getElementsByClass(Measure)
         makeNotation.makeAccidentalsInMeasureStream(
             measureStream,
             alteredPitches=alteredPitches,
@@ -13880,10 +13729,7 @@ class Part(Stream):
             cautionaryNotImmediateRepeat=cautionaryNotImmediateRepeat,
             tiePitchSet=tiePitchSet,
         )
-        if not inPlace:
-            return returnObj
-        else:  # in place
-            return None
+        return self
 
     def mergeAttributes(self, other):
         '''
@@ -14209,11 +14055,11 @@ class Score(Stream):
     ) -> Score:
         pass
 
+    @inPlace(default=False, derivation='sliceByGreatestDivisor')
     def sliceByGreatestDivisor(
         self: Score,
         *,
         addTies: bool = True,
-        inPlace: bool = False,
     ) -> Score | None:
         '''
         Slice all duration of all part by the minimum duration
@@ -14221,15 +14067,9 @@ class Score(Stream):
 
         Overrides method defined on Stream.
         '''
-        if not inPlace:  # make a copy
-            returnObj = self.coreCopyAsDerivation('sliceByGreatestDivisor')
-        else:
-
-            returnObj = self
-
         # Find the greatest divisor for each measure at a time.
         # If there are no measures this will be zero.
-        firstPart = returnObj.parts.first()
+        firstPart = self.parts.first()
         if firstPart is None:
             raise TypeError('Cannot sliceByGreatestDivisor without parts')
         mStream = firstPart.getElementsByClass(Measure)
@@ -14241,7 +14081,7 @@ class Score(Stream):
         for i in range(mCount):  # may be 1
             uniqueQuarterLengths = []
             p: Part
-            for p in returnObj.getElementsByClass(Part):
+            for p in self.getElementsByClass(Part):
                 if p.hasMeasures():
                     m_or_p = p.getElementsByClass(Measure)[i]
                 else:
@@ -14258,7 +14098,7 @@ class Score(Stream):
             # environLocal.printDebug(['Score.sliceByGreatestDivisor:
             # got divisor from unique ql:', divisor, uniqueQuarterLengths])
 
-            for p in returnObj.getElementsByClass(Part):
+            for p in self.getElementsByClass(Part):
                 # in place: already have a copy if nec
                 # must do on measure at a time
                 if p.hasMeasures():
@@ -14270,9 +14110,8 @@ class Score(Stream):
                                              addTies=addTies,
                                              inPlace=True)
         del mStream  # cleanup Streams
-        returnObj.coreElementsChanged()
-        if not inPlace:
-            return returnObj
+        self.coreElementsChanged()
+        return self
 
     def partsToVoices(self,
                       voiceAllocation: int | list[list | int] = 2,

@@ -44,7 +44,7 @@ if t.TYPE_CHECKING:
 
 environLocal = environment.Environment('instrument')
 
-@inPlace(default=False, deepcopy=False, derivation='unbundleInstruments')
+@inPlace(default=False, derivation='unbundleInstruments')
 def unbundleInstruments(s: stream.Stream) -> stream.Stream | None:
     # noinspection PyShadowingNames
     '''
@@ -75,7 +75,7 @@ def unbundleInstruments(s: stream.Stream) -> stream.Stream | None:
                 s.insert(off, i)
     return s
 
-@inPlace(default=False, deepcopy=False, derivation='bundleInstruments')
+@inPlace(default=False, derivation='bundleInstruments')
 def bundleInstruments(s: stream.Stream) -> stream.Stream | None:
     # noinspection PyShadowingNames
     '''
@@ -1801,7 +1801,7 @@ def ensembleNameBySize(number):
         return ensembleNamesBySize[int(number)]
 
 
-@inPlace(default=False, deepcopy=False, derivation='instrument.deduplicate')
+@inPlace(default=False, derivation='instrument.deduplicate')
 def deduplicate(s: stream.Stream) -> stream.Stream:
     '''
     Check every offset in `s` for multiple instrument instances.

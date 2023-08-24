@@ -68,7 +68,7 @@ from music21.scale import scala
 # -------------------------
 from music21 import base
 from music21 import common
-from music21.common.decorators import deprecated
+from music21.common.decorators import deprecated, inPlace
 from music21 import defaults
 from music21 import environment
 from music21 import exceptions21
@@ -1442,6 +1442,7 @@ class ConcreteScale(Scale):
         '''
         return self._abstract.getDegreeMaxUnique()
 
+    @inPlace(default=False, deepcopy=True)
     def transpose(self, value, *, inPlace=False):
         '''
         Transpose this Scale by the given interval
@@ -1462,19 +1463,14 @@ class ConcreteScale(Scale):
         >>> sc3
         <music21.scale.MajorScale A major>
         '''
-        if inPlace:
-            post = self
-        else:
-            post = copy.deepcopy(self)
         if self.tonic is None:
             # could raise an error; just assume a 'c'
-            post.tonic = pitch.Pitch('C4')
-            post.tonic.transpose(value, inPlace=True)
+            self.tonic = pitch.Pitch('C4')
+            self.tonic.transpose(value, inPlace=True)
         else:
-            post.tonic.transpose(value, inPlace=True)
+            self.tonic.transpose(value, inPlace=True)
         # may need to clear cache here
-        if not inPlace:
-            return post
+        return self
 
     def tune(
         self,

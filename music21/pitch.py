@@ -1937,7 +1937,7 @@ class Pitch(prebase.ProtoM21Object):
 
         # if True, accidental is not known; is determined algorithmically
         # likely due to pitch data from midi or pitch space/class numbers
-        self.spellingIsInferred = False
+        self.spellingIsInferred: bool = False
         # the fundamental attribute stores an optional pitch
         # that defines the fundamental used to create this Pitch
         self.fundamental: Pitch | None = None
@@ -4617,7 +4617,7 @@ class Pitch(prebase.ProtoM21Object):
         if not isinstance(value, int):
             p.spellingIsInferred = self.spellingIsInferred
 
-        if p.spellingIsInferred is True:
+        if p.spellingIsInferred:
             p.simplifyEnharmonic(inPlace=True, mostCommon=True)
 
         if not inPlace:
@@ -4637,7 +4637,6 @@ class Pitch(prebase.ProtoM21Object):
             # deepcopy _microtone if present (not thru microtone property to detect None)
             if p._microtone is not None:
                 self._microtone = copy.deepcopy(p._microtone)
-            return None
 
     # --------------------------------------------------------------------------
     # utilities for pitch object manipulation

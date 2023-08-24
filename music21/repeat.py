@@ -407,7 +407,7 @@ repeatExpressionReference = [
 ]
 
 # ------------------------------
-@inPlace(default=False, deepcopy=False, derivation='insertRepeatEnding')
+@inPlace(default=False, derivation='insertRepeatEnding')
 def insertRepeatEnding(s: stream.Stream, start, end, endingNumber: int = 1, *, inPlace=False):
     '''
     Designates a range of measures as being repeated endings (i.e. first and second endings)
@@ -451,7 +451,7 @@ def insertRepeatEnding(s: stream.Stream, start, end, endingNumber: int = 1, *, i
 
     return s
 
-@inPlace(default=False, deepcopy=False, derivation='insertRepeat')
+@inPlace(default=False, derivation='insertRepeat')
 def insertRepeat(s, start, end):
     # noinspection PyShadowingNames
     '''
@@ -501,7 +501,7 @@ def insertRepeat(s, start, end):
 
     return s
 
-@inPlace(default=False, deepcopy=False, derivation='deleteMeasures')
+@inPlace(default=False, derivation='deleteMeasures')
 def deleteMeasures(s, toDelete, *, correctMeasureNumbers=True):
     # noinspection PyShadowingNames
     '''

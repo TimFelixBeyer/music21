@@ -50,7 +50,7 @@ environLocal = environment.Environment(__file__)
 # -----------------------------------------------------------------------------
 
 
-@inPlace(default=False, deepcopy=False, derivation='makeBeams')
+@inPlace(default=False, derivation='makeBeams')
 def makeBeams(
     s: StreamType,
     *,
@@ -221,7 +221,7 @@ def makeBeams(
     s.streamStatus.beams = True
     return s
 
-
+@inPlace(default=False, deepcopy=True, passthrough=True)
 def makeMeasures(
     s: StreamType,
     *,
@@ -412,11 +412,7 @@ def makeMeasures(
 
     if s.hasPartLikeStreams():
         # can't flatten, because it would destroy parts
-        if inPlace:
-            returnObj = s
-        else:
-            returnObj = copy.deepcopy(s)
-        for substream in returnObj.getElementsByClass('Stream'):
+        for substream in s.getElementsByClass('Stream'):
             substream.makeMeasures(meterStream=meterStream,
                                    refStreamOrTimeRange=refStreamOrTimeRange,
                                    searchContext=searchContext,
@@ -425,10 +421,7 @@ def makeMeasures(
                                    bestClef=bestClef,
                                    inPlace=True,  # copy already made
                                    )
-        if inPlace:
-            return None
-        else:
-            return returnObj
+        return s
     else:
         if s.hasVoices():
             # cannot make flat if there are voices, as would destroy stream partitions
@@ -438,8 +431,6 @@ def makeMeasures(
             srcObj = s.flatten()
         if not srcObj.isSorted:
             srcObj = srcObj.sorted()
-        if not inPlace:
-            srcObj = copy.deepcopy(srcObj)
         voiceCount = len(srcObj.voices)
 
     # environLocal.printDebug([
@@ -616,8 +607,8 @@ def makeMeasures(
             continue
 
         for measureIndex in list(range(measureIndex, len(postMeasureList))) + list(range(0, measureIndex)):
-            m = postMeasureList[measureIndex]
-            if m['mStart'] <= start < m['mEnd']:
+            currentMeasure = postMeasureList[measureIndex]
+            if currentMeasure['mStart'] <= start < currentMeasure['mEnd']:
                 break
         else:
             measureIndex = 0
@@ -632,13 +623,13 @@ def makeMeasures(
         # the element may have already been placed in this measure
         # we need to only exclude elements that are placed in the special
         # first position
-        if m['measure'].clef is e:
+        if currentMeasure['measure'].clef is e:
             continue
 
         # find offset in the temporal context of this measure
         # i is the index of the measure that this element starts at
         # mStart, mEnd are correct
-        oNew = start - m['mStart']  # remove measure offset from element offset
+        oNew = start - currentMeasure['mStart']  # remove measure offset from element offset
 
         # insert element at this offset in the measure
         # not copying elements here!
@@ -651,9 +642,9 @@ def makeMeasures(
         # environLocal.printDebug(['makeMeasures()', 'inserting', oNew, e])
         # NOTE: cannot use coreInsert here for some reason
         if voiceIndex is None:
-            m['measure'].insert(oNew, e)
+            currentMeasure['measure'].insert(oNew, e)
         else:  # insert into voice specified by the voice index
-            m['measure'].voices[voiceIndex].insert(oNew, e)
+            currentMeasure['measure'].voices[voiceIndex].insert(oNew, e)
 
     # add found spanners to higher-level; could insert at zero
     for sp in spannerBundleAccum:
@@ -691,14 +682,13 @@ def makeMeasures(
             # may need to handle spanners; already have s as site
             s.insert(post.elementOffset(e), e)
 
-
+@inPlace(default=False, derivation='makeRests')
 def makeRests(
     s: StreamType,
     *,
     refStreamOrTimeRange=None,
     fillGaps=False,
     timeRangeFromBarDuration=False,
-    inPlace=False,
     hideRests=False,
 ) -> StreamType | None:
     '''
@@ -820,17 +810,11 @@ def makeRests(
     * Changed in v8: scores (or other streams having parts) edited `inPlace` return `None`.
     '''
     from music21 import stream
-
-    if not inPlace:  # make a copy
-        returnObj = s.coreCopyAsDerivation('makeRests')
-    else:
-        returnObj = s
-
     # Invalidate tuplet status
-    returnObj.streamStatus.tuplets = None
+    s.streamStatus.tuplets = None
 
-    if returnObj.iter().parts:
-        for inner_part in returnObj.iter().parts:
+    if s.iter().parts:
+        for inner_part in s.iter().parts:
             inner_part.makeRests(
                 inPlace=True,
                 fillGaps=fillGaps,
@@ -838,10 +822,8 @@ def makeRests(
                 refStreamOrTimeRange=refStreamOrTimeRange,
                 timeRangeFromBarDuration=timeRangeFromBarDuration,
             )
-        if inPlace:
-            return None
-        else:
-            return returnObj
+        return s
+
 
     def oHighTargetForMeasure(
         m: stream.Measure | None = None,
@@ -865,30 +847,30 @@ def makeRests(
     oLowTarget: OffsetQL = 0.0
     oHighTarget: OffsetQL = 0.0
     if timeRangeFromBarDuration:
-        if isinstance(returnObj, stream.Measure):
-            oHighTarget = oHighTargetForMeasure(m=returnObj)
-        elif isinstance(returnObj, stream.Voice):
+        if isinstance(s, stream.Measure):
+            oHighTarget = oHighTargetForMeasure(m=s)
+        elif isinstance(s, stream.Voice):
             if isinstance(refStreamOrTimeRange, stream.Measure):
                 oHighTarget = oHighTargetForMeasure(m=refStreamOrTimeRange)
             elif isinstance(refStreamOrTimeRange, meter.TimeSignature):
                 maybe_measure: stream.Measure | None = None
-                if isinstance(returnObj.activeSite, stream.Measure):
-                    maybe_measure = returnObj.activeSite
+                if isinstance(s.activeSite, stream.Measure):
+                    maybe_measure = s.activeSite
                 oHighTarget = oHighTargetForMeasure(m=maybe_measure, ts=refStreamOrTimeRange)
-        elif returnObj.hasMeasures():
+        elif s.hasMeasures():
             # This could be optimized to save some context searches,
             # but at the cost of readability.
-            for el in returnObj._elements:
+            for el in s._elements:
                 if el.isStream and not el.isSorted:
                     el.sort()
             oHighTarget = sum(
-                m.barDuration.quarterLength for m in returnObj.getElementsByClass(stream.Measure)
+                m.barDuration.quarterLength for m in s.getElementsByClass(stream.Measure)
             )
 
     # If the above search didn't run or still yielded 0.0, use refStreamOrTimeRange
     if oHighTarget == 0.0:
         if refStreamOrTimeRange is None:  # use local
-            oHighTarget = returnObj.highestTime
+            oHighTarget = s.highestTime
         elif isinstance(refStreamOrTimeRange, stream.Stream):
             oLowTarget = refStreamOrTimeRange.lowestOffset
             oHighTarget = refStreamOrTimeRange.highestTime
@@ -898,12 +880,12 @@ def makeRests(
             oHighTarget = max(refStreamOrTimeRange)
 
     bundle: list[StreamType]
-    if returnObj.hasVoices():
-        bundle = list(returnObj.voices)
-    elif returnObj.hasMeasures():
-        bundle = list(returnObj.getElementsByClass('Measure'))
+    if s.hasVoices():
+        bundle = list(s.voices)
+    elif s.hasMeasures():
+        bundle = list(s.getElementsByClass('Measure'))
     else:
-        bundle = [returnObj]
+        bundle = [s]
 
     lastTimeSignature: meter.TimeSignature | None = None
     # bundle components may be voices, measures, or a flat Stream
@@ -957,24 +939,23 @@ def makeRests(
                     r.style.hideObjectOnPrint = hideRests
                     component.insert(e.offset, r)
 
-    if returnObj.hasMeasures():
+    if s.hasMeasures():
         # split rests at measure boundaries
-        returnObj.makeTies(classFilterList=(note.Rest,), inPlace=True)
+        s.makeTies(classFilterList=(note.Rest,), inPlace=True)
 
         # reposition measures
         accumulatedTime = 0.0
-        for m in returnObj.getElementsByClass(stream.Measure):
-            returnObj.setElementOffset(m, accumulatedTime)
+        for m in s.getElementsByClass(stream.Measure):
+            s.setElementOffset(m, accumulatedTime)
             accumulatedTime += m.highestTime
 
-    if not inPlace:
-        return returnObj
+    return s
 
+@inPlace(default=False, derivation='makeTies')
 def makeTies(
     s: StreamType,
     *,
     meterStream=None,
-    inPlace=False,
     displayTiedAccidentals=False,
     classFilterList=(note.GeneralNote,),
 ) -> StreamType | None:
@@ -1173,55 +1154,43 @@ def makeTies(
     from music21 import stream
 
     # environLocal.printDebug(['calling Stream.makeTies()'])
-
-    returnObj: StreamType
-    if not inPlace:  # make a copy
-        returnObj = s.coreCopyAsDerivation('makeTies')
-    else:
-        returnObj = s
-    if not returnObj:
+    if not s:
         raise stream.StreamException('cannot process an empty stream')
 
     if not common.isIterable(classFilterList):
         classFilterList = [classFilterList]
 
-    if isinstance(returnObj, stream.Opus):
-        for subScore in returnObj.scores:
+    if isinstance(s, stream.Opus):
+        for subScore in s.scores:
             subScore.makeTies(meterStream=meterStream,
                               inPlace=True,
                               displayTiedAccidentals=displayTiedAccidentals,
                               classFilterList=classFilterList
                               )
-        if not inPlace:
-            # mypy bug thinks returnObj is not a StreamType.
-            return t.cast(StreamType, returnObj)
-        else:
-            return None
+        # mypy bug thinks returnObj is not a StreamType.
+        return t.cast(StreamType, s)
 
-    if returnObj.hasPartLikeStreams():
+    if s.hasPartLikeStreams():
         # part-like does not necessarily mean that the next level down is a stream.Part
         # object or that this is a stream.Score object, so do not substitute
         # returnObj.parts for this...
-        for p in returnObj.getElementsByClass(stream.Stream):
+        for p in s.getElementsByClass(stream.Stream):
             # already copied if necessary; edit in place
             p.makeTies(meterStream=meterStream,
                        inPlace=True,
                        displayTiedAccidentals=displayTiedAccidentals,
                        classFilterList=classFilterList
                        )
-        if not inPlace:
-            return returnObj
-        else:
-            return None
+        return s
 
     # all remaining stream types should contain measures
-    if not returnObj.hasMeasures():
+    if not s.hasMeasures():
         raise stream.StreamException('cannot process a stream without measures')
 
     # may need to look in activeSite if no time signatures are found
     # presently searchContext is False to save time
     if meterStream is None:
-        meterStream = returnObj.getTimeSignatures(sortByCreationTime=True,
+        meterStream = s.getTimeSignatures(sortByCreationTime=True,
                                                   searchContext=False)
     elif not meterStream:
         # an empty stream
@@ -1231,7 +1200,7 @@ def makeTies(
         meterStream.insert(0, ts)
 
     mCount = 0
-    measureList = list(returnObj.getElementsByClass(stream.Measure))
+    measureList = list(s.getElementsByClass(stream.Measure))
 
     while mCount < len(measureList):  # pylint: disable=too-many-nested-blocks
         # get the current measure to look for notes that need ties
@@ -1252,10 +1221,7 @@ def makeTies(
             mNext.number = m.number + 1
             mNextAdd = True  # new measure, needs to be appended
 
-        if mNext.hasVoices():
-            mNextHasVoices = True
-        else:
-            mNextHasVoices = False
+        mNextHasVoices = mNext.hasVoices()
 
         # environLocal.printDebug([
         #    'makeTies() dealing with measure', m, 'mNextAdd', mNextAdd])
@@ -1332,7 +1298,7 @@ def makeTies(
                 if eOffset >= mEnd:
                     # move elements that lie past the measure boundary to the next measure
                     dst.insert(eOffset - mEnd, e)
-                    returnObj.remove(e, recurse=True)
+                    s.remove(e, recurse=True)
                 else:
                     qLenWithinMeasure = mEnd - eOffset
                     e, eRemain = e.splitAtQuarterLength(
@@ -1352,20 +1318,15 @@ def makeTies(
                     # environLocal.printDebug([
                     #    'makeTies() inserting mNext into returnObj',
                     #    mNext])
-                    returnObj.insert(mNext.offset, mNext)
+                    s.insert(mNext.offset, mNext)
                     # need to make sure that the new measure is processed.
                     measureList.append(mNext)
                     mNextAdd = False
-
         mCount += 1
+    return s
 
-    if not inPlace:
-        return returnObj
-    else:
-        return None
-
-
-def makeTupletBrackets(s: StreamType, *, inPlace=False) -> StreamType | None:
+@inPlace(default=False, derivation='makeTupletBrackets')
+def makeTupletBrackets(s: StreamType) -> StreamType | None:
     # noinspection PyShadowingNames
     '''
     Given a flat Stream of mixed durations, designates the first and last tuplet of any group
@@ -1393,15 +1354,8 @@ def makeTupletBrackets(s: StreamType, *, inPlace=False) -> StreamType | None:
     * Changed in v7: Legacy behavior of taking in a list of durations removed.
     '''
     durationList: list[duration.Duration] = []
-
-    # Stream, as it should be...
-    if not inPlace:  # make a copy
-        returnObj = s.coreCopyAsDerivation('makeTupletBrackets')
-    else:
-        returnObj = s
-
     # only want to look at notes and rests.
-    for n in returnObj.notesAndRests:
+    for n in s.notesAndRests:
         if n.duration.isGrace:
             continue
         durationList.append(n.duration)
@@ -1482,10 +1436,8 @@ def makeTupletBrackets(s: StreamType, *, inPlace=False) -> StreamType | None:
 
         tupletPrevious = tupletObj
 
-    returnObj.streamStatus.tuplets = True
-
-    if not inPlace:
-        return returnObj
+    s.streamStatus.tuplets = True
+    return s
 
 
 def realizeOrnaments(s: StreamType) -> StreamType:
