@@ -5977,7 +5977,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             staffNumber = 1
 
         layoutObjectKey = (staffNumber, self.offsetMeasureNote)
-        existingStaffLayoutObject = self.staffLayoutObjects.get(layoutObjectKey, None)
+        existingStaffLayoutObject = self.staffLayoutObjects.get(layoutObjectKey)
         newStaffLayoutObject = self.xmlStaffLayoutFromStaffDetails(
             mxDetails,
             m21staffLayout=existingStaffLayoutObject

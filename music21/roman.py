@@ -3236,10 +3236,10 @@ class RomanNumeral(harmony.Harmony):
                 and self.frontAlterationTransposeInterval.semitones != 0):
             chord_map = chord.tools.allChordSteps(chord.Chord(pitches))
             non_alter = (
-                chord_map.get(7, None),
-                chord_map.get(2, None),  # 9th
-                chord_map.get(4, None),  # 11th
-                chord_map.get(6, None),  # 13th
+                chord_map.get(7),
+                chord_map.get(2),  # 9th
+                chord_map.get(4),  # 11th
+                chord_map.get(6),  # 13th
             )
             for thisPitch in pitches:
                 if thisPitch not in non_alter:

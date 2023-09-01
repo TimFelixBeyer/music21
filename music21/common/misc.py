@@ -219,10 +219,7 @@ def runningInNotebook() -> bool:
 
     (No tests provided here, since results will differ depending on environment)
     '''
-    if sys.stderr.__class__.__name__ == 'OutStream':
-        return True
-    else:
-        return False
+    return sys.stderr.__class__.__name__ == 'OutStream'
 
 
 @deprecated('v9', 'v10', 'use runningInNotebook() instead')

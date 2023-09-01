@@ -17,6 +17,7 @@ from music21 import environment
 from music21 import key
 from music21 import meter
 from music21 import stream
+from music21.common.decorators import inPlace
 
 if t.TYPE_CHECKING:
     from music21.base import Music21Object
@@ -25,11 +26,10 @@ environLocal = environment.Environment('stream.tools')
 
 
 # ------------------------------------------------------------------------------
-
+@inPlace(default=True, derivation='removeDuplicates')
 def removeDuplicates(thisStream: stream.Stream,
                      classesToRemove: tuple = (meter.TimeSignature, key.KeySignature, clef.Clef),
-                     inPlace: bool = True
-                     ) -> stream.Stream:
+                     ) -> stream.Stream | None:
     '''
     The repetition of some classes like notes is common.
     By contrast, the explicit repetition of certain other objects like clefs
@@ -157,13 +157,9 @@ def removeDuplicates(thisStream: stream.Stream,
     True
 
     '''
-
     supportedClasses = (meter.TimeSignature, key.KeySignature, clef.Clef)
 
     removalDict: dict[stream.Stream, list[Music21Object]] = {}
-
-    if not inPlace:
-        thisStream = thisStream.coreCopyAsDerivation('removeDuplicates')
 
     if isinstance(thisStream, stream.Score):
         if len(thisStream.parts) > 0:

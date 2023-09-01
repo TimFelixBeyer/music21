@@ -323,12 +323,10 @@ def opFrac(num: OffsetQLIn | None) -> OffsetQL | None:
             if (d & (d - 1)) == 0:  # power of two...
                 # 50% faster than float(num)
                 return f_out._numerator / (d + 0.0)  # type: ignore
-            else:
-                return f_out  # leave non-power of two fractions alone
+            return f_out  # leave non-power of two fractions alone
             # return Fraction(*ir).limit_denominator(DENOM_LIMIT) # *ir instead of float--can happen
             # internally in Fraction constructor, but is twice as fast...
-        else:
-            return num
+        return num
     elif numType is int:  # if vs. elif is negligible time difference.
         # 8x faster than float(num)
         return num + 0.0  # type: ignore
@@ -338,11 +336,9 @@ def opFrac(num: OffsetQLIn | None) -> OffsetQL | None:
         if (d & (d - 1)) == 0:  # power of two...
             # 50% faster than float(num)
             return num._numerator / (d + 0.0)  # type: ignore
-        else:
-            return num  # leave non-power of two fractions alone
+        return num  # leave non-power of two fractions alone
     elif num is None:
         return None
-
     # class inheritance only check AFTER "type is" checks... this is redundant but highly optimized.
     elif isinstance(num, int):
         return num + 0.0
@@ -352,8 +348,7 @@ def opFrac(num: OffsetQLIn | None) -> OffsetQL | None:
         d = num.denominator  # Use properties since it is a subclass
         if (d & (d - 1)) == 0:  # power of two...
             return num.numerator / (d + 0.0)  # 50% faster than float(num)
-        else:
-            return num  # leave fraction alone
+        return num  # leave fraction alone
     else:
         raise TypeError(f'Cannot convert num: {num}')
 
@@ -416,12 +411,11 @@ def mixedNumeral(expr: numbers.Real,
     if quotient:
         if remainderFrac:
             return f'{int(quotient)} {remainderFrac}'
-        else:
-            return str(int(quotient))
+        return f'{int(quotient)}'
     else:
         if remainderFrac != 0:
             return str(remainderFrac)
-    return str(0)
+    return '0'
 
 
 def roundToHalfInteger(num: float | int) -> float | int:
@@ -464,12 +458,11 @@ def roundToHalfInteger(num: float | int) -> float | int:
     intVal, floatVal = divmod(num, 1.0)
     intVal = int(intVal)
     if floatVal < 0.25:
-        floatVal = 0
+        return intVal
     elif 0.25 <= floatVal < 0.75:
-        floatVal = 0.5
+        return intVal + 0.5
     else:
-        floatVal = 1
-    return intVal + floatVal
+        return intVal + 1
 
 
 def addFloatPrecision(x, grain=1e-2) -> float | Fraction:

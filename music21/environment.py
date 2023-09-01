@@ -329,12 +329,11 @@ class _EnvironmentCore:
 
             else:
                 name = slot.get('name')
-                value = slot.get('value')
-                if name not in ref:
+                if name in ref:
+                    # load up stored values, overwriting defaults
+                    ref[name] = slot.get('value')
                     continue
-                    # do not set, ignore for now
-                else:  # load up stored values, overwriting defaults
-                    ref[name] = value
+                # otherwise, ignore for now
 
     def _loadDefaults(self, forcePlatform=None):
         '''

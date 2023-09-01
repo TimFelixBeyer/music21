@@ -2137,9 +2137,9 @@ def saveAccidentalDisplayStatus(s) -> t.Generator[None, None, None]:
     finally:
         for p in s.pitches:
             if p.accidental is not None:
-                p.accidental.displayStatus = displayStatuses.get(id(p), None)
+                p.accidental.displayStatus = displayStatuses.get(id(p))
                 continue
-            if displayStatuses.get(id(p), False) is True:
+            if displayStatuses.get(id(p), False):
                 p.accidental = pitch.Accidental(0)
                 p.accidental.displayStatus = True
 

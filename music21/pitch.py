@@ -395,16 +395,7 @@ def _convertPsToStep(
         pc_float, micro = divmod(pcReal, 1)
         pc = int(pc_float)
 
-        # if close enough to a quarter tone
-        if round(micro, 1) == 0.5:
-            # if we can round to 0.5, then this is a quarter-tone accidental
-            alter = 0.5
-            # need to find microtonal alteration around this value
-            # of alter is 0.5 and micro is 0.7 than  micro should be 0.2
-            # of alter is 0.5 and micro is 0.4 than  micro should be -0.1
-            micro = micro - alter
-        # if greater than 0.5
-        elif 0.25 < micro < 0.75:
+        if 0.25 < micro < 0.75:
             alter = 0.5
             micro = micro - alter
         # if closer to 1, than go to the higher alter and get negative micro
@@ -412,12 +403,11 @@ def _convertPsToStep(
             alter = 1.0
             micro = micro - alter
         # not greater than 0.25
-        elif micro > 0:
+        elif micro >= 0:
             alter = 0.0
             # micro = micro  # no change necessary
         else:
-            alter = 0.0
-            micro = 0.0
+            raise ValueError("microtone value not expected: %s" % micro)
 
     # environLocal.printDebug(['_convertPsToStep(): post', 'alter', alter,
     #    'micro', micro, 'pc', pc])

@@ -723,11 +723,11 @@ def keyboardPartsToBraille(keyboardScore,
         raise BrailleTranslateException('Can only translate two keyboard parts at a time')
     staffUpper = parts[0]
     staffLower = parts[1]
-    upperPartToTranscribe = staffUpper
-    if not inPlace:
+    if inPlace:
+        upperPartToTranscribe = staffUpper
+        lowerPartToTranscribe = staffLower
+    else:
         upperPartToTranscribe = staffUpper.makeNotation(cautionaryNotImmediateRepeat=False)
-    lowerPartToTranscribe = staffLower
-    if not inPlace:
         lowerPartToTranscribe = staffLower.makeNotation(cautionaryNotImmediateRepeat=False)
     rhSegments = segment.findSegments(upperPartToTranscribe,
                                       setHand='right',

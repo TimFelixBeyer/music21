@@ -535,20 +535,19 @@ class Lyric(prebase.ProtoM21Object, style.StyleMixin):
             rawText = str(rawText)
 
         # check for hyphens
-        if applyRaw is False and rawText.startswith('-') and not rawText.endswith('-'):
+        if not applyRaw and rawText.startswith('-') and not rawText.endswith('-'):
             self.text = rawText[1:]
             self.syllabic = 'end'
-        elif applyRaw is False and not rawText.startswith('-') and rawText.endswith('-'):
+        elif not applyRaw and not rawText.startswith('-') and rawText.endswith('-'):
             self.text = rawText[:-1]
             self.syllabic = 'begin'
-        elif applyRaw is False and rawText.startswith('-') and rawText.endswith('-'):
+        elif not applyRaw and rawText.startswith('-') and rawText.endswith('-'):
             self.text = rawText[1:-1]
             self.syllabic = 'middle'
         else:  # assume single
             self.text = rawText
             if self.syllabic is None or not applyRaw:
                 self.syllabic = 'single'
-
 
 # ------------------------------------------------------------------------------
 
@@ -923,7 +922,8 @@ class GeneralNote(base.Music21Object):
         return self
 
     # --------------------------------------------------------------------------
-    def getGrace(self, *, appoggiatura=False, inPlace=False):
+    @inPlace(default=False, deepcopy=True)
+    def getGrace(self, *, appoggiatura=False):
         '''
         Return a grace version of this GeneralNote
 
@@ -968,16 +968,8 @@ class GeneralNote(base.Music21Object):
         >>> r.duration
         <music21.duration.GraceDuration unlinked type:eighth quarterLength:0.0>
         '''
-        if not inPlace:
-            e = copy.deepcopy(self)
-        else:
-            e = self
-
-        e.duration = e.duration.getGraceDuration(appoggiatura=appoggiatura)
-
-        if not inPlace:
-            return e
-
+        self.duration = self.duration.getGraceDuration(appoggiatura=appoggiatura)
+        return self
 
 # ------------------------------------------------------------------------------
 class NotRest(GeneralNote):
@@ -1221,10 +1213,7 @@ class NotRest(GeneralNote):
         >>> n.hasVolumeInformation()
         True
         '''
-        if self._volume is None:
-            return False
-        else:
-            return True
+        return self._volume is not None
 
     def _getVolume(self,
                    forceClient: NotRest | None = None
@@ -1232,11 +1221,7 @@ class NotRest(GeneralNote):
         # DO NOT CHANGE TO @property because of optional attributes
         # lazy volume creation.  property is set below.
         if self._volume is None:
-            if forceClient is None:
-                # when creating the volume object, set the client as self
-                self._volume = volume.Volume(client=self)
-            else:
-                self._volume = volume.Volume(client=forceClient)
+            self._volume = volume.Volume(client=forceClient or self)
 
         volume_out = self._volume
         if t.TYPE_CHECKING:
@@ -1263,7 +1248,6 @@ class NotRest(GeneralNote):
                 vol.velocityScalar = value
             else:  # assume velocity
                 vol.velocity = value
-
         else:
             raise TypeError(f'this must be a Volume object, not {value}')
 
@@ -1760,8 +1744,7 @@ class Note(NotRest):
         if not inPlace:
             post.derivation.method = 'transpose'
             return post
-        else:
-            return None
+        return None
 
     @property
     def fullName(self) -> str:
@@ -1783,11 +1766,7 @@ class Note(NotRest):
         >>> n.fullName
         'D (+25c) 16th Note'
         '''
-        msg = []
-        msg.append(self.pitch.fullName + ' ')
-        msg.append(self.duration.fullName)
-        msg.append(' Note')
-        return ''.join(msg)
+        return f'{self.pitch.fullName} {self.duration.fullName} Note'
 
     def pitchChanged(self):
         '''
@@ -1991,12 +1970,11 @@ class Rest(GeneralNote):
         duration_name = self.duration.fullName.lower()
         if len(duration_name) < 15:  # dotted quarter = 14
             return duration_name.replace(' ', '-')
-        else:
-            ql = self.duration.quarterLength
-            if ql == int(ql):
-                ql = int(ql)
-            ql_string = str(ql)
-            return f'{ql_string}ql'
+        ql = self.duration.quarterLength
+        if ql == int(ql):
+            ql = int(ql)
+        ql_string = str(ql)
+        return f'{ql_string}ql'
 
     @property
     def fullName(self) -> str:

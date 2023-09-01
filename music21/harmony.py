@@ -18,7 +18,6 @@ roman numerals, or other chord representations with a defined root.
 from __future__ import annotations
 
 import collections
-import copy
 import re
 import unittest
 
@@ -27,6 +26,7 @@ import typing as t
 from music21 import base
 from music21 import chord
 from music21 import common
+from music21.common.decorators import inPlace
 from music21 import duration
 from music21 import environment
 from music21 import exceptions21
@@ -2484,7 +2484,8 @@ class NoChord(ChordSymbol):
         # do nothing, everything is already set.
         return
 
-    def transpose(self: NCT, _value, *, inPlace=False) -> NCT | None:
+    @inPlace(default=False, deepcopy=True)
+    def transpose(self: NCT, _value) -> NCT | None:
         '''
         Overrides :meth:`~music21.chord.Chord.transpose` to do nothing.
 
@@ -2495,10 +2496,7 @@ class NoChord(ChordSymbol):
         >>> nc.figure
         'N.C.'
         '''
-        if not inPlace:
-            return copy.deepcopy(self)
-        else:
-            return None
+        return self
 
 
 # ------------------------------------------------------------------------------

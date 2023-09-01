@@ -128,7 +128,7 @@ def partwise(tsTree: 'music21.tree.timespanTree.TimespanTree',
     treeMapping = tsTree.toPartwiseTimespanTrees()
     outputScore = stream.Score()
     for part in templateStream.parts:
-        partwiseTimespans = treeMapping.get(part, None)
+        partwiseTimespans = treeMapping.get(part)
         if partwiseTimespans is None:
             continue
         outputPart = chordified(partwiseTimespans, part)

@@ -8582,7 +8582,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         if self._unlinkedDuration is not None:
             return self._unlinkedDuration
-        elif 'Duration' in self._cache and self._cache['Duration'] is not None:
+        elif self._cache.get('Duration') is not None:
             # environLocal.printDebug(['returning cached duration'])
             return self._cache['Duration']
         else:
@@ -8671,19 +8671,15 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 # get the desired metronome mark from any of ti classes
                 mm = ti.getSoundingMetronomeMark()
                 offsetMetronomeMarkPairs.append([o, mm])
-
-        for i, (o, mm) in enumerate(offsetMetronomeMarkPairs):
-            if i == 0 and o > 0.0:
-                getTempoFromContext = True
-            break  # just need first
+                if offsetMetronomeMarkPairs[0][0] > 0.0:
+                    getTempoFromContext = True
 
         if getTempoFromContext:
             ti = self.getContextByClass('TempoIndication')
             if ti is None:
                 if self.highestTime != 0.0:
                     return float('nan')
-                else:
-                    return 0.0
+                return 0.0
             # insert at zero offset position, even though coming from
             # outside this stream
             mm = ti.getSoundingMetronomeMark()

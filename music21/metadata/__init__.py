@@ -413,7 +413,7 @@ class Metadata(base.Music21Object):
         'dcterms:alternative'
         '''
 
-        return properties.UNIQUE_NAME_TO_NAMESPACE_NAME.get(uniqueName, None)
+        return properties.UNIQUE_NAME_TO_NAMESPACE_NAME.get(uniqueName)
 
     @staticmethod
     def namespaceNameToUniqueName(namespaceName: str) -> str | None:
@@ -438,7 +438,7 @@ class Metadata(base.Music21Object):
         >>> metadata.Metadata.namespaceNameToUniqueName('dcterms:alternative')
         'alternativeTitle'
         '''
-        return properties.NAMESPACE_NAME_TO_UNIQUE_NAME.get(namespaceName, None)
+        return properties.NAMESPACE_NAME_TO_UNIQUE_NAME.get(namespaceName)
 
     @staticmethod
     def isContributorUniqueName(uniqueName: str | None) -> bool:
@@ -1138,9 +1138,8 @@ class Metadata(base.Music21Object):
 
                     # see if there is an associated grandfathered workId, and if so,
                     # search for that, too.
-                    workId: str | None = properties.UNIQUE_NAME_TO_MUSIC21_WORK_ID.get(
-                        uniqueName, None
-                    )
+                    
+                    workId: str | None = properties.UNIQUE_NAME_TO_MUSIC21_WORK_ID.get(uniqueName)
 
                     if workId is None:
                         # there is no associated grandfathered workId, don't search it
@@ -1164,9 +1163,9 @@ class Metadata(base.Music21Object):
                 returnPrimitives=True,     # we want Contributor values
                 returnSorted=False):
             if field is not None:
-                if contrib.role is None and field.lower() != 'contributor':
+                if contrib.role is None and field != 'contributor':
                     continue
-                if contrib.role is not None and field.lower() not in contrib.role.lower():
+                if contrib.role is not None and field not in contrib.role.lower():
                     continue
             for name in contrib.names:
                 # name is Text, so convert to str
@@ -2180,7 +2179,7 @@ class Metadata(base.Music21Object):
                     ' Call addCustom/setCustom/getCustom for custom names.')
             name = uniqueName
 
-        valueList: list[ValueType] | None = self._contents.get(name, None)
+        valueList: list[ValueType] | None = self._contents.get(name)
 
         if not valueList:
             # return empty tuple
@@ -2220,7 +2219,7 @@ class Metadata(base.Music21Object):
         for v in value:
             convertedValues.append(self._convertValue(name, v))
 
-        prevValues: list[ValueType] | None = self._contents.get(name, None)
+        prevValues: list[ValueType] | None = self._contents.get(name)
         if not prevValues:  # None or []
             # set the convertedValues list in there
             # it's always a list, even if there's only one value

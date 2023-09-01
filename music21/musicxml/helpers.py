@@ -231,7 +231,7 @@ def synchronizeIdsToM21(element: ET.Element, m21Object: Music21Object):
     >>> f.id
     'doNotOverwrite'
     '''
-    newId = element.get('id', None)
+    newId = element.get('id')
     if not newId:
         return
     m21Object.id = newId
@@ -259,11 +259,11 @@ def synchronizeIdsToXML(
     >>> e = El('<fermata />')
     >>> f = expressions.Fermata()
     >>> musicxml.helpers.synchronizeIdsToXML(e, f)
-    >>> e.get('id', None) is None
+    >>> e.get('id') is None
     True
     >>> f.id = '123456'  # invalid for MusicXML id
     >>> musicxml.helpers.synchronizeIdsToXML(e, f)
-    >>> e.get('id', None) is None
+    >>> e.get('id') is None
     True
 
     None can be passed in instead of a m21object.

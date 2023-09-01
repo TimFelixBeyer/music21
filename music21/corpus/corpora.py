@@ -758,7 +758,7 @@ class LocalCorpus(Corpus):
         userSettings = environment.UserSettings()
         if self.name == 'local':
             return userSettings['localCorpusSettings']
-        return userSettings['localCorporaSettings'].get(self.name, None)
+        return userSettings['localCorporaSettings'].get(self.name)
 
     # PRIVATE PROPERTIES #
 

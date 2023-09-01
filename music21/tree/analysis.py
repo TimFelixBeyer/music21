@@ -122,12 +122,7 @@ class Horizontality(collections.abc.Sequence):
         r'''
         Is true if the Horizontality contains no motion (including enharmonic restatements)
         '''
-        pitchSets = set()
-        for x in self:
-            pitchSets.add(tuple(x.pitches))
-        if len(pitchSets) == 1:
-            return True
-        return False
+        return len(set(tuple(x.pitches) for x in self)) == 1
 
 
 # -----------------------------------------------------------------------------

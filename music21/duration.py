@@ -700,26 +700,26 @@ def quarterConversion(qLen: OffsetQLIn) -> QuarterLengthConversion:
     # is it built up of many small types?
     components = [durationTupleFromTypeDots(closestSmallerType, 0)]
     # remove the largest type out there and keep going.
-
     qLenRemainder = opFrac(qLen - typeToDuration[closestSmallerType])
     # cannot recursively call, because tuplets are not possible at this stage.
     # environLocal.warn(['starting remainder search for qLen:', qLen,
     #    'remainder: ', qLenRemainder, 'components: ', components])
-    for i in range(8):  # max 8 iterations.
-        # environLocal.warn(['qLenRemainder is:', qLenRemainder])
-        dots, durType = dottedMatch(qLenRemainder)
-        if durType is not False:  # match!
-            dt = durationTupleFromTypeDots(durType, dots)
+    if qLenRemainder != 0:
+        for i in range(8):  # max 8 iterations.
+            # environLocal.warn(['qLenRemainder is:', qLenRemainder])
+            dots, durType = dottedMatch(qLenRemainder)
+            if durType is not False:  # match!
+                dt = durationTupleFromTypeDots(durType, dots)
+                components.append(dt)
+                return QuarterLengthConversion(tuple(components), None)
+            try:
+                closestSmallerType, unused_match = quarterLengthToClosestType(qLenRemainder)
+            except DurationException:
+                break  # already reached 2048th notes.
+            qLenRemainder = qLenRemainder - typeToDuration[closestSmallerType]
+            dt = durationTupleFromTypeDots(closestSmallerType, 0)
+            # environLocal.warn(['appending', dt, 'leaving ', qLenRemainder, ' of ', qLen])
             components.append(dt)
-            return QuarterLengthConversion(tuple(components), None)
-        try:
-            closestSmallerType, unused_match = quarterLengthToClosestType(qLenRemainder)
-        except DurationException:
-            break  # already reached 2048th notes.
-        qLenRemainder = qLenRemainder - typeToDuration[closestSmallerType]
-        dt = durationTupleFromTypeDots(closestSmallerType, 0)
-        # environLocal.warn(['appending', dt, 'leaving ', qLenRemainder, ' of ', qLen])
-        components.append(dt)
 
     # 8 tied components was not enough.
     # last resort: put one giant tuplet over it.

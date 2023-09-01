@@ -31,6 +31,7 @@ import unittest
 from music21 import base
 from music21 import clef
 from music21 import common
+from music21.common.decorators import inPlace
 from music21 import environment
 from music21 import exceptions21
 from music21 import meter
@@ -687,6 +688,7 @@ def mergeVariants(streamX, streamY, variantName='variant', *, inPlace=False):
             + 'Try using a more specific merging function.')
 
 
+@inPlace(default=False, derivation='mergeVariantScores')
 def mergeVariantScores(aScore, vScore, variantName='variant', *, inPlace=False):
     # noinspection PyShadowingNames
     '''
@@ -748,16 +750,10 @@ def mergeVariantScores(aScore, vScore, variantName='variant', *, inPlace=False):
         raise VariantException(
             'These scores do not have the same number of parts and cannot be merged.')
 
-    if inPlace:
-        returnObj = aScore
-    else:
-        returnObj = aScore.coreCopyAsDerivation('mergeVariantScores')
-
-    for returnPart, vPart in zip(returnObj.parts, vScore.parts):
+    for returnPart, vPart in zip(aScore.parts, vScore.parts):
         mergeVariantMeasureStreams(returnPart, vPart, variantName, inPlace=True)
 
-    if not inPlace:
-        return returnObj
+    return aScore
 
 
 def mergeVariantMeasureStreams(streamX, streamY, variantName='variant', *, inPlace=False):

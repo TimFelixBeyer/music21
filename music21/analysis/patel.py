@@ -10,7 +10,7 @@
 # ------------------------------------------------------------------------------
 from __future__ import annotations
 
-import math
+from statistics import mean, stdev
 import unittest
 
 def nPVI(streamForAnalysis):
@@ -90,18 +90,13 @@ def melodicIntervalVariability(streamForAnalysis, **skipKeywords):
 
     * Changed in v9: ValueError rather than a Music21Exception raised.
     '''
-    s = streamForAnalysis  # shorter
-    intervalStream = s.melodicIntervals(**skipKeywords)
+    intervalStream = streamForAnalysis.melodicIntervals(**skipKeywords)
     totalElements = len(intervalStream)
     if totalElements < 2:  # this is correct.
         raise ValueError('need at least three notes to have '
                              + 'a std-deviation of intervals (and thus a MIV)')
-    # summation = 0
     semitoneList = [myInt.chromatic.undirected for myInt in intervalStream]
-    mean = sum(semitoneList) / totalElements
-    std = sum((a - mean) ** 2 for a in semitoneList)
-    std = math.sqrt(std / (totalElements - 1))
-    return 100 * (std / mean)
+    return 100 * (stdev(semitoneList) / mean(semitoneList))
 
 
 class Test(unittest.TestCase):

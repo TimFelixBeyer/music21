@@ -383,18 +383,18 @@ def _quickEnharmonicString(nameStr, direction='up', allowDoubleAccidentals=True)
     enharmonics = []
     if common.isNum(nameStr):
         base40num = nameStr
-        nameStr = base40Equivalent.get(base40num, None)
+        nameStr = base40Equivalent.get(base40num)
         if nameStr is None:
             base40num = None
     else:
-        base40num = base40Representation.get(nameStr, None)
+        base40num = base40Representation.get(nameStr)
 
     while base40num is not None:
         base40num = (base40num + addNum) % 40
         if base40num == 0:
             base40num = 40
 
-        base40str = base40Equivalent.get(base40num, None)
+        base40str = base40Equivalent.get(base40num)
         if allowDoubleAccidentals is False and base40str is not None and len(base40str) > 2:
             base40str = None
 

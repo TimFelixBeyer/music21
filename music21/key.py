@@ -27,7 +27,7 @@ import unittest
 import warnings
 
 from music21 import base
-from music21.common.decorators import cacheMethod
+from music21.common.decorators import cacheMethod, inPlace
 from music21.common.types import StepName
 from music21 import environment
 from music21 import exceptions21
@@ -674,10 +674,9 @@ class KeySignature(base.Music21Object):
                   inPlace: t.Literal[True]) -> None:
         return None  # astroid 1015
 
+    @inPlace(default=False, deepcopy=True)
     def transpose(self: KeySignatureType,
-                  value: TransposeTypes,
-                  *,
-                  inPlace: bool = False) -> KeySignatureType | None:
+                  value: TransposeTypes) -> KeySignatureType | None:
         '''
         Transpose the KeySignature by the user-provided value.
         If the value is an integer, the transposition is treated
@@ -732,25 +731,16 @@ class KeySignature(base.Music21Object):
         else:  # try to process
             intervalObj = interval.Interval(value)
 
-        if not inPlace:
-            post = copy.deepcopy(self)
-        else:
-            post = self
-
-        k1 = post.asKey('major')
+        k1 = self.asKey('major')
         p1 = k1.tonic
         p2 = intervalObj.transposePitch(p1)
         if isinstance(value, int) and abs(pitchToSharps(p2)) > 6:
             p2 = p2.getEnharmonic()
 
-        post.sharps = pitchToSharps(p2)
-        post.clearCache()
-
+        self.sharps = pitchToSharps(p2)
+        self.clearCache()
         # mode is already set
-        if not inPlace:
-            return post
-        else:
-            return None
+        return self
 
     def transposePitchFromC(self, p: pitch.Pitch, *, inPlace=False) -> pitch.Pitch | None:
         '''

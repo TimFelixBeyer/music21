@@ -123,10 +123,7 @@ class MetadataEntry(prebase.ProtoM21Object):
 
     def parse(self):
         from music21 import corpus
-        if self.number is not None:
-            return corpus.parse(self.sourcePath, number=self.number)
-        else:
-            return corpus.parse(self.sourcePath)
+        return corpus.parse(self.sourcePath, number=self.number)
 
     def show(self, showFormat=None):
         score = self.parse()

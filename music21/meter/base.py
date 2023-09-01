@@ -1657,7 +1657,7 @@ class TimeSignature(TimeSignatureBase):
         for i in range(len(msLevel)):
             msLevel[i].weight = weightList[i % len(weightList)]
 
-    def averageBeatStrength(self, streamIn, notesOnly=True):
+    def averageBeatStrength(self, streamIn: stream.Stream, notesOnly=True):
         '''
         returns a float of the average beat strength of all objects (or if notesOnly is True
         [default] only the notes) in the `Stream` specified as streamIn.
@@ -1681,19 +1681,19 @@ class TimeSignature(TimeSignatureBase):
         >>> sixEight.averageBeatStrength(s, notesOnly=False)
         0.625
         '''
-        if notesOnly is True:
+        if notesOnly:
             streamIn = streamIn.notes
 
-        totalWeight = 0.0
-        totalObjects = len(streamIn)
-        if totalObjects == 0:
+        if not streamIn:
             return 0.0  # or raise exception?  add doc test
+
+        totalWeight = 0.0
         for el in streamIn:
             elWeight = self.getAccentWeight(
                 self.getMeasureOffsetOrMeterModulusOffset(el),
                 forcePositionMatch=True, permitMeterModulus=False)
             totalWeight += elWeight
-        return totalWeight / totalObjects
+        return totalWeight / len(streamIn)
 
     def getMeasureOffsetOrMeterModulusOffset(self, el):
         '''
