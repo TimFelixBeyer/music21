@@ -655,7 +655,7 @@ class StyleMixin(common.SlottedObjectMixin):
         except AttributeError:
             pass
 
-        return not (self._style is None)
+        return self._style is not None
 
     @property
     def style(self) -> Style:
@@ -709,7 +709,7 @@ class StyleMixin(common.SlottedObjectMixin):
         >>> acc.hasEditorialInformation
         True
         '''
-        return not (self._editorial is None)
+        return self._editorial is not None
 
     @property
     def editorial(self) -> editorial.Editorial:

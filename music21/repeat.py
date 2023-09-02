@@ -1092,21 +1092,15 @@ class Expander(t.Generic[StreamType]):
                     groupIndices['repeatBrackets'].append(rb)
                     mLast = rb.getLast()
                     for iSub, mSub in mEnumerated:
-                        # when we are at or higher index then our
-                        # current context
-                        # need to include
-                        if iSub >= i and id(mSub) != id(mLast):
+                        # when we are at the end or a higher index then
+                        # our current context, need to include
+                        mSubIsLast = (id(mSub) == id(mLast))
+                        if iSub >= i or mSubIsLast:
                             groupIndices['measureIndices'].append(iSub)
-                        elif id(mLast) == id(mSub):  # add last
-                            groupIndices['measureIndices'].append(iSub)
+                        if mSubIsLast:
                             # cannot skip ahead here b/c looking for overlaps
                             # as error checking
-                            # i = iSub + 1  # go to next index in outer loop
-                            # shiftedIndex = True
-                            # match = True
                             break
-
-            # if not shiftedIndex:
             i += 1
         if groupIndices:
             groups.append(groupIndices)
@@ -1130,10 +1124,8 @@ class Expander(t.Generic[StreamType]):
             # the numbers must be consecutive
             if not rBrackets:
                 return True
-            # accept if any single repeat bracket
-            if len(rBrackets) == 1:
-                pass
-            elif len(rBrackets) > 1:
+            # for multiple brackets, we only accept consecutively numbered brackets
+            if len(rBrackets) > 1:
                 # spanner numbers must be in order, integers, and consecutive
                 target = []
                 for rb in rBrackets:
@@ -1179,8 +1171,7 @@ class Expander(t.Generic[StreamType]):
         pair still to process.
         '''
         # environLocal.printDebug(['hasRepeat', streamObj])
-        for i in range(len(streamObj)):
-            m = streamObj[i]
+        for m in streamObj:
             lb = m.leftBarline
             rb = m.rightBarline
 
@@ -1221,13 +1212,12 @@ class Expander(t.Generic[StreamType]):
         [1, 2, 3]
         '''
         # need to find only the first open and closed pair
-        startIndices = []
-        barRepeatIndices = []
+        # if the first end is found before a start was found,
+        # assume we are counting from zero
+        lastRepeatStart = 0
 
-        # use index values instead of an iterator
-        for i in range(len(streamObj)):
+        for i, m in enumerate(streamObj):
             # iterate through each measure
-            m = streamObj[i]
             try:
                 lb = m.leftBarline
                 rb = m.rightBarline
@@ -1236,30 +1226,19 @@ class Expander(t.Generic[StreamType]):
 
             if lb is not None and 'music21.bar.Repeat' in lb.classSet:
                 if lb.direction == 'start':
-                    startIndices.append(i)
+                    lastRepeatStart = i
                 # an end may be placed on the left barline; of the next measure
                 # meaning that we only want up until the previous
                 elif lb.direction == 'end':
                     # environLocal.printDebug(['found an end in left barline: %s' % lb])
-                    if not startIndices:
-                        # get from first to this one
-                        barRepeatIndices = range(i)
-                        break
-                    else:  # otherwise get the last start index
-                        barRepeatIndices = range(startIndices[-1], i)
-                        break
+                    return list(range(lastRepeatStart, i))
+
             if (rb is not None
                     and 'music21.bar.Repeat' in rb.classSet
                     and rb.direction == 'end'):
-                # if this is the first end found and no starts found,
-                # assume we are counting from zero
-                if not startIndices:  # get from first to this one
-                    barRepeatIndices = range(i + 1)
-                    break
-                else:  # otherwise get the last start index
-                    barRepeatIndices = range(startIndices[-1], i + 1)
-                    break
-        return list(barRepeatIndices)
+                return list(range(lastRepeatStart, i + 1))
+
+        return []
 
     def _getEndRepeatBar(self, streamObj, index):
         '''

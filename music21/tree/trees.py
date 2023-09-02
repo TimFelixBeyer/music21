@@ -144,16 +144,11 @@ class ElementTree(core.AVLTree):
         # might be wrong if element not in s or s is None
 
         nodeAtPosition = self.getNodeByPosition(sourcePosition)
-        if nodeAtPosition is not None:
-            if nodeAtPosition.payload is element:
-                return True
+        if nodeAtPosition is not None and nodeAtPosition.payload is element:
+            return True
 
         # not found, do slow search.
-        for pl in self:
-            if pl is element:
-                return True
-
-        return False
+        return any(True for pl in self if pl is element)
 
     def __eq__(self, expr):
         r'''

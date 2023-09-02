@@ -2083,8 +2083,7 @@ def consolidateCompletedTuplets(
                     # set flag to remake tuplet brackets
                     container.streamStatus.tuplets = False
                     first_note_in_group = to_consolidate[0]
-                    for other_note in to_consolidate[1:]:
-                        container.remove(other_note)
+                    container.remove(to_consolidate[1:])
                     first_note_in_group.duration.clear()
                     first_note_in_group.duration.tuplets = ()
                     first_note_in_group.quarterLength = completion_target
@@ -2104,10 +2103,10 @@ def consolidateCompletedTuplets(
                     completion_target = last_tuplet.totalTupletLength()
                     to_consolidate = [gn]
                 else:
-                    to_consolidate = []
                     partial_tuplet_sum = 0.0
                     last_tuplet = None
                     completion_target = None
+                    to_consolidate = []
 
 @contextlib.contextmanager
 def saveAccidentalDisplayStatus(s) -> t.Generator[None, None, None]:
@@ -2129,8 +2128,8 @@ def saveAccidentalDisplayStatus(s) -> t.Generator[None, None, None]:
     for p in s.pitches:
         if p.accidental is not None:
             displayStatuses[id(p)] = p.accidental.displayStatus
-            continue
-        displayStatuses[id(p)] = False
+        else:
+            displayStatuses[id(p)] = False
 
     try:
         yield
@@ -2138,8 +2137,7 @@ def saveAccidentalDisplayStatus(s) -> t.Generator[None, None, None]:
         for p in s.pitches:
             if p.accidental is not None:
                 p.accidental.displayStatus = displayStatuses.get(id(p))
-                continue
-            if displayStatuses.get(id(p), False):
+            elif displayStatuses.get(id(p), False):
                 p.accidental = pitch.Accidental(0)
                 p.accidental.displayStatus = True
 

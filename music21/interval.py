@@ -927,10 +927,7 @@ class GenericInterval(IntervalBase):
         '''
         if not isinstance(other, type(self)):
             return False
-        elif self.value == other.value:
-            return True
-        else:
-            return False
+        return self.value == other.value
 
     def __hash__(self):
         return id(self) >> 4
@@ -3771,12 +3768,7 @@ def getAbsoluteHigherNote(note1: note.Note | pitch.Pitch,
     '''
     chromatic = notesToChromatic(note1, note2)
     semitones = chromatic.semitones
-    if semitones > 0:
-        return note2
-    elif semitones < 0:
-        return note1
-    else:
-        return note1
+    return note1 if semitones <= 0 else note2
 
 
 def getWrittenLowerNote(note1: note.Note | pitch.Pitch,
@@ -3826,12 +3818,7 @@ def getAbsoluteLowerNote(note1: note.Note | pitch.Pitch,
     '''
     chromatic = notesToChromatic(note1, note2)
     semitones = chromatic.semitones
-    if semitones > 0:
-        return note1
-    elif semitones < 0:
-        return note2
-    else:
-        return note1
+    return note1 if semitones >= 0 else note2
 
 
 def transposePitch(

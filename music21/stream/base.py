@@ -911,7 +911,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         True
         '''
         # combines _elements and _endElements into one.
-        if 'elements' not in self._cache or self._cache['elements'] is None:
+        if self._cache.get('elements') is None:
             # this list concatenation may take time; thus, only do when
             # coreElementsChanged has been called
             if not self.isSorted and self.autoSort:
@@ -3055,12 +3055,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         target.sites.remove(self)
         target.activeSite = None
-        if id(target) in self._offsetDict:
-            del self._offsetDict[id(target)]
+        self._offsetDict.pop(id(target), None)  # key might not exist
 
-        updateIsFlat = False
-        if replacement.isStream:
-            updateIsFlat = True
+        updateIsFlat = replacement.isStream
         # elements have changed: sort order may change b/c have diff classes
         self.coreElementsChanged(updateIsFlat=updateIsFlat)
 
@@ -7808,9 +7805,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         * Changed in v7: made into a method, not a property.
         '''
-        cache_sorted = self._cache.get('sorted')
-        if cache_sorted is not None:
-            return cache_sorted
+        if self._cache.get('sorted') is not None:
+            return self._cache['sorted']
         shallowElements = copy.copy(self._elements)  # already a copy
         shallowEndElements = copy.copy(self._endElements)  # already a copy
         s = copy.copy(self)
@@ -8055,9 +8051,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         else:
             method = 'flat'
 
-        cached_version = self._cache.get(method)
-        if cached_version is not None:
-            return cached_version
+        if self._cache.get(method) is not None:
+            return self._cache[method]
 
         # this copy will have a shared sites object
         # note that copy.copy() in some cases seems to not cause secondary
@@ -8582,13 +8577,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         if self._unlinkedDuration is not None:
             return self._unlinkedDuration
-        elif self._cache.get('Duration') is not None:
+        if self._cache.get('Duration') is None:
             # environLocal.printDebug(['returning cached duration'])
-            return self._cache['Duration']
-        else:
-            # environLocal.printDebug(['creating new duration based on highest time'])
             self._cache['Duration'] = duration.Duration(quarterLength=self.highestTime)
-            return self._cache['Duration']
+        return self._cache['Duration']
 
     def _setDuration(self, durationObj):
         '''
@@ -9886,7 +9878,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> sc.hasMeasures()
         False
         '''
-        if 'hasMeasures' not in self._cache or self._cache['hasMeasures'] is None:
+        if self._cache.get('hasMeasures') is None:
             post = False
             # do not need to look in endElements
             for obj in self._elements:
@@ -9901,7 +9893,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         Return a boolean value showing if this Stream contains Voices
         '''
-        if 'hasVoices' not in self._cache or self._cache['hasVoices'] is None:
+        if self._cache.get('hasVoices') is None:
             post = False
             # do not need to look in endElements
             for obj in self._elements:
@@ -9963,7 +9955,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> sf.hasPartLikeStreams()
         False
         '''
-        if 'hasPartLikeStreams' not in self._cache or self._cache['hasPartLikeStreams'] is None:
+        if self._cache.get('hasPartLikeStreams') is None:
             multiPart = False
             if not self.isFlat:  # if flat, does not have parts!
                 # do not need to look in endElements
@@ -13631,18 +13623,17 @@ class Part(Stream):
     def _getPartAbbreviation(self):
         if self._partAbbreviation is not None:
             return self._partAbbreviation
-        elif '_partAbbreviation' in self._cache:
+        if '_partAbbreviation' in self._cache:
             return self._cache['_partAbbreviation']
-        else:
-            pn = None
-            for e in self[instrument.Instrument]:
-                pn = e.partAbbreviation
-                if pn is None:
-                    pn = e.instrumentAbbreviation
-                if pn is not None:
-                    break
-            self._cache['_partAbbreviation'] = pn
-            return pn
+        pn = None
+        for e in self[instrument.Instrument]:
+            pn = e.partAbbreviation
+            if pn is None:
+                pn = e.instrumentAbbreviation
+            if pn is not None:
+                break
+        self._cache['_partAbbreviation'] = pn
+        return pn
 
     def _setPartAbbreviation(self, newName):
         self._partAbbreviation = newName

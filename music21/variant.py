@@ -157,7 +157,7 @@ class Variant(base.Music21Object):
         return self._stream.__iter__()
 
     def getElementIds(self):
-        if 'elementIds' not in self._cache or self._cache['elementIds'] is None:
+        if self._cache.get('elementIds') is None:
             self._cache['elementIds'] = [id(c) for c in self._stream._elements]
         return self._cache['elementIds']
 

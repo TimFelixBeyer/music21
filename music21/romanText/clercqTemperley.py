@@ -948,17 +948,18 @@ class CTRule(prebase.ProtoM21Object):
         Adds ties to chords that are the same.  Adds lyrics to chords that change.
         '''
         same = self.isSame(rn, lastChord)
-        if same is False and lastChord is not None and lastChord.tie is not None:
-            lastChord.tie.type = 'stop'
-        if same is False and (self.parent is None or self.parent.labelRomanNumerals is True):
-            rn.lyrics.append(note.Lyric(rn.figure, number=1))
-
-        if same is True and lastChord is not None and lastChord.tie is None:
-            lastChord.tie = tie.Tie('start')
-            rn.tie = tie.Tie('stop')
-        elif same is True and lastChord is not None and lastChord.tie is not None:
-            lastChord.tie.type = 'continue'
-            rn.tie = tie.Tie('stop')
+        if same:
+            if lastChord is not None and lastChord.tie is None:
+                lastChord.tie = tie.Tie('start')
+                rn.tie = tie.Tie('stop')
+            elif lastChord is not None and lastChord.tie is not None:
+                lastChord.tie.type = 'continue'
+                rn.tie = tie.Tie('stop')
+        else:
+            if lastChord is not None and lastChord.tie is not None:
+                lastChord.tie.type = 'stop'
+            if (self.parent is None or self.parent.labelRomanNumerals is True):
+                rn.lyrics.append(note.Lyric(rn.figure, number=1))
 
     def insertKsTs(self,
                    m: stream.Measure,

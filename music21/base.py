@@ -601,7 +601,7 @@ class Music21Object(prebase.ProtoM21Object):
         if ignoreAttributes is None:
             ignoreAttributes = defaultIgnoreSet
         else:
-            ignoreAttributes = ignoreAttributes | defaultIgnoreSet
+            ignoreAttributes |= defaultIgnoreSet
 
         new = common.defaultDeepcopy(self, memo, ignoreAttributes=ignoreAttributes)
         setattr(new, '_cache', {})
@@ -717,7 +717,7 @@ class Music21Object(prebase.ProtoM21Object):
         True
         '''
         # anytime something is changed here, change in style.StyleMixin and vice-versa
-        return not (self._editorial is None)
+        return self._editorial is not None
 
     @property
     def editorial(self) -> Editorial:
@@ -768,7 +768,7 @@ class Music21Object(prebase.ProtoM21Object):
         True
         '''
         # anytime something is changed here, change in style.StyleMixin and vice-versa
-        return not (self._style is None)
+        return self._style is not None
 
     @property
     def style(self) -> Style:
@@ -997,17 +997,15 @@ class Music21Object(prebase.ProtoM21Object):
                 raise SitesException(
                     f'You were using {site!r} as a site, when it is not a Stream...'
                 ) from ae
-            except SitesException as e:
+            except SitesException:
                 if tryOrigin in site._endElements:
                     if returnSpecial:
                         return OffsetSpecial.AT_END
-                    else:
-                        return site.highestTime
+                    return site.highestTime
 
-                possiblyNoneTryOrigin = self.derivation.origin
-                if possiblyNoneTryOrigin is None:
+                tryOrigin = self.derivation.origin
+                if tryOrigin is None:
                     break
-                tryOrigin = possiblyNoneTryOrigin
 
                 if id(tryOrigin) in originMemo:
                     break
@@ -1253,13 +1251,12 @@ class Music21Object(prebase.ProtoM21Object):
             # its elements list, it is an orphan and should be removed
             # note: this permits non-site context Streams to continue
             if s.isStream and self not in s:
-                if excludeStorageStreams:
-                    # only get those that are not Storage Streams
-                    if ('SpannerStorage' not in s.classes
-                            and 'VariantStorage' not in s.classes):
-                        # environLocal.printDebug(['removing orphan:', s])
-                        orphans.append(id(s))
-                else:  # get all
+                if not excludeStorageStreams:  # get all
+                    orphans.append(id(s))
+                # only get those that are not Storage Streams
+                elif ('SpannerStorage' not in s.classes
+                        and 'VariantStorage' not in s.classes):
+                    # environLocal.printDebug(['removing orphan:', s])
                     orphans.append(id(s))
         for i in orphans:
             self.sites.removeById(i)

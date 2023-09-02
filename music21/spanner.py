@@ -927,7 +927,7 @@ class SpannerBundle(prebase.ProtoM21Object):
         <music21.spanner.SpannerBundle of size 0>
         '''
         cacheKey = f'idLocal-{idLocal}'
-        if cacheKey not in self._cache or self._cache[cacheKey] is None:
+        if self._cache.get(cacheKey) is None:
             out: list[Spanner] = []
             for sp in self._storage:
                 if sp.idLocal == idLocal:
@@ -993,7 +993,7 @@ class SpannerBundle(prebase.ProtoM21Object):
 
         idTarget = id(spannedElement)
         cacheKey = f'getBySpannedElement-{idTarget}'
-        if cacheKey not in self._cache or self._cache[cacheKey] is None:
+        if self._cache.get(cacheKey) is None:
             out: list[Spanner] = []
             for sp in self._storage:  # storage is a list of spanners
                 # __contains__() will test for identity, not equality
@@ -1110,7 +1110,7 @@ class SpannerBundle(prebase.ProtoM21Object):
         searchStr = searchClass if isinstance(searchClass, str) else ''
         searchClasses = () if isinstance(searchClass, str) else searchClass
 
-        if cacheKey not in self._cache or self._cache[cacheKey] is None:
+        if self._cache.get(cacheKey) is None:
             out: list[Spanner] = []
             for sp in self._storage:
                 if searchStr and searchStr in sp.classes:

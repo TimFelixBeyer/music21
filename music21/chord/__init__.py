@@ -4459,21 +4459,17 @@ class Chord(ChordBase):
             pitchTarget = self._notes[0].pitch  # first is default
         elif isinstance(pitchTarget, str):
             pitchTarget = pitch.Pitch(pitchTarget)
-        match = False
+
         for d in self._notes:
             if d.pitch is pitchTarget:
                 d.stemDirection = stem
-                match = True
-                break
-        if not match:
-            for d in self._notes:
-                if d.pitch == pitchTarget:
-                    d.stemDirection = stem
-                    match = True
-                    break
-        if not match:
-            raise ChordException(
-                f'the given pitch is not in the Chord: {pitchTarget}')
+                return
+        for d in self._notes:
+            if d.pitch == pitchTarget:
+                d.stemDirection = stem
+                return
+        raise ChordException(
+            f'the given pitch is not in the Chord: {pitchTarget}')
 
     def setTie(self, tieObjOrStr: tie.Tie | str, pitchTarget):
         '''
@@ -4528,21 +4524,17 @@ class Chord(ChordBase):
         else:
             tieObj = tieObjOrStr
 
-        match = False
         for d in self._notes:
             if d.pitch is pitchTarget or d is pitchTarget:  # compare by obj id first
                 d.tie = tieObj
-                match = True
-                break
-        if not match:  # more loose comparison: by ==
-            for d in self._notes:
-                if pitchTarget in (d, d.pitch):
-                    d.tie = tieObj
-                    match = True
-                    break
-        if not match:
-            raise ChordException(
-                f'the given pitch is not in the Chord: {pitchTarget}')
+                return
+        # more loose comparison: by ==
+        for d in self._notes:
+            if pitchTarget in (d, d.pitch):
+                d.tie = tieObj
+                return
+        raise ChordException(
+            f'the given pitch is not in the Chord: {pitchTarget}')
 
     def setVolume(self,
                   vol: volume.Volume,

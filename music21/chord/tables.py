@@ -1883,10 +1883,6 @@ def seekChordTablesAddress(c):
         candidateTuple = (tuple(testSet), tuple(testSetInvert), testSetOriginalPC)
         candidates.append(candidateTuple)
 
-    # compare sets to those in table
-    match = False
-    matchedPCOriginal = None
-
     for indexCandidate in range(1, len(FORTE[card])):  # first entry is None
         dataLine = FORTE[card][indexCandidate]
         dataLinePcs = dataLine[0]
@@ -1897,25 +1893,14 @@ def seekChordTablesAddress(c):
             # need to only match form
             if dataLinePcs == candidate:
                 index = indexCandidate
-                if 0 in inversionsAvailable:
-                    inversion = 0
-                else:
-                    inversion = 1
-                matchedPCOriginal = candidateOriginalPC
-                match = True
-                break
+                inversion = 0 if 0 in inversionsAvailable else 1
+                return ChordTableAddress(card, index, inversion, candidateOriginalPC)
             elif dataLinePcs == candidateInversion:
                 index = indexCandidate
-                if 0 in inversionsAvailable:
-                    inversion = 0  # should never reach this line?
-                else:
-                    inversion = -1
-                matchedPCOriginal = candidateOriginalPC
-                match = True
-                break
-    if not match:
-        raise ChordTablesException(f'cannot find a chord table address for {pcSet}')
-    return ChordTableAddress(card, index, inversion, matchedPCOriginal)
+                # assert 0 not in inversionsAvailable  # should not be possible
+                inversion = 0 if 0 in inversionsAvailable else -1
+                return ChordTableAddress(card, index, inversion, candidateOriginalPC)
+    raise ChordTablesException(f'cannot find a chord table address for {pcSet}')
 
 
 # ------------------------------------------------------------------------------

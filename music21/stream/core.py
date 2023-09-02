@@ -450,7 +450,7 @@ class StreamCore(Music21Object):
         '''
         A low-level object for Spanner management. This is a read-only property.
         '''
-        if 'spannerBundle' not in self._cache or self._cache['spannerBundle'] is None:
+        if self._cache.get('spannerBundle') is None:
             spanners = self.recurse(classFilter=(spanner.Spanner,), restoreActiveSites=False)
             self._cache['spannerBundle'] = spanner.SpannerBundle(list(spanners))
         return self._cache['spannerBundle']
@@ -488,7 +488,7 @@ class StreamCore(Music21Object):
         '''
         hashedAttributes = hash((tuple(classList or ()), flatten))
         cacheKey = 'timespanTree' + str(hashedAttributes)
-        if cacheKey not in self._cache or self._cache[cacheKey] is None:
+        if self._cache.get(cacheKey) is None:
             hashedTimespanTree = tree.fromStream.asTimespans(self,
                                                              flatten=flatten,
                                                              classList=classList)
@@ -522,7 +522,7 @@ class StreamCore(Music21Object):
                                   useTimespans,
                                   groupOffsets))
         cacheKey = 'elementTree' + str(hashedAttributes)
-        if cacheKey not in self._cache or self._cache[cacheKey] is None:
+        if self._cache.get(cacheKey) is None:
             hashedElementTree = tree.fromStream.asTree(self,
                                                        flatten=flatten,
                                                        classList=classList,
