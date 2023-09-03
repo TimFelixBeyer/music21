@@ -2677,29 +2677,20 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         except IndexError:  # last note in measure
             nextNoteIsChord = False
 
-        # TODO: Cue notes (no sounding tie)
-
         # the first note of a chord is not identified directly; only
         # by looking at the next note can we tell if we have the first
         # note of a chord
-        isChord = False
-        isRest = False
-        isCue = False
         # TODO: Unpitched
 
         offsetIncrement: float | fractions.Fraction = 0.0
 
-        if mxNote.find('rest') is not None:  # it is a Rest
-            isRest = True
-        if mxNote.find('chord') is not None:
-            isChord = True
-        if mxNote.find('cue') is not None:
-            isCue = True
+        isRest = (mxNote.find('rest') is not None)
+        isChord = (mxNote.find('chord') is not None) or nextNoteIsChord  # first note of chord is not identified.
+        isCue = (mxNote.find('cue') is not None)
 
         # do not count extra pitches in chord as note.
         # it might be the first note of the chord...
         if nextNoteIsChord:
-            isChord = True  # first note of chord is not identified.
             voiceOfChord = mxNote.find('voice')
             if voiceOfChord is not None:
                 vIndex: str | int | None = voiceOfChord.text
@@ -2710,22 +2701,22 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                         pass
                 self.lastVoice = vIndex
 
-        if isChord is True:  # and isRest is False...?
+        if isChord:  # and isRest is False...?
             n = None  # for linting
             self.mxNoteList.append(mxNote)
             # store lyrics for latter processing
             for mxLyric in mxNote.findall('lyric'):
                 self.mxLyricList.append(mxLyric)
-        elif isChord is False and isRest is False:  # normal note...
+        elif not isChord and not isRest:  # normal note...
             self.restAndNoteCount['note'] += 1
             n = self.xmlToSimpleNote(mxNote)
             if isCue:
-                n.style.noteSize = "cue"
+                n.style.noteSize = 'cue'
         else:  # it's a rest
             self.restAndNoteCount['rest'] += 1
             n = self.xmlToRest(mxNote)
 
-        if isChord is False:  # normal note or rest...
+        if not isChord:  # normal note or rest...
             if t.TYPE_CHECKING:
                 assert isinstance(n, note.GeneralNote)
 
@@ -2738,7 +2729,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         # if we have notes in the note list and the next
         # note either does not exist or is not a chord, we
         # have a complete chord
-        if self.mxNoteList and nextNoteIsChord is False:
+        if self.mxNoteList and not nextNoteIsChord:
             c = self.xmlToChord(self.mxNoteList)
             # add any accumulated lyrics
             self.updateLyricsFromList(c, self.mxLyricList)
@@ -2934,7 +2925,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
 
     # beam and beams
 
-    def xmlToBeam(self, mxBeam: ET.Element, inputM21=None):
+    def xmlToBeam(self, mxBeam: ET.Element):
         # noinspection PyShadowingNames
         '''
         given an mxBeam object return a :class:`~music21.beam.Beam` object
@@ -2977,10 +2968,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         music21.musicxml.xmlObjects.MusicXMLImportException:
              unexpected beam type encountered (crazy)
         '''
-        if inputM21 is None:
-            beamOut = beam.Beam()
-        else:
-            beamOut = inputM21
+        beamOut = beam.Beam()
 
         # TODO: get number to preserve
         # not to-do: repeater; is deprecated.
@@ -3007,10 +2995,9 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         else:
             raise MusicXMLImportException(f'unexpected beam type encountered ({mxType})')
 
-        if inputM21 is None:
-            return beamOut
+        return beamOut
 
-    def xmlToBeams(self, mxBeamList, inputM21=None):
+    def xmlToBeams(self, mxBeamList):
         # noinspection PyShadowingNames
         '''
         given a list of mxBeam objects, sets the beamsList
@@ -3025,18 +3012,14 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         >>> b
         <music21.beam.Beams <music21.beam.Beam 1/start>/<music21.beam.Beam 2/start>>
         '''
-        if inputM21 is None:
-            beamsOut = beam.Beams()
-        else:
-            beamsOut = inputM21
+        beamsOut = beam.Beams()
 
         for i, mxBeam in enumerate(mxBeamList):
             beamObj = self.xmlToBeam(mxBeam)
             beamObj.number = i + 1
             beamsOut.beamsList.append(beamObj)
 
-        if inputM21 is None:
-            return beamsOut
+        return beamsOut
 
     def xmlNotehead(self, n, mxNotehead):
         # noinspection PyShadowingNames
@@ -3199,7 +3182,6 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
     def xmlToAccidental(
         self,
         mxAccidental: ET.Element,
-        inputM21: pitch.Accidental | None = None,
     ) -> pitch.Accidental:
         '''
         >>> from xml.etree.ElementTree import fromstring as EL
@@ -3215,8 +3197,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         'parentheses'
 
         >>> a = EL('<accidental>half-flat</accidental>')
-        >>> b = pitch.Accidental()
-        >>> unused = MP.xmlToAccidental(a, b)
+        >>> b = MP.xmlToAccidental(a)
         >>> b.name
         'half-flat'
         >>> b.alter
@@ -3233,10 +3214,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         >>> b.displayStyle
         'both'
         '''
-        if inputM21 is None:
-            acc = pitch.Accidental()
-        else:
-            acc = inputM21
+        acc = pitch.Accidental()
 
         try:
             mxName = strippedText(mxAccidental).lower()

@@ -274,8 +274,7 @@ class StreamSearcher:
         '''
         if isinstance(searchEl, Wildcard):
             return True
-        else:
-            return None
+        return None
 
     def rhythmAlgorithm(self, streamEl: m21Base.Music21Object, searchEl: m21Base.Music21Object):
         if isinstance(searchEl.duration, WildcardDuration):
@@ -320,9 +319,7 @@ def streamSearchBase(thisStreamOrIterator, searchList, algorithm=None):
 
     result = None
     for startPosition, streamEls in enumerate(windowed(streamIteratorEls, searchLength)):
-        for j in range(searchLength):
-            streamEl = streamEls[j]
-            searchEl = searchList[j]
+        for streamEl, searchEl in zip(streamEls, searchList):
             result = algorithm(streamEl, searchEl)
             if not result:
                 break

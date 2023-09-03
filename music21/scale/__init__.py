@@ -2170,7 +2170,7 @@ class ConcreteScale(Scale):
                direction: Direction = Direction.ASCENDING,
                stepSize=1,
                getNeighbor: Direction | bool = True,
-               comparisonAttribute='name'):
+               comparisonAttribute='name') -> bool | None:
         '''
         Given another pitch, as well as an origin and a direction,
         determine if this other pitch is in the next in the scale.
@@ -2193,11 +2193,8 @@ class ConcreteScale(Scale):
         if nPitch is None:
             return None
 
-        if (getattr(nPitch, comparisonAttribute)
-                == getattr(other, comparisonAttribute)):
-            return True
-        else:
-            return False
+        return (getattr(nPitch, comparisonAttribute)
+                == getattr(other, comparisonAttribute))
 
     # --------------------------------------------------------------------------
     # comparison and evaluation

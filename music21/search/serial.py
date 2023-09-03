@@ -106,10 +106,9 @@ class ContiguousSegmentOfNotes(base.Music21Object):
         The offset of the beginning of the contiguous segment,
         with respect to the measure containing the first note.
         '''
-        if self.segment:
-            return self.segment[0].offset
-        else:
+        if not self.segment:
             return None
+        return self.segment[0].offset
 
     def getActiveMatchedRows(self):
         '''

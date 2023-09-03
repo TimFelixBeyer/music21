@@ -1139,7 +1139,6 @@ class IntervalNetwork:
         if not postEdge:
             environLocal.printDebug(['nodeStart', nodeStart, 'direction', direction,
                                      'postEdge', postEdge])
-            # return None
             raise IntervalNetworkException('could not find any edges')
 
         # if we have multiple edges, we may need to select based on weight
@@ -2472,7 +2471,7 @@ class IntervalNetwork:
         pitchTarget: pitch.Pitch | str,
         direction: Direction = Direction.ASCENDING,
         alteredDegrees=None,
-    ):
+    ) -> tuple[Terminus | int | None, Terminus | int] | None:
         '''
         Given a reference pitch assigned to a node id, determine the node ids
         that neighbor this pitch.
@@ -2514,12 +2513,10 @@ class IntervalNetwork:
                                                    alteredDegrees=alteredDegrees)
 
         lowNeighbor = None
-        highNeighbor = None
         for realizedPitch, realizedNode in zip(realizedPitches, realizedNodes):
             if pitchTargetObj.ps < realizedPitch.ps:
-                highNeighbor = realizedNode
                 # low neighbor may be a previously-encountered pitch
-                return lowNeighbor, highNeighbor
+                return lowNeighbor, realizedNode
             lowNeighbor = realizedNode
 
         if savedOctave is None:
@@ -2630,8 +2627,7 @@ class IntervalNetwork:
 
         if nId is None:
             return None
-        else:
-            return self.nodeIdToDegree(nId)
+        return self.nodeIdToDegree(nId)
 
     def getPitchFromNodeDegree(
         self,

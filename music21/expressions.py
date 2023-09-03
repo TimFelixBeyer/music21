@@ -226,12 +226,8 @@ class RehearsalMark(Expression):
             return 'number'
         if not isinstance(c, str):
             return None
-
-        try:
-            unused = int(c)
+        if c.isdigit():
             return 'number'
-        except ValueError:
-            pass
 
         try:
             romanValue = common.numberTools.fromRoman(c)
@@ -248,8 +244,7 @@ class RehearsalMark(Expression):
 
         if c in string.ascii_letters:
             return 'alphabetical'
-        else:
-            return None
+        return None
 
     def nextContent(self):
         '''
