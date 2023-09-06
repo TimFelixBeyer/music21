@@ -301,14 +301,15 @@ class Repeat(repeat.RepeatMark, Barline):
 
     @direction.setter
     def direction(self, value: str):
-        if value.lower() in ('start', 'end'):
-            self._direction = value.lower()
-            if self._direction == 'end':
-                self.type = 'final'
-            elif self._direction == 'start':
+        match value.lower():
+            case 'start':
+                self._direction = 'start'
                 self.type = 'heavy-light'
-        else:
-            raise BarException(f'cannot set repeat direction to: {value}')
+            case 'end':
+                self._direction = 'end'
+                self.type = 'final'
+            case _:
+                raise BarException(f'cannot set repeat direction to: {value}')
 
     @property
     def times(self) -> int | None:

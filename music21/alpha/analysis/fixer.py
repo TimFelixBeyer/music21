@@ -38,10 +38,7 @@ class OMRMidiFixer:
         pass
 
     def checkIfNoteInstance(self, midiRef, omrRef):
-        if isinstance(midiRef, note.Note) and isinstance(omrRef, note.Note):
-            return True
-        return False
-
+        return isinstance(midiRef, note.Note) and isinstance(omrRef, note.Note)
 class DeleteFixer(OMRMidiFixer):
     '''
     The DeleteFixer was designed to fit the specifications of the OpenScore project.

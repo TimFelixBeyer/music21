@@ -17,6 +17,7 @@ and used to configure, :class:`~music21.note.Note` objects.
 '''
 from __future__ import annotations
 
+from collections import Counter
 import copy
 import typing as t
 from typing import overload  # PyCharm bug
@@ -426,15 +427,15 @@ class Lyric(prebase.ProtoM21Object, style.StyleMixin):
         '''
         text = self.text
         if not self.isComposite:
-            syllabic = self.syllabic
-            if syllabic == 'begin':
-                return text + '-'
-            elif syllabic == 'middle':
-                return '-' + text + '-'
-            elif syllabic == 'end':
-                return '-' + text
-            else:
-                return text
+            match self.syllabic:
+                case 'begin':
+                    return text + '-'
+                case 'middle':
+                    return '-' + text + '-'
+                case 'end':
+                    return '-' + text
+                case _:
+                    return text
         else:
             if t.TYPE_CHECKING:
                 assert isinstance(self.components, Sequence), \
@@ -647,14 +648,11 @@ class GeneralNote(base.Music21Object):
         # Converting them to Set objects produces ordered cols that remove duplicates.
         # However, we must then convert to list to match based on class ==
         # not on class id().
-        for search in 'articulations', 'expressions':
-            my_art_express_classes = [type(x) for x in getattr(self, search)]
-            other_art_express_classes = [type(x) for x in getattr(other, search)]
-            if len(my_art_express_classes) != len(other_art_express_classes):
+        for attribute in ['articulations', 'expressions']:
+            self_attribute_classes = [type(x) for x in getattr(self, attribute)]
+            other_attribute_classes = [type(x) for x in getattr(other, attribute)]
+            if Counter(self_attribute_classes) != Counter(other_attribute_classes):
                 return False
-            if set(my_art_express_classes) != set(other_art_express_classes):
-                return False
-
         return True
 
     def __hash__(self):
@@ -681,8 +679,8 @@ class GeneralNote(base.Music21Object):
         if not self.lyrics:
             return None
 
-        allText = [ly.text for ly in self.lyrics]
-        return '\n'.join([textStr for textStr in allText if textStr is not None])
+        allText = [ly.text for ly in self.lyrics if ly.text is not None]
+        return '\n'.join(allText)
 
     def _setLyric(self, value: str | Lyric | None) -> None:
         self.lyrics = []
@@ -809,16 +807,15 @@ class GeneralNote(base.Music21Object):
             maxLyrics = len(self.lyrics) + 1
             self.lyrics.append(Lyric(text, maxLyrics,
                                      applyRaw=applyRaw, identifier=lyricIdentifier))
-        else:
-            foundLyric = False
-            for thisLyric in self.lyrics:
-                if thisLyric.number == lyricNumber:
-                    thisLyric.text = text
-                    foundLyric = True
-                    break
-            if foundLyric is False:
-                self.lyrics.append(Lyric(text, lyricNumber,
-                                         applyRaw=applyRaw, identifier=lyricIdentifier))
+            return
+
+        for thisLyric in self.lyrics:
+            if thisLyric.number == lyricNumber:
+                # assign if we find the lyricNumber already exists.
+                thisLyric.text = text
+                return
+        self.lyrics.append(Lyric(text, lyricNumber,
+                                 applyRaw=applyRaw, identifier=lyricIdentifier))
 
     def insertLyric(self, text, index=0, *, applyRaw=False, identifier=None):
         '''
@@ -1150,16 +1147,15 @@ class NotRest(GeneralNote):
 
     @noteheadFill.setter
     def noteheadFill(self, value: bool | None | str):
-        boolValue: bool | None
-        if value in ('none', None, 'default'):
-            boolValue = None  # allow setting to none or None
-        elif value in (True, 'filled', 'yes'):
-            boolValue = True
-        elif value in (False, 'notfilled', 'no'):
-            boolValue = False
-        else:
-            raise NotRestException(f'not a valid notehead fill value: {value!r}')
-        self._noteheadFill = boolValue
+        match value:
+            case 'none' | None | 'default':
+                self._noteheadFill = None  # allow setting to none or None
+            case True | 'filled' | 'yes':
+                self._noteheadFill = True
+            case False | 'notfilled' | 'no':
+                self._noteheadFill = False
+            case _:
+                raise NotRestException(f'not a valid notehead fill value: {value!r}')
 
     @property
     def noteheadParenthesis(self) -> bool:
@@ -1189,14 +1185,13 @@ class NotRest(GeneralNote):
 
     @noteheadParenthesis.setter
     def noteheadParenthesis(self, value: bool | str | int):
-        boolValue: bool
-        if value in (True, 'yes', 1):
-            boolValue = True
-        elif value in (False, 'no', 0):
-            boolValue = False
-        else:
-            raise NotRestException(f'notehead parentheses must be True or False, not {value!r}')
-        self._noteheadParenthesis = boolValue
+        match value:
+            case True | 'yes' | 1:
+                self._noteheadParenthesis = True
+            case False | 'no' | 0:
+                self._noteheadParenthesis = False
+            case _:
+                raise NotRestException(f'notehead parentheses must be True or False, not {value!r}')
 
     # --------------------------------------------------------------------------
     def hasVolumeInformation(self) -> bool:
@@ -1224,9 +1219,6 @@ class NotRest(GeneralNote):
             self._volume = volume.Volume(client=forceClient or self)
 
         volume_out = self._volume
-        if t.TYPE_CHECKING:
-            assert volume_out is not None
-
         return volume_out
 
     def _setVolume(self, value: None | volume.Volume | int | float, setClient=True):
@@ -1363,10 +1355,8 @@ class NotRest(GeneralNote):
             return self.storedInstrument
         instrument_or_none = self.getContextByClass(
             instrument.Instrument, followDerivation=False)
-        if returnDefault and instrument_or_none is None:
-            return instrument.Instrument()
-        elif instrument_or_none is None:
-            return None
+        if instrument_or_none is None:
+            return instrument.Instrument() if returnDefault else None
         return t.cast(instrument.Instrument, instrument_or_none)
 
 

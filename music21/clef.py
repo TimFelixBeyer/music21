@@ -803,42 +803,40 @@ def clefFromString(clefString, octaveShift=0) -> Clef:
     >>> clef.clefFromString('treble8vb')
     <music21.clef.Treble8vbClef>
     '''
-    xnStr = clefString.strip()
-    if xnStr.lower() in ('tab', 'percussion', 'none', 'jianpu'):
-        if xnStr.lower() == 'tab':
-            return TabClef()
-        elif xnStr.lower() == 'percussion':
-            return PercussionClef()
-        elif xnStr.lower() == 'none':
-            return NoClef()
-        elif xnStr.lower() == 'jianpu':
-            return JianpuClef()
+    xnStr = clefString.strip().lower()
+    if xnStr == 'tab':
+        return TabClef()
+    elif xnStr == 'percussion':
+        return PercussionClef()
+    elif xnStr == 'none':
+        return NoClef()
+    elif xnStr == 'jianpu':
+        return JianpuClef()
 
     if len(xnStr) == 2:
         (thisType, lineNum) = (xnStr[0].upper(), int(xnStr[1]))
     elif len(xnStr) == 1:  # some Humdrum files have just ClefG, eg. Haydn op. 9 no 3, mvmt 1
-        thisType = xnStr[0].upper()
-        if thisType == 'G':
+        thisType = xnStr[0]
+        if thisType == 'g':
             lineNum = 2
-        elif thisType == 'F':
+        elif thisType == 'f':
             lineNum = 4
-        elif thisType == 'C':
+        elif thisType == 'c':
             lineNum = 3
         else:
             lineNum = False
     elif len(xnStr) > 2:
         from music21 import clef as myself
-        xnLower = xnStr.lower()
         for x in dir(myself):
             if 'Clef' not in x:
                 continue
-            if xnLower != x.lower() and xnLower + 'clef' != x.lower():
+            if xnStr != x.lower() and xnStr + 'clef' != x.lower():
                 continue
             objType = getattr(myself, x)
             if isinstance(objType, type):
                 return objType()
 
-        raise ClefException('Could not find clef ' + xnStr)
+        raise ClefException(f'Could not find clef {clefString}')
     else:
         raise ClefException('Entry has clef info but no clef specified')
 
@@ -854,12 +852,12 @@ def clefFromString(clefString, octaveShift=0) -> Clef:
             return Bass8vaClef()
         # other octaveShifts will pass through
 
-    if thisType is False or lineNum is False:
-        raise ClefException(f'cannot read {xnStr} as clef str, should be G2, F4, etc.')
+    if not thisType or not lineNum:
+        raise ClefException(f'cannot read {clefString} as clef str, should be G2, F4, etc.')
 
     if lineNum < 1 or lineNum > 5:
         raise ClefException('line number (second character) must be 1-5; do not use this '
-                            + f'function for clefs on special staves such as {xnStr!r}')
+                            + f'function for clefs on special staves such as {clefString!r}')
 
     clefObj: Clef
     if thisType in CLASS_FROM_TYPE:
@@ -976,8 +974,9 @@ def bestClef(streamObj: stream.Stream,
 
     for n in notes:
         if n.isRest:
-            pass
-        elif n.isNote:
+            continue
+
+        if n.isNote:
             totalNotes += 1
             totalHeight += findHeight(n.pitch)
         elif n.isChord:

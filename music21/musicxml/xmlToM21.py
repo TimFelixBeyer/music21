@@ -70,6 +70,7 @@ if t.TYPE_CHECKING:
 
     # what goes in a `.staffReference`
     StaffReferenceType = dict[int, list[base.Music21Object]]
+    T = t.TypeVar('T')
 
 environLocal = environment.Environment('musicxml.xmlToM21')
 
@@ -3404,10 +3405,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
 
         # SUB-ELEMENTS
         mxGrace = mxNote.find('grace')
-        isGrace = False
-
         if mxGrace is not None:
-            isGrace = True
             graceType = mxNote.find('type')
             if graceType is None:
                 # this technically puts it in the
@@ -3415,6 +3413,11 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 ET.SubElement(mxNote, '<type>eighth</type>')
             self.xmlToDuration(mxNote, n.duration)
 
+            # translate if necessary
+            n = self.xmlGraceToGrace(mxGrace, n)
+
+        # this must be before notations, to get the slurs, etc.
+        # attached to the grace notes...
         # type styles
         mxType = mxNote.find('type')
         if mxType is not None:
@@ -3424,12 +3427,6 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             n.tie = self.xmlToTie(mxNote)
             # provide all because of tied...
             # TODO: find tied if tie is not found... (cue notes)
-
-        # translate if necessary, otherwise leaves unchanged
-        if isGrace is True:
-            n = self.xmlGraceToGrace(mxGrace, n)
-        # this must be before notations, to get the slurs, etc.
-        # attached to the grace notes...
 
         mxNotations = mxNote.findall('notations')
         for mxN in mxNotations:
@@ -3598,10 +3595,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         create and return a m21 grace version of the same.
         '''
         post = noteOrChord.getGrace()
-        if mxGrace.get('slash') in ('yes', None):
-            post.duration.slash = True
-        else:
-            post.duration.slash = False
+        post.duration.slash = (mxGrace.get('slash') in ('yes', None))
 
         try:
             post.duration.stealTimePrevious = int(mxGrace.get('steal-time-previous')) / 100
@@ -3637,10 +3631,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         '''
         # attr: print-object -- applies to all
         printObjectValue = mxNotations.get('print-object')
-        if printObjectValue == 'no':
-            hideObject = True
-        else:
-            hideObject = False
+        hideObject = (printObjectValue == 'no')
 
         def optionalHideObject(obj):
             if not hideObject:
@@ -4198,34 +4189,30 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 self.setPrintStyle(mxObj, gliss)
                 synchronizeIds(mxObj, gliss)
 
-    def xmlToTremolo(self, mxTremolo, n):
+    def xmlToTremolo(self, mxTremolo: ET.Element, n: note.GeneralNote) -> expressions.TremoloSpanner | expressions.Tremolo:
         '''
         Converts an mxTremolo to either an expression to be added to n.expressions
         or to a spanner, returning either.
         '''
         # tremolo is tricky -- can be either an
         # expression or spanner...
-        tremoloType = mxTremolo.get('type')
-        isSingle = True
-        if tremoloType in ('start', 'stop'):
-            isSingle = False
-
         try:
             numMarks = int(mxTremolo.text.strip())
         except (ValueError, AttributeError):
             # warnings.warn('could not convert ', dir(mxObj), MusicXMLWarning)
             numMarks = 3
-        if isSingle is True:
+
+        tremoloType = mxTremolo.get('type')
+        if tremoloType not in ('start', 'stop'):  # is single tremolo
             ts = expressions.Tremolo()
             ts.numberOfMarks = numMarks
             n.expressions.append(ts)
             return ts
-        else:
-            tremSpan = self.xmlOneSpanner(mxTremolo, n, expressions.TremoloSpanner)
-            tremSpan.numberOfMarks = numMarks
-            return tremSpan
+        tremSpan = self.xmlOneSpanner(mxTremolo, n, expressions.TremoloSpanner)
+        tremSpan.numberOfMarks = numMarks
+        return tremSpan
 
-    def xmlOneSpanner(self, mxObj, target, spannerClass, *, allowDuplicateIds=False):
+    def xmlOneSpanner(self, mxObj: ET.Element, target: note.GeneralNote, spannerClass: type[T], *, allowDuplicateIds=False) -> T:
         '''
         Some spanner types do not have an id necessarily, we allow duplicates of them
         if allowDuplicateIds is True. Wedges are one.
@@ -4236,7 +4223,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
 
         # returns a new spanner bundle with just the result of the search
         sb = self.spannerBundle.getByClassIdLocalComplete(spannerClass, idFound, False)
-        if sb and allowDuplicateIds is False:
+        if sb and not allowDuplicateIds:
             # if we already have a spanner matching
             # environLocal.printDebug(['found a match in SpannerBundle'])
             su = sb[0]  # get the first
@@ -4262,7 +4249,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
 
         return su
 
-    def xmlToTie(self, mxNote):
+    def xmlToTie(self, mxNote: ET.Element) -> tie.Tie | None:
         # noinspection PyShadowingNames
         '''
         Translate a MusicXML <note> with <tie> SubElements
@@ -5799,8 +5786,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             ks = self.nonTraditionalKeySignature(mxKey)
         else:
             ks = key.KeySignature()
-            seta = _setAttributeFromTagText
-            seta(ks, mxKey, 'fifths', 'sharps', transform=int)
+            _setAttributeFromTagText(ks, mxKey, 'fifths', 'sharps', transform=int)
 
             mxKeyMode = mxKey.find('mode')
             if mxKeyMode is not None:

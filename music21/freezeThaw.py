@@ -379,7 +379,7 @@ class StreamFreezer(StreamFreezeThawBase):
                     self.recursiveClearSites(el)
                 if isinstance(el, spanner.Spanner):
                     self.recursiveClearSites(el.spannerStorage)
-                if isinstance(el, variant.Variant):
+                elif isinstance(el, variant.Variant):
                     self.recursiveClearSites(el._stream)
                 if hasattr(el, '_derivation'):
                     el._derivation = derivation.Derivation()  # reset
@@ -699,15 +699,11 @@ class StreamFreezer(StreamFreezeThawBase):
         storage = self.packStream(self.stream)
 
         if fmt == 'pickle':
-            out = pickle.dumps(storage, protocol=-1)
+            return pickle.dumps(storage, protocol=-1)
         elif fmt == 'jsonpickle':
             import jsonpickle
-            out = jsonpickle.encode(storage, **keywords)
-        else:
-            raise FreezeThawException(f'bad StreamFreezer format: {fmt}')
-
-        # self.teardownStream(self.stream)
-        return out
+            return jsonpickle.encode(storage, **keywords)
+        raise FreezeThawException(f'bad StreamFreezer format: {fmt}')
 
 
 class StreamThawer(StreamFreezeThawBase):

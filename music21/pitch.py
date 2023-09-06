@@ -2777,14 +2777,12 @@ class Pitch(prebase.ProtoM21Object):
         octFound: list[str] = []
         octNot: list[str] = []
 
-        foundNonOctave = False
         for char in usrStr:
             if char in '0123456789':
-                if not foundNonOctave:
+                if not octNot:
                     raise ValueError(f'Cannot have octave given before pitch name in {usrStr!r}.')
                 octFound.append(char)
             else:
-                foundNonOctave = True
                 octNot.append(char)
         usrStr = ''.join(octNot)
         octFoundStr = ''.join(octFound)

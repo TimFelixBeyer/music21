@@ -440,13 +440,12 @@ class _EnvironmentCore:
         '''
         Return True if the path exists, is readable and writable.
         '''
-        if isinstance(path, (pathlib.Path, str)):
-            exists = os.path.exists(path)
-            readable = os.access(path, os.R_OK)
-            writable = os.access(path, os.W_OK)
-            return exists and readable and writable
-        else:
+        if path is None:
             return False
+        exists = os.path.exists(path)
+        readable = os.access(path, os.R_OK)
+        writable = os.access(path, os.W_OK)
+        return exists and readable and writable
 
     def toSettingsXML(self, ref=None):
         '''
@@ -1311,14 +1310,13 @@ class UserSettings:
             if not isinstance(value, dict):
                 raise UserSettingsException(
                     'localCorporaSettings must be provided as a dict.')
-            if value:
-                for innerKey, innerValue in value.values():
-                    if not isinstance(innerKey, str):
-                        raise UserSettingsException(
-                            'Each key in localCorporaSettings must be a string.')
-                    if not common.isListLike(innerValue):
-                        raise UserSettingsException(
-                            'Each entry in localCorporaSettings must point to a list.')
+            for innerKey, innerValue in value.values():
+                if not isinstance(innerKey, str):
+                    raise UserSettingsException(
+                        'Each key in localCorporaSettings must be a string.')
+                if not common.isListLike(innerValue):
+                    raise UserSettingsException(
+                        'Each entry in localCorporaSettings must point to a list.')
 
         # location specific, cannot test further
         self._environment.__setitem__(key, value)

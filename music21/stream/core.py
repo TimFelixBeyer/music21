@@ -238,12 +238,13 @@ class StreamCore(Music21Object):
                 'coreElementsChanged should not be triggered on an immutable stream'
             )
 
+        idSelf = id(self)
         if memo is None:
-            memo = []
-
-        if id(self) in memo:
+            memo = [idSelf]
+        elif idSelf in memo:
             return
-        memo.append(id(self))
+        else:
+            memo.append(idSelf)
 
         # WHY??? THIS SEEMS OVERKILL, esp. since the first call to .sort() in .flatten() will
         # invalidate it! TODO: Investigate if this is necessary and then remove if not necessary

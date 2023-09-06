@@ -468,8 +468,7 @@ class Harmony(chord.Chord):
             self._roman = roman.RomanNumeral(value)
             return
         except exceptions21.Music21Exception:
-            pass
-        raise HarmonyException(f'not a valid pitch specification: {value}')
+            raise HarmonyException(f'not a valid pitch specification: {value}')
 
     @property
     def writeAsChord(self):
@@ -729,7 +728,7 @@ class ChordStepModification(prebase.ProtoM21Object):
 
     @modType.setter
     def modType(self, expr):
-        if expr is not None and isinstance(expr, str):
+        if isinstance(expr, str):
             if expr.lower() in ['add', 'subtract', 'alter']:
                 self._modType = expr.lower()
                 return

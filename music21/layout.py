@@ -1134,16 +1134,13 @@ class LayoutScore(stream.Opus):
             return positionForStaffCache[cacheKey]
 
         # if this is the first non-hidden staff in the score then also return 0
-        foundVisibleStaff = False
         i = staffId - 1
         while i >= 0:
             hiddenStatus = self.getStaffHiddenAttribute(pageId, systemId, i)
-            if hiddenStatus is False:
-                foundVisibleStaff = True
+            i -= 1
+            if not hiddenStatus:
                 break
-            else:
-                i = i - 1
-        if foundVisibleStaff is False:
+        else:
             positionForStaffCache[cacheKey] = 0.0
             return 0.0
 

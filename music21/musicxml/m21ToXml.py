@@ -4086,7 +4086,7 @@ class MeasureExporter(XMLExporterBase):
         stemDirection = None
         # if we are not in a chord, or we are the first note of a chord, get stem
         # direction from the chordOrNote object
-        if (addChordTag is False
+        if (not addChordTag
                 and isinstance(chordOrN, note.NotRest)
                 and chordOrN.stemDirection != 'unspecified'):
             chordOrN = t.cast(note.NotRest, chordOrN)
@@ -4127,24 +4127,23 @@ class MeasureExporter(XMLExporterBase):
 
         mxNotationsList = self.noteToNotations(n, noteIndexInChord, chordParent)
 
-        # add tuplets if it's a note or the first <note> of a chord.
-        if addChordTag is False:
+        if not addChordTag:
+            # add tuplets and lyrics if it's a note or the first <note> of a chord.
             for i, tup in enumerate(d.tuplets):
                 tupTagList = self.tupletToXmlTuplet(tup, i + 1)
                 mxNotationsList.extend(tupTagList)
 
-        if mxNotationsList:
-            mxNotations = SubElement(mxNote, 'notations')
-            for mxN in mxNotationsList:
-                mxNotations.append(mxN)
-
-        # lyric
-        if addChordTag is False:
+            # lyric
             for lyricObj in chordOrN.lyrics:
                 if lyricObj.text is None:
                     continue  # happens sometimes...
                 mxLyric = self.lyricToXml(lyricObj)
                 mxNote.append(mxLyric)
+
+        if mxNotationsList:
+            mxNotations = SubElement(mxNote, 'notations')
+            for mxN in mxNotationsList:
+                mxNotations.append(mxN)
         # TODO: play
         self.xmlRoot.append(mxNote)
         return mxNote
@@ -4169,21 +4168,16 @@ class MeasureExporter(XMLExporterBase):
         searchingObject: note.NotRest | chord.Chord = chordParent if chordParent else n
         closest_inst = searchingObject.getInstrument(returnDefault=True)
 
-        instance_to_use = None
-        inst: instrument.Instrument
         for inst in self.parent.instrumentStream:
             if inst.classSet == closest_inst.classSet:
-                instance_to_use = inst
-                break
-
-        if instance_to_use is None:
-            # exempt coverage, because this is only for safety/unreachable
-            raise MusicXMLExportException(
-                f'Could not find instrument instance for note {n} in instrumentStream'
-            )  # pragma: no cover
-        mxInstrument = SubElement(mxNote, 'instrument')
-        if instance_to_use.instrumentId is not None:
-            mxInstrument.set('id', instance_to_use.instrumentId)
+                if inst.instrumentId is not None:
+                    mxInstrument = SubElement(mxNote, 'instrument')
+                    mxInstrument.set('id', inst.instrumentId)
+                return
+        # exempt coverage, because this is only for safety/unreachable
+        raise MusicXMLExportException(
+            f'Could not find instrument instance for note {n} in instrumentStream'
+        )  # pragma: no cover
 
     def restToXml(self, r: note.Rest):
         # noinspection PyShadowingNames

@@ -139,9 +139,7 @@ class Tie(prebase.ProtoM21Object, SlottedObjectMixin):
         '''
         if not isinstance(other, type(self)):
             return False
-        elif self.type == other.type:
-            return True
-        return False
+        return self.type == other.type
 
     def __hash__(self):
         return id(self) >> 4

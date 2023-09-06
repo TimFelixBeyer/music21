@@ -2248,7 +2248,7 @@ class ABCHandler:
                             self.skipAhead = 0
                             matchBars = True
                             break
-                if matchBars is True:
+                if matchBars:
                     accidentalized = {}
                     accidental = ''
                     j = self.pos + self.skipAhead + 1

@@ -863,8 +863,7 @@ class SelectFromList(Dialog):
             # must return True/False,
             post = self._askFillEmptyList(force=force)
             return post
-        else:  # if we have options, return True
-            return True
+        return True
 
     def _rawQuery(self, force=None):
         '''

@@ -557,7 +557,7 @@ class Test(unittest.TestCase):
                 gotLeftBarline = False
                 gotRightBarline = False
                 barlines = measure.findall('.//barline')
-                for i, barline in enumerate(barlines):
+                for barline in barlines:
                     if barline.get('location') == 'left':
                         gotLeftBarline = True
                         leftEndingType = None

@@ -1250,12 +1250,12 @@ class Tuplet(prebase.ProtoM21Object):
         # duration units scale
         if post.durationActual is not None:
             post.durationActual = (
-                post.durationActual.augmentOrDiminish(  # type: ignore[attr-defined]
+                post.durationActual.augmentOrDiminish(
                     amountToScale)
             )
         if post.durationNormal is not None:
             post.durationNormal = (
-                post.durationNormal.augmentOrDiminish(  # type: ignore[attr-defined]
+                post.durationNormal.augmentOrDiminish(
                     amountToScale)
             )
 
@@ -2233,9 +2233,8 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         (DurationTuple(type='whole', dots=0, quarterLength=4.0),
          DurationTuple(type='quarter', dots=0, quarterLength=1.0))
         '''
-        if len(self.components) == 1:
-            pass  # nothing to be done
-        else:
+        # No need to consolidate if there is already only one component
+        if len(self.components) != 1:
             dur = durationTupleFromQuarterLength(self.quarterLengthNoTuplets)
             # if quarter length is not notatable, will automatically unlink
             # some notations will not properly unlink, and raise an error
@@ -2840,10 +2839,7 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         >>> len(cDur.components)
         1
         '''
-        if len(self.components) > 1:
-            return True
-        else:
-            return False
+        return len(self.components) > 1
 
     @property
     def ordinal(self) -> int | str | None:

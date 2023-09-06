@@ -2207,8 +2207,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 raise base.SitesException(
                     'attempted to retrieve a bound offset with a string '
                     + f'attribute that is not supported: {o}')
-        else:
-            return o
+        return o
 
     def insert(self,
                offsetOrItemOrList,
@@ -7330,7 +7329,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             posDelete = []  # store deletions to be processed later
             for i in range(len(notes_and_rests)):
                 endMatch = None  # can be True, False, or None
-                n = notes_and_rests[i]
+                n: note.GeneralNote = notes_and_rests[i]
                 if i > 0:  # get i and n for the previous value
                     iLast = i - 1
                     nLast = notes_and_rests[iLast]
@@ -11735,10 +11734,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # -----------------------
         # TODO: use new recurse
         for e in self:
-            if ignoreBarlines is True and isinstance(e, Measure):
+            if ignoreBarlines and isinstance(e, Measure):
                 m = e
                 for n in m.notes:
-                    if skipTies is True:
+                    if skipTies:
                         if n.tie is None or n.tie.type == 'start':
                             appendLyricsFromNote(n, returnLists, numNotes)
                             numNotes += 1
@@ -11748,14 +11747,14 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                         appendLyricsFromNote(n, returnLists, numNotes)
                         numNotes += 1
 
-            elif recurse is True and isinstance(e, Stream):
+            elif recurse and isinstance(e, Stream):
                 sublists = e.lyrics(ignoreBarlines=ignoreBarlines, recurse=True, skipTies=skipTies)
                 for k in sublists:
                     if k not in returnLists:
                         returnLists[k] = []
                     returnLists[k].append(sublists[k])
             elif isinstance(e, note.NotRest):
-                if skipTies is True:
+                if skipTies:
                     if e.tie is None or e.tie.type == 'start':
                         appendLyricsFromNote(e, returnLists, numNotes)
                         numNotes += 1
@@ -12527,7 +12526,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         returnObjDuration = self.duration.quarterLength
 
         # If any classes should be exempt from gap closing or expanding, this deals with those.
-        if isRemove is True:
+        if isRemove:
             shiftDur = 0.0
             listSorted = sorted(listOffsetDurExemption, key=lambda target: target[0])
             for i, durTuple in enumerate(listSorted):
@@ -12547,13 +12546,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                                        mustFinishInSpan=False,
                                                        mustBeginInSpan=True):
 
-                    if id(e) in exemptObjectSet:
-                        continue
-                    if not inPlace and e.derivation.originId in exemptObjectSet:
-                        continue
-
-                    elementOffset = e.getOffsetBySite(self)
-                    self.coreSetElementOffset(e, elementOffset - shiftDur)
+                    if id(e) not in exemptObjectSet and (inPlace or e.derivation.originId not in exemptObjectSet):
+                        elementOffset = e.getOffsetBySite(self)
+                        self.coreSetElementOffset(e, elementOffset - shiftDur)
         else:
             shiftDur = 0.0
             shiftsDict = {}
