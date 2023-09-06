@@ -307,7 +307,7 @@ class PickleFilter:
         pathNameToParse = str(self.fp)
 
         quantization: list[str] = []
-        if 'quantizePost' in self.keywords and self.keywords['quantizePost'] is False:
+        if not self.keywords.get('quantizePost', True):
             quantization.append('noQtz')
         elif 'quarterLengthDivisors' in self.keywords:
             for divisor in self.keywords['quarterLengthDivisors']:
@@ -627,7 +627,7 @@ class Converter:
 
         pfObj = PickleFilter(fp, forceSource, number, **keywords)
         unused_fpDst, writePickle, fpPickle = pfObj.status()
-        if writePickle is False and fpPickle is not None and forceSource is False:
+        if not writePickle and fpPickle is not None and not forceSource:
             environLocal.printDebug('Loading Pickled version')
             try:
                 self._thawedStream = thaw(fpPickle, zipType='zlib')

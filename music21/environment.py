@@ -332,7 +332,6 @@ class _EnvironmentCore:
                 if name in ref:
                     # load up stored values, overwriting defaults
                     ref[name] = slot.get('value')
-                    continue
                 # otherwise, ignore for now
 
     def _loadDefaults(self, forcePlatform=None):

@@ -5099,7 +5099,7 @@ class Pitch(prebase.ProtoM21Object):
             # if the pitch is the first of a measure, has an accidental,
             # it is not an altered key signature pitch,
             # and it is not a natural, it should always be set to display
-            if (pPastInMeasure is False
+            if (not pPastInMeasure
                     and acc is not None
                     and not self._nameInKeySignature(alteredPitches)):
                 acc.displayStatus = True

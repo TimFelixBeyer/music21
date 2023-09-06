@@ -136,7 +136,7 @@ def runParallel(iterable, parallelFunction, *,
                 else:
                     thisResult = resultsList[thisPosition]
 
-                if updateSendsIterable is False:
+                if not updateSendsIterable:
                     updateFunction(thisPosition, iterLength, thisResult)
                 else:
                     updateFunction(thisPosition, iterLength, thisResult, iterable[thisPosition])
@@ -191,7 +191,7 @@ def runNonParallel(iterable, parallelFunction, *,
                 else:
                     thisResult = resultsList[thisPosition]
 
-                if updateSendsIterable is False:
+                if not updateSendsIterable:
                     updateFunction(thisPosition, iterLength, thisResult)
                 else:
                     updateFunction(thisPosition, iterLength, thisResult, iterable[thisPosition])

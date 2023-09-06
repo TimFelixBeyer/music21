@@ -681,7 +681,7 @@ def decimalToTuplet(decNum: float) -> tuple[int, int]:
     jy = jy / my_gcd
     iy = iy / my_gcd
 
-    if flipNumerator is False:
+    if not flipNumerator:
         return (int(jy), int(iy))
     else:
         return (int(iy), int(jy))

@@ -1218,20 +1218,14 @@ class LayoutScore(stream.Opus):
         numStaffLines = 5  # TODO: should be taken from staff attributes
         numSpaces = numStaffLines - 1
         staffSizeBase = numSpaces * 10.0
-        staffSizeDefinedLocally = False
 
         staffSize = staffSizeBase
 
         allStaffLayouts = list(firstMeasureOfStaff.getElementsByClass('StaffLayout'))
-        if allStaffLayouts:
-            # print('Got staffLayouts: ')
-            staffLayoutObj = allStaffLayouts[0]
-            if staffLayoutObj.staffSize is not None:
-                staffSize = staffSizeBase * (staffLayoutObj.staffSize / 100.0)
-                # print(f'Got staffHeight of {staffHeight} for partId {partId}')
-                staffSizeDefinedLocally = True
-
-        if staffSizeDefinedLocally is False:
+        if allStaffLayouts and allStaffLayouts[0].staffSize is not None:
+            staffSize = staffSizeBase * (allStaffLayouts[0].staffSize / 100.0)
+            # print(f'Got staffHeight of {staffHeight} for partId {partId}')
+        else:
             previousPageId, previousSystemId = self.getSystemBeforeThis(pageId, systemId)
             if previousPageId is None:
                 staffSize = staffSizeBase

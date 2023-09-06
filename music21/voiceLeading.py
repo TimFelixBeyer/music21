@@ -187,25 +187,21 @@ class VoiceLeadingQuartet(base.Music21Object):
         return self._key
 
     @key.setter
-    def key(self, keyValue):
+    def key(self, keyValue: key.Key | str):
         if isinstance(keyValue, str):
             try:
-                keyValue = key.Key(key.convertKeyStringToMusic21KeyString(keyValue))
+                self._key = key.Key(key.convertKeyStringToMusic21KeyString(keyValue))
             except Exception as e:  # pragma: no cover
                 raise VoiceLeadingQuartetException(
                     f'got a key signature string that is not supported: {keyValue}'
                 ) from e
-        else:
-            try:
-                isKey = (isinstance(keyValue, key.Key))
-                if isKey is False:
-                    raise AttributeError
-            except AttributeError:  # pragma: no cover
-                raise VoiceLeadingQuartetException(
-                    'got a key signature that is not a string or music21 Key '
-                    + f'object: {keyValue}'
-                )
-        self._key = keyValue
+        elif isinstance(keyValue, key.Key):
+            self._key = keyValue
+        else:  # pragma: no cover
+            raise VoiceLeadingQuartetException(
+                'got a key signature that is not a string or music21 Key '
+                + f'object: {keyValue}'
+            )
 
     def _setVoiceNote(
         self,

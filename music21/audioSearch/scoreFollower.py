@@ -75,7 +75,7 @@ class ScoreFollower:
         self.useScale = useScale
 
         self.result = False
-        while self.result is False:
+        while not self.result:
             self.result = self.repeatTranscription()
 
         # if plot is True:

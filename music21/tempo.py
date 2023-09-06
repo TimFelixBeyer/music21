@@ -1311,7 +1311,7 @@ def interpolateElements(element1, element2, sourceStream,
                 raise TempoException(
                     'Could not find element '
                     + f'{el!r} with id {el.id!r} '
-                    + 'in destinationStream and autoAdd is false') from e
+                    + 'in destinationStream and autoAdd is False') from e
         else:
             destinationOffset = (scaleAmount * (elOffsetSrc - startOffsetSrc)) + startOffsetDest
             el.setOffsetBySite(destinationStream, destinationOffset)

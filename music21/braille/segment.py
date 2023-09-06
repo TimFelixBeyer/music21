@@ -839,7 +839,7 @@ class BrailleSegment(text.BrailleText):
             if not should_split:
                 # not enough space left on this line to use, so
                 # move the whole group to another line
-                if showLeadingOctave is False and self.suppressOctaveMarks is False:
+                if not showLeadingOctave and not self.suppressOctaveMarks:
                     # if we didn't show the octave before, retranscribe with the octave
                     # displayed
                     transcriber.showLeadingOctave = True

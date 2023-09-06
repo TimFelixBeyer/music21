@@ -210,7 +210,7 @@ def findConsecutiveScale(source, targetScale, degreesRequired=5,
 
             # if we have not explicitly said to keep the last
             # then we should
-            if clearCollect is False and clearCollectKeepLast is False:
+            if not clearCollect and not clearCollectKeepLast:
                 # if the next pitch is part of a directional sequence, keep
                 if ((targetScale.isNext(pNext, p, scale.Direction.DESCENDING,
                                         stepSize=stepSize,

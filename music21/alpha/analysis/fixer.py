@@ -241,7 +241,7 @@ class EnharmonicFixer(OMRMidiFixer):
         for (midiRef, omrRef, op) in self.changes:
             omrRef.style.color = 'black'
             # if they're not notes, don't bother with rest
-            if self.checkIfNoteInstance(midiRef, omrRef) is False:
+            if not self.checkIfNoteInstance(midiRef, omrRef):
                 continue
             # if they are the same, don't bother to try changing it
             # 3 is the number of noChange Ops

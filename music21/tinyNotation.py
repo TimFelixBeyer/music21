@@ -499,7 +499,7 @@ class NoteOrRestToken(Token):
                 callFunc = getattr(self, method)
                 t = callFunc(n, searchSuccess, pm, t, parent)
 
-        if self.durationFound is False and hasattr(parent, 'stateDict'):
+        if not self.durationFound and hasattr(parent, 'stateDict'):
             n.duration.quarterLength = parent.stateDict['lastDuration']
 
         # do this by quarterLength here, so that applied tuplets do not persist.

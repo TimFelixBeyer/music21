@@ -489,24 +489,25 @@ class ToneRow(stream.Stream):
 
         firstPitch = pitchList[0]
         transformedPitchList = []
-        if transformationType in ('P', 'T'):
-            for i in range(numPitches):
-                newPitch = (pitchList[i] - firstPitch + index) % 12
-                transformedPitchList.append(newPitch)
-        elif transformationType == 'I':
-            for i in range(numPitches):
-                newPitch = (index + firstPitch - pitchList[i]) % 12
-                transformedPitchList.append(newPitch)
-        elif transformationType == 'R':
-            for i in range(numPitches):
-                newPitch = (index + pitchList[numPitches - 1 - i] - firstPitch) % 12
-                transformedPitchList.append(newPitch)
-        elif transformationType == 'RI':
-            for i in range(numPitches):
-                newPitch = (index - pitchList[numPitches - 1 - i] + firstPitch) % 12
-                transformedPitchList.append(newPitch)
-        else:
-            raise SerialException(f'Invalid transformation type: {transformationType}')
+        match transformationType:
+            case 'P' | 'T':
+                for i in range(numPitches):
+                    newPitch = (index - firstPitch + pitchList[i]) % 12
+                    transformedPitchList.append(newPitch)
+            case 'I':
+                for i in range(numPitches):
+                    newPitch = (index + firstPitch - pitchList[i]) % 12
+                    transformedPitchList.append(newPitch)
+            case 'R':
+                for i in range(numPitches):
+                    newPitch = (index + pitchList[numPitches - 1 - i] - firstPitch) % 12
+                    transformedPitchList.append(newPitch)
+            case 'RI':
+                for i in range(numPitches):
+                    newPitch = (index - pitchList[numPitches - 1 - i] + firstPitch) % 12
+                    transformedPitchList.append(newPitch)
+            case _:
+                raise SerialException(f'Invalid transformation type: {transformationType}')
 
         return pcToToneRow(transformedPitchList)
 
@@ -785,19 +786,18 @@ class TwelveToneRow(ToneRow):
         True
         '''
 
-        if self.isTwelveToneRow() is False:
+        if not self.isTwelveToneRow():
             raise SerialException('An all-interval row must be a twelve-tone row.')
 
-        tempAllInterval = True
         intervalString = self.getIntervalsAsString()
         for i in range(1, 10):
             if str(i) not in intervalString:
-                tempAllInterval = False
+                return False
         if 'T' not in intervalString:
-            tempAllInterval = False
+            return False
         if 'E' not in intervalString:
-            tempAllInterval = False
-        return tempAllInterval
+            return False
+        return True
 
     def getLinkClassification(self):
         '''
@@ -1059,7 +1059,7 @@ class TwelveToneRow(ToneRow):
         * Changed in v7: `convention` is no longer necessary and no longer used.
           Renamed to `unused_convention` and defaults None; to be removed in v8.
         '''
-        if self.isTwelveToneRow() is False:
+        if not self.isTwelveToneRow():
             raise SerialException('Combinatoriality applies only to twelve-tone rows.')
 
         # choice of convention does not matter

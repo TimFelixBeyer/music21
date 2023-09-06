@@ -348,7 +348,7 @@ class Sites(common.SlottedObjectMixin):
         updateNotAdd = False
         if idKey in self.siteDict:
             tempSiteRef = self.siteDict[idKey]
-            if (tempSiteRef.isDead is False
+            if (not tempSiteRef.isDead
                     and tempSiteRef.site is not None):
                 updateNotAdd = True
 
@@ -473,25 +473,26 @@ class Sites(common.SlottedObjectMixin):
 
         if priorityTarget is not None:
             priorityId = id(priorityTarget)
-            if priorityId in keyRepository:
+            try:
                 # environLocal.printDebug(['priorityTarget found in post:', priorityTarget])
                 # extract object and make first
-                keyRepository.insert(0,
-                                     keyRepository.pop(keyRepository.index(priorityId)))
+                keyRepository.remove(priorityId)
+                keyRepository.insert(0, priorityId)
+            except ValueError:
+                pass  # not found
 
         # get each dict from all defined contexts
         for key in keyRepository:
             siteRef = self.siteDict[key]
             # check for None object; default location, not a weakref, keep
-            if siteRef.site is None:
+
+            site = siteRef.site
+            if site is None:  # dead ref
+                siteRef.isDead = True
                 if not excludeNone:
-                    yield siteRef.site
+                    yield site
             else:
-                obj = siteRef.site
-                if obj is None:  # dead ref
-                    siteRef.isDead = True
-                else:
-                    yield obj
+                yield site
 
     def get(self,
             *,
@@ -542,11 +543,10 @@ class Sites(common.SlottedObjectMixin):
 
         # we do this resorting again, because the priority target might not match id, and we
         # want to be extra safe.  If you want fast, use .yieldSites
-        if priorityTarget is not None:
-            if priorityTarget in post:
-                # environLocal.printDebug(['priorityTarget found in post:', priorityTarget])
-                # extract object and make first
-                post.insert(0, post.pop(post.index(priorityTarget)))
+        if priorityTarget is not None and priorityTarget in post:
+            # environLocal.printDebug(['priorityTarget found in post:', priorityTarget])
+            # extract object and make first
+            post.insert(0, post.pop(post.index(priorityTarget)))
         return post
 
     def getAttrByName(self, attrName):
@@ -583,13 +583,9 @@ class Sites(common.SlottedObjectMixin):
         True
 
         '''
-        post = None
-        for obj in self.yieldSites(sortByCreationTime='reverse'):
-            if obj is None:
-                continue  # in case the reference is dead
+        for obj in self.yieldSites(excludeNone=True, sortByCreationTime='reverse'):
             try:
-                post = getattr(obj, attrName)
-                return post
+                return getattr(obj, attrName)
             except AttributeError:
                 pass
 

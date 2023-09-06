@@ -101,13 +101,13 @@ class SubConverter:
         loading the file and putting the data into parseData then there is no need
         to implement this method.  Just set self.readBinary to True | False.
         '''
-        if self.readBinary is False:
+        if self.readBinary:
+            with open(filePath, 'rb') as f:
+                dataStream = f.read()  # type: ignore
+        else:
             import locale
             with open(filePath, encoding=locale.getpreferredencoding()) as f:
                 dataStream = f.read()
-        else:
-            with open(filePath, 'rb') as f:
-                dataStream = f.read()  # type: ignore
 
         # might raise NotImplementedError
         self.parseData(dataStream, number)
@@ -290,12 +290,12 @@ class SubConverter:
         if fp is None:
             fp = self.getTemporaryFile()
 
-        if self.readBinary is False:
-            writeFlags = 'w'
-        else:
+        if self.readBinary:
             writeFlags = 'wb'
+        else:
+            writeFlags = 'w'
 
-        if self.codecWrite is False and isinstance(dataStr, bytes):
+        if not self.codecWrite and isinstance(dataStr, bytes):
             try:
                 dataStr = dataStr.decode('utf-8')
             except UnicodeDecodeError:
@@ -331,10 +331,10 @@ class SubConverter:
         and return the object (str or bytes) returned.
         '''
         fp = self.write(obj, fmt=fmt, subformats=subformats, **keywords)
-        if self.readBinary is False:
-            readFlags = 'r'
-        else:
+        if self.readBinary:
             readFlags = 'rb'
+        else:
+            readFlags = 'r'
         with open(fp,
                   mode=readFlags,
                   encoding=self.stringEncoding if self.codecWrite else None
@@ -445,7 +445,7 @@ class ConverterLilypond(SubConverter):
         if not subformats:
             subformats = ['png']
         returnedFilePath = self.write(obj, fmt, subformats=subformats, **keywords)
-        if subformats is not None and subformats:
+        if subformats:
             outFormat = subformats[0]
         else:
             outFormat = 'png'

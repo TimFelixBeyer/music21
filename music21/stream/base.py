@@ -2497,7 +2497,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     pitches = list(target.pitches)
                     components = list(target)
 
-            if len(pitches) > 1 or chordsOnly is True:
+            if len(pitches) > 1 or chordsOnly:
                 finalTarget = chord.Chord(pitches)
             elif len(pitches) == 1:
                 finalTarget = note.Note(pitches[0])
@@ -3237,7 +3237,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 returnDefault=False,
             )
             if timeSignatures:
-                sRight.keySignature = copy.deepcopy(timeSignatures[0])
+                sRight.timeSignature = copy.deepcopy(timeSignatures[0])
             if searchContext:
                 keySignatures = sLeft.getContextByClass(key.KeySignature)
                 if keySignatures is not None:
@@ -5056,13 +5056,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         orderedOffsetMap = OrderedDict(sorted(offsetMap.items(), key=lambda o: o[0]))
         return orderedOffsetMap
 
-    def _getFinalBarline(self):
+    def _getFinalBarline(self) -> list[bar.Barline] | bar.Barline | None:
         # if we have part-like streams, process each part
         if self.hasPartLikeStreams():
-            post = []
-            for p in self.getElementsByClass('Stream'):
-                post.append(p._getFinalBarline())
-            return post  # a list of barlines
+            return [p._getFinalBarline() for p in self.getElementsByClass('Stream')]
         # core routines for a single Stream
         else:
             if self.hasMeasures():
@@ -5082,10 +5079,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 bl = value[i % len(value)]
                 # environLocal.printDebug(['enumerating measures', i, p, 'setting barline', bl])
                 p._setFinalBarline(bl)
-            return
-
         # core routines for a single Stream
-        if self.hasMeasures():
+        elif self.hasMeasures():
             self.getElementsByClass(Measure).last().rightBarline = value
         elif hasattr(self, 'rightBarline'):
             self.rightBarline = value  # pylint: disable=attribute-defined-outside-init
@@ -8832,12 +8827,11 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 # environLocal.printDebug(['activeStart', activeStart,
                 # 'activeEnd', activeEnd, 's, e, mm', s, e, mm])
                 totalSeconds += mm.durationToSeconds(activeEnd - activeStart)
-            else:
-                continue
-            if activeEnd == oEnd:
-                break
-            else:  # continue on
-                activeStart = activeEnd
+
+                if activeEnd == oEnd:
+                    break
+                else:  # continue on
+                    activeStart = activeEnd
         return totalSeconds
 
     def _getSecondsMap(self, srcObj=None):
@@ -9031,20 +9025,15 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         myStream = self
         if not myStream.hasMeasures():
             if myStream.hasPartLikeStreams():
-                foundPart = False
                 for subStream in myStream:
-                    if not subStream.isStream:
-                        continue
-                    if subStream.hasMeasures():
-                        foundPart = True
+                    if subStream.isStream and subStream.hasMeasures():
                         myStream = subStream
                         break
-                if not foundPart:
+                else:
                     raise StreamException('beatAndMeasureFromOffset: could not find any parts!')
                     # was return False
             else:
-                if not myStream.hasMeasures():
-                    raise StreamException('beatAndMeasureFromOffset: could not find any measures!')
+                raise StreamException('beatAndMeasureFromOffset: could not find any measures!')
                     # return False
         # Now we get the measure containing our offset.
         # In most cases this second part of the code does the job.
@@ -9878,14 +9867,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         False
         '''
         if self._cache.get('hasMeasures') is None:
-            post = False
             # do not need to look in endElements
-            for obj in self._elements:
-                # if obj is a Part, we have multi-parts
-                if isinstance(obj, Measure):
-                    post = True
-                    break  # only need one
-            self._cache['hasMeasures'] = post
+            self._cache['hasMeasures'] = any(True for obj in self._elements if isinstance(obj, Measure))
         return self._cache['hasMeasures']
 
     def hasVoices(self):
@@ -9893,14 +9876,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         Return a boolean value showing if this Stream contains Voices
         '''
         if self._cache.get('hasVoices') is None:
-            post = False
             # do not need to look in endElements
-            for obj in self._elements:
-                # if obj is a Part, we have multi-parts
-                if 'Voice' in obj.classes:
-                    post = True
-                    break  # only need one
-            self._cache['hasVoices'] = post
+            self._cache['hasVoices'] = any(True for obj in self._elements if 'Voice' in obj.classes)
         return self._cache['hasVoices']
 
     def hasPartLikeStreams(self):
@@ -10344,7 +10321,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         this is omitted -- add docs above.
         '''
-        if self.isSorted is False and self.autoSort:
+        if not self.isSorted and self.autoSort:
             self.sort()
         returnList: list[note.NotRest | None] = []
         lastStart: OffsetQL = 0.0
@@ -10352,13 +10329,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         lastContainerEnd: OffsetQL = 0.0
         lastWasNone = False
         lastPitches: tuple[pitch.Pitch, ...] = ()
-        if skipOctaves is True:
+        if skipOctaves:
             skipUnisons = True  # implied
 
         for container in self.recurse(streamsOnly=True, includeSelf=True):
             if (container.offset < lastContainerEnd
                     and container.getElementsByClass(note.GeneralNote)
-                    and noNone is False):
+                    and not noNone):
                 returnList.append(None)
                 lastWasNone = True
                 lastPitches = ()
@@ -10374,20 +10351,19 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
             # Filter out all but notes and rests and chords, etc.
             for e in container.getElementsByClass(note.GeneralNote):
-                if (lastWasNone is False
-                        and skipGaps is False
+                if (not lastWasNone
+                        and not skipGaps
                         and e.offset > lastEnd):
                     if not noNone:
                         returnList.append(None)
                         lastWasNone = True
                 if isinstance(e, note.Note):
-                    if not (skipUnisons is False
+                    if not (not skipUnisons
                            or len(lastPitches) != 1
                            or e.pitch.pitchClass != lastPitches[0].pitchClass
-                           or (skipOctaves is False
-                                and e.pitch.ps != lastPitches[0].ps)):
+                           or (not skipOctaves and e.pitch.ps != lastPitches[0].ps)):
                         continue
-                    if getOverlaps is False and e.offset < lastEnd:
+                    if not getOverlaps and e.offset < lastEnd:
                         continue
 
                     returnList.append(e)
@@ -10401,13 +10377,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
                 # if we have a chord
                 elif isinstance(e, chord.Chord) and len(e.pitches) > 1:
-                    if skipChords is True:
-                        if lastWasNone is False and not noNone:
+                    if skipChords:
+                        if not lastWasNone and not noNone:
                             returnList.append(None)
                             lastWasNone = True
                             lastPitches = ()
                     # if we have a chord
-                    elif (not (skipUnisons is True
+                    elif (not (skipUnisons
                                 and len(lastPitches) == len(e.pitches)
                                 and (p.ps for p in e.pitches) == (p.ps for p in lastPitches)
                                )
@@ -10421,17 +10397,17 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                         lastPitches = e.pitches
                         lastWasNone = False
 
-                elif (skipRests is False
+                elif (not skipRests
                       and isinstance(e, note.Rest)
-                      and lastWasNone is False):
-                    if noNone is False:
+                      and not lastWasNone):
+                    if not noNone:
                         returnList.append(None)
                         lastWasNone = True
                         lastPitches = ()
-                elif skipRests is True and isinstance(e, note.Rest):
+                elif skipRests and isinstance(e, note.Rest):
                     lastEnd = opFrac(e.offset + e.duration.quarterLength)
 
-        if lastWasNone is True:
+        if lastWasNone:
             returnList.pop()  # removes the last-added element
         return returnList
 
@@ -10604,11 +10580,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         for i, src in enumerate(durSpanSortedIndex):
             for j in range(i + 1, len(durSpanSortedIndex)):
                 dst = durSpanSortedIndex[j]
-                if self._durSpanOverlap(src[1], dst[1]):
-                    overlapMap[src[0]].append(dst[0])
-                    overlapMap[dst[0]].append(src[0])
-                else:
+                if not self._durSpanOverlap(src[1], dst[1]):
                     break
+                overlapMap[src[0]].append(dst[0])
+                overlapMap[dst[0]].append(src[0])
 
         # Preserve exact same behaviour as earlier code.
         # It is unclear if anything depends on the individual lists being sorted.
@@ -10852,12 +10827,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         True
         '''
         overlapMap = self._findLayering()
-        post = True
-        for indexList in overlapMap:
-            if indexList:
-                post = False
-                break
-        return post
+        return not any(overlappingIndices for overlappingIndices in overlapMap)
 
     # --------------------------------------------------------------------------
     # routines for dealing with relationships to other streams.
@@ -13413,18 +13383,13 @@ class Measure(Stream):
         return meter.bestTimeSignature(self)
 
     def _getLeftBarline(self):
-        barList = []
         # directly access _elements, as do not want to get any bars
         # in _endElements
         for e in self._elements:
             if isinstance(e, bar.Barline):  # take the first
                 if self.elementOffset(e) == 0.0:
-                    barList.append(e)
-                    break
-        if not barList:
-            return None
-        else:
-            return barList[0]
+                    return e
+        return None
 
     def _setLeftBarline(self, barlineObj):
         insert = True
@@ -13458,16 +13423,10 @@ class Measure(Stream):
     def _getRightBarline(self):
         # TODO: Move to Stream or make setting .rightBarline, etc. on Stream raise an exception...
         # look on _endElements
-        barList = []
         for e in self._endElements:
             if isinstance(e, bar.Barline):  # take the first
-                barList.append(e)
-                break
-        # barList = self.getElementsByClass(bar.Barline)
-        if not barList:  # do this before searching for barQL
-            return None
-        else:
-            return barList[0]
+                return e
+        return None
 
     def _setRightBarline(self, barlineObj):
         insert = True
@@ -14061,7 +14020,7 @@ class Score(Stream):
 
         m_or_p: Measure | Part
         for i in range(mCount):  # may be 1
-            uniqueQuarterLengths = []
+            uniqueQuarterLengths = {}
             p: Part
             for p in self.getElementsByClass(Part):
                 if p.hasMeasures():
@@ -14072,8 +14031,7 @@ class Score(Stream):
                 # collect all unique quarter lengths
                 for e in m_or_p.notesAndRests:
                     # environLocal.printDebug(['examining e', i, e, e.quarterLength])
-                    if e.quarterLength not in uniqueQuarterLengths:
-                        uniqueQuarterLengths.append(e.quarterLength)
+                    uniqueQuarterLengths.add(e.quarterLength)
 
             # after ql for all parts, find divisor
             divisor = common.approximateGCD(uniqueQuarterLengths)
@@ -14131,9 +14089,7 @@ class Score(Stream):
             for pIndex, p in enumerate(self.parts):
                 if pIndex % voicesPerPart == 0:
                     sub = []
-                    sub.append(p)
-                else:
-                    sub.append(p)
+                sub.append(p)
                 if pIndex % voicesPerPart == voicesPerPart - 1:
                     bundle.append(sub)
                     sub = []
@@ -14171,10 +14127,7 @@ class Score(Stream):
             # iterate through each part
             for pIndex, p in enumerate(sub):
                 # only check for measures once per part
-                if pActive.hasMeasures():
-                    hasMeasures = True
-                else:
-                    hasMeasures = False
+                hasMeasures = pActive.hasMeasures()
 
                 for mIndex, m in enumerate(p.getElementsByClass(Measure)):
                     # environLocal.printDebug(['pIndex, p', pIndex, p,

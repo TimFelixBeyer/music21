@@ -484,7 +484,7 @@ class Variant(base.Music21Object):
         #    for example only uses the offset in the original.
         #    Also, we are not changing measure numbers and should
         #    not as that will cause activateVariants to fail.
-        if keepOriginalOffsets is False:
+        if not keepOriginalOffsets:
             for e in returnStream:
                 e.setOffsetBySite(returnStream, e.getOffsetBySite(returnStream) - vStart)
 
@@ -2041,28 +2041,23 @@ def _mergeVariants(streamA, streamB, *, variantName=None, inPlace=False):
             #    TODO: Will not work until __eq__ overwritten for Generalized Notes
             if streamANotes[i] != streamBNotes[j]:
                 # If notes are different, start variant if not started and append note.
-                if inVariant is False:
+                if not inVariant:
                     variantStart = streamBNotes[j].getOffsetBySite(streamB.flatten())
                     inVariant = True
                     noteBuffer = []
-                    noteBuffer.append(streamBNotes[j])
-                else:
-                    noteBuffer.append(streamBNotes[j])
-            else:  # If notes are the same, end and insert variant if in variant.
-                if inVariant is True:
-                    returnObj.insert(
+                noteBuffer.append(streamBNotes[j])
+            elif inVariant:  # If notes are the same, end and insert variant if in variant.
+                returnObj.insert(
+                    variantStart,
+                    _generateVariant(
+                        noteBuffer,
+                        streamB,
                         variantStart,
-                        _generateVariant(
-                            noteBuffer,
-                            streamB,
-                            variantStart,
-                            variantName
-                        )
+                        variantName
                     )
-                    inVariant = False
-                    noteBuffer = []
-                else:
-                    inVariant = False
+                )
+                inVariant = False
+                noteBuffer = []
 
             i += 1
             j += 1
@@ -2070,13 +2065,11 @@ def _mergeVariants(streamA, streamB, *, variantName=None, inPlace=False):
 
         elif (streamANotes[i].getOffsetBySite(streamA.flatten())
               > streamBNotes[j].getOffsetBySite(streamB.flatten())):
-            if inVariant is False:
+            if not inVariant:
                 variantStart = streamBNotes[j].getOffsetBySite(streamB.flatten())
                 noteBuffer = []
-                noteBuffer.append(streamBNotes[j])
                 inVariant = True
-            else:
-                noteBuffer.append(streamBNotes[j])
+            noteBuffer.append(streamBNotes[j])
             j += 1
             continue
 
@@ -2084,7 +2077,7 @@ def _mergeVariants(streamA, streamB, *, variantName=None, inPlace=False):
             i += 1
             continue
 
-    if inVariant is True:  # insert final variant if exists
+    if inVariant:  # insert final variant if exists
         returnObj.insert(
             variantStart,
             _generateVariant(

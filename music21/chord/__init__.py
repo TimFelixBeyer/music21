@@ -1235,7 +1235,7 @@ class Chord(ChordBase):
         for j in range(len(c.pitches) - 1, 0, -1):  # only go to one; zero never used
             p = c.pitches[j]
             i = interval.Interval(c.pitches[0], p)
-            if stripSpecifiers is False:
+            if not stripSpecifiers:
                 notation = i.semiSimpleName
             else:
                 notation = str(i.diatonic.generic.semiSimpleUndirected)
@@ -2477,7 +2477,7 @@ class Chord(ChordBase):
         '''
         Helper function for inversion(int)
         '''
-        if transposeOnSet is False:
+        if not transposeOnSet:
             self._overrides['inversion'] = newInversion
             return
         # could have set bass or root externally
@@ -4075,7 +4075,7 @@ class Chord(ChordBase):
         c2 = self.closedPosition(forceOctave=forceOctave,
                                  inPlace=inPlace,
                                  leaveRedundantPitches=leaveRedundantPitches)
-        if inPlace is True:
+        if inPlace:
             c2 = self
 
         if t.TYPE_CHECKING:
@@ -4098,7 +4098,7 @@ class Chord(ChordBase):
         c2.clearCache()
         c2.sortAscending(inPlace=True)
 
-        if inPlace is False:
+        if not inPlace:
             return c2
 
     def semitonesFromChordStep(self, chordStep, testRoot=None):

@@ -737,13 +737,11 @@ def translateDiatonicStreamToString(inputStreamOrIterator, returnMeasures=False)
             mNum = n.measureNumber
 
         if n.isRest:
-            if previousRest is True:
-                continue
-            else:
-                previousRest = True
+            if not previousRest:
                 b.append('Z')
                 measures.append(mNum)
-                continue
+                previousRest = True
+            continue
         else:
             previousRest = False
         if previousTie is True:
@@ -823,7 +821,7 @@ def translateIntervalsAndSpeed(inputStream, returnMeasures=False):
         if returnMeasures:
             mNum = n.measureNumber
         if n.isRest:
-            if previousRest is True:
+            if previousRest:
                 continue
             else:
                 previousRest = True
@@ -857,10 +855,10 @@ def translateIntervalsAndSpeed(inputStream, returnMeasures=False):
         b.append(newName)
 
     joined = ''.join(b)
-    if returnMeasures is False:
-        return joined
-    else:
+    if returnMeasures:
         return (joined, measures)
+    else:
+        return joined
 
 
 def translateStreamToStringNoRhythm(inputStream, returnMeasures=False):

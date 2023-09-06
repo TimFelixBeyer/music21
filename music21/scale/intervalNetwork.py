@@ -2161,34 +2161,30 @@ class IntervalNetwork:
 
         postPairs = []
         collect = False
-        for i, nId in enumerate(postNodeId):
-            p = post[i]
-            # if first id is a terminus, skip
-            if i == 0 and nId in (Terminus.LOW, Terminus.HIGH):
-                continue
-            # turn off collection after finding next terminus
-            elif nId in (Terminus.LOW, Terminus.HIGH) and collect is True:
-                postPairs.append((p, nId))
-                break
-            elif nId in (Terminus.LOW, Terminus.HIGH) and collect is False:
-                collect = True
+        # skip first
+        for nId, p in zip(postNodeId[1:], post[1:]):
+
+            if nId in (Terminus.LOW, Terminus.HIGH):
+                if not collect:  # found first terminus, start collecting
+                    collect = True
+                else:  # turn off collection after finding next terminus
+                    postPairs.append((p, nId))
+                    break
             if collect:
                 postPairs.append((p, nId))
         # environLocal.printDebug(['realizeMinMax()', 'postPairs', postPairs])
 
         prePairs = []
         collect = False
-        for i, nId in enumerate(preNodeId):
-            p = pre[i]
-            # if first id is a terminus, skip
-            if i == 0 and nId in (Terminus.LOW, Terminus.HIGH):
-                continue
-            # turn off collection after finding next terminus
-            elif nId in (Terminus.LOW, Terminus.HIGH) and collect is True:
-                prePairs.append((p, nId))
-                break
-            elif nId in (Terminus.LOW, Terminus.HIGH) and collect is False:
-                collect = True
+        # skip first
+        for nId, p in zip(preNodeId[1:], pre[1:]):
+            if nId in (Terminus.LOW, Terminus.HIGH):
+
+                if not collect:  # found first terminus, start collecting
+                    collect = True
+                else:   # turn off collection after finding next terminus
+                    prePairs.append((p, nId))
+                    break
             if collect:
                 prePairs.append((p, nId))
         # environLocal.printDebug(['realizeMinMax()', 'prePairs', prePairs])

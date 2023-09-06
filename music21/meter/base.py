@@ -942,9 +942,7 @@ class TimeSignature(TimeSignatureBase):
 
         * Changed in v7: return NaN rather than raising Exception in property.
         '''
-        post = []
-        for ms in self.beatSequence:
-            post.append(ms.duration.quarterLength)
+        post = [ms.duration.quarterLength for ms in self.beatSequence]
         if len(set(post)) == 1:
             return self.beatSequence[0].duration  # all are the same
         else:
@@ -1061,13 +1059,10 @@ class TimeSignature(TimeSignatureBase):
         for mt in self.beatSequence:
             for subMt in mt:
                 post.append(subMt.duration.quarterLength)
-        if len(set(post)) == 1:  # all the same
-            out = []
-            for subMt in self.beatSequence[0]:
-                out.append(subMt.duration)
-            return out
-        else:
+        if not len(set(post)) == 1:  # not all the same
             raise TimeSignatureException(f'non uniform beat division: {post}')
+
+        return [subMt.duration for subMt in self.beatSequence[0]]
 
     @property
     def beatSubDivisionDurations(self) -> list[duration.Duration]:
@@ -1396,11 +1391,11 @@ class TimeSignature(TimeSignatureBase):
             # for eventually removing measureStartOffset
             srcStream = stream.Measure()
             srcStream.append(srcList)
+        elif len(srcList) == 1:
+            return [None]
         else:
             return []
 
-        if len(srcList) <= 1:
-            return [None for _ in srcList]
 
         beamsList = beam.Beams.naiveBeams(srcList)  # hold maximum Beams objects, all with type None
         beamsList = beam.Beams.removeSandwichedUnbeamables(beamsList)
@@ -1825,8 +1820,7 @@ class TimeSignature(TimeSignatureBase):
         >>> a.getBeatOffsets()
         [0.0, 1.5]
         '''
-        post = []
-        post.append(0.0)
+        post = [0.0]
         if len(self.beatSequence) == 1:
             return post
         else:

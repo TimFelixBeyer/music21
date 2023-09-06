@@ -115,7 +115,7 @@ class EnharmonicSimplifier:
         the score is given by the number of the lesser used accidental (sharps or flats)
         multiplied by the mixSharpsFlatsPenalty.
         '''
-        if self.ruleObject.mixSharpsFlatsPenalty is False:
+        if not self.ruleObject.mixSharpsFlatsPenalty:
             return 1
 
         joinedPossibility = ''.join([p.name for p in possibility])

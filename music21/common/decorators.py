@@ -149,7 +149,7 @@ def deprecated(method, startDate=None, removeDate=None, message=None):
             falsePositive = False
 
         # TODO: look at sys.warnstatus.
-        if callInfo['calledAlready'] is False and not falsePositive:
+        if not callInfo['calledAlready'] and not falsePositive:
             warnings.warn(callInfo['message'],
                           exceptions21.Music21DeprecationWarning,
                           stacklevel=2)
