@@ -111,9 +111,9 @@ def listOfTreesByClass(
     inputStreamElements = inputStream._elements[:] + inputStream._endElements
     for element in inputStreamElements:
         offset = lastParentage.elementOffset(element) + initialOffset
-        wasStream = False
+        wasStream = element.isStream
 
-        if element.isStream:
+        if wasStream:
             element = t.cast('music21.stream.Stream', element)
             localParentage = currentParentage + (element,)
             containedTrees = listOfTreesByClass(element,
@@ -127,7 +127,6 @@ def listOfTreesByClass(
                     outputTree.insert(subTree[:])
                 else:
                     outputTree.insert(subTree.lowestPosition(), subTree)
-            wasStream = True
 
         if not wasStream or flatten == 'semiFlat':
             parentOffset = initialOffset

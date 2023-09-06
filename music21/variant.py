@@ -2301,8 +2301,8 @@ def _doVariantFixingOnStream(s, variantNames=None):
 
         # If a non-final deletion or an INITIAL insertion,
         #  add the next element after the variant.
-        if ((variantType == 'insertion' and (isInitial is True))
-                or (variantType == 'deletion' and (isFinal is False))):
+        if ((variantType == 'insertion' and isInitial)
+                or (variantType == 'deletion' and not isFinal)):
             targetElement = _getNextElements(s, v)
 
             # Delete initial clefs, etc. from initial insertion targetElement if it exists
@@ -2499,9 +2499,7 @@ def makeVariantBlocks(s):
                                                     classList=[variant.Variant])
         for cV in conflictingVariants:
             oldReplacementDuration = cV.replacementDuration
-            if s.elementOffset(cV) == startOffset:
-                continue  # do nothing
-            else:
+            if s.elementOffset(cV) != startOffset:
                 shiftOffset = s.elementOffset(cV) - startOffset
                 r = note.Rest()
                 r.duration.quarterLength = shiftOffset

@@ -636,8 +636,7 @@ class AVLTree(prebase.ProtoM21Object):
             elif node.position < innerPosition:
                 node.rightChild = recurse(node.rightChild, innerPosition)
                 node.update()
-            if node is not None:
-                return node.rebalance()
+            return node.rebalance()
 
         self.rootNode = recurse(self.rootNode, position)
 
@@ -776,10 +775,9 @@ class AVLTree(prebase.ProtoM21Object):
         True
         '''
         node = self.getNodeAfter(position)
-        if node:
-            return node.position
-        else:
+        if node is None:
             return None
+        return node.position
 
     def getNodeBefore(self, position):
         '''
