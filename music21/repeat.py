@@ -735,7 +735,7 @@ class Expander(t.Generic[StreamType]):
         the source stream has already been deep-copied and will be discarded later
         '''
         canExpand = self.isExpandable()
-
+ 
         if canExpand is False:
             raise ExpanderException(
                 'cannot expand Stream: badly formed repeats or repeat expressions')

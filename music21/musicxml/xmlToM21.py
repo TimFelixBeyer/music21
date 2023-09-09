@@ -877,10 +877,12 @@ class MusicXMLImporter(XMLParserBase):
                     v.coreElementsChanged()
                     # Fill mid-measure gaps, and find end of measure gaps by ref to measure stream
                     # https://github.com/cuthbertlab/music21/issues/444
-                    v.makeRests(refStreamOrTimeRange=m,
+                    v.makeRests(refStreamOrTimeRange=[m.layoutWidth['_desiredStart'], m.layoutWidth['_desiredEnd']],
                                 fillGaps=True,
                                 inPlace=True,
                                 hideRests=True)
+            m.layoutWidth = m.layoutWidth['temp']
+
         s.definesExplicitSystemBreaks = self.definesExplicitSystemBreaks
         s.definesExplicitPageBreaks = self.definesExplicitPageBreaks
         for p in s.parts:
@@ -897,7 +899,7 @@ class MusicXMLImporter(XMLParserBase):
         '''
         parser = PartParser(mxPart, mxScorePart=mxScorePart, parent=self)
         parser.parse()
-        if parser.appendToScoreAfterParse is True:
+        if parser.appendToScoreAfterParse:
             return parser.stream
         else:
             return None
@@ -1851,7 +1853,6 @@ class PartParser(XMLParserBase):
                 copy_into_partStaff(sourceMeasure, copyMeasure, elementsIdsNotToGoInThisStaff)
                 for sourceVoice, copyVoice in zip(sourceMeasure.voices, copyMeasure.voices):
                     copy_into_partStaff(sourceVoice, copyVoice, elementsIdsNotToGoInThisStaff)
-                copyMeasure.flattenUnnecessaryVoices(force=False, inPlace=True)
 
         score = self.parent.stream
         staffGroup = layout.StaffGroup(partStaves, name=self.stream.partName, symbol='brace')
@@ -2548,8 +2549,10 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 if methName is not None:
                     meth = getattr(self, methName)
                     meth(mxObj)
-        for v in self.stream[stream.Voice]:
+        for v in self.stream.iter().voices:
             v.coreElementsChanged()
+        # Extremely hacky
+        self.stream.layoutWidth = {'temp': self.stream.layoutWidth, '_desiredStart': self.stream.lowestOffset, '_desiredEnd': self.stream.highestTime}
         self.stream.coreElementsChanged()
 
         if (self.restAndNoteCount['rest'] == 1
