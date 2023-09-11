@@ -2234,8 +2234,16 @@ class PartParser(XMLParserBase):
                         self.lastMeasureWasShort = True
                     else:
                         self.lastMeasureWasShort = False
-            mOffsetShift = mHighestTime
-
+            tol = 1 / 128
+            diff = lastTimeSignatureQuarterLength - mHighestTime
+            if diff >= tol:
+                mOffsetShift = mHighestTime
+            else:
+                mOffsetShift = lastTimeSignatureQuarterLength
+                warnings.warn(f"""Warning: measure {m.number} in part {self.stream.partName}
+                    is underfull: {mHighestTime} < {lastTimeSignatureQuarterLength},
+                    assuming {mOffsetShift} is correct.""",
+                    MusicXMLWarning)
         self.lastMeasureOffset = opFrac(self.lastMeasureOffset + mOffsetShift)
 
     def applyMultiMeasureRest(self, r: note.Rest):
