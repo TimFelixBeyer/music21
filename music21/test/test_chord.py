@@ -540,9 +540,8 @@ class Test(unittest.TestCase):
         sc = scale.WholeToneScale()
         s = stream.Stream()
         for i in range(7):
-            tiePos = list(range(i + 1))  # py3 = list
             c = sc.getChord('c4', 'c5', quarterLength=1)
-            for pos in tiePos:
+            for pos in range(i + 1):
                 c.setTie(tie.Tie('start'), c.pitches[pos])
             s.append(c)
         # s.show()
@@ -598,10 +597,10 @@ class Test(unittest.TestCase):
     def testVolumePerPitchB(self):
         s = stream.Stream()
         amps = [0.1, 0.5, 1]
-        for j in range(12):
+        for _ in range(12):
             c = Chord(['c3', 'd-4', 'g5'])
-            for i, sub in enumerate(c):
-                sub.volume.velocityScalar = amps[i]
+            for amp, sub in zip(amps, c):
+                sub.volume.velocityScalar = amp
             s.append(c)
         match = []
         for c in s:

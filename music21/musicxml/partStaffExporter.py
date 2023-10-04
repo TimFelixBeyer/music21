@@ -111,14 +111,16 @@ class PartStaffExporterMixin:
                 {0.0} <music21.clef.TrebleClef>
                 {0.0} <music21.key.KeySignature of no sharps or flats>
                 {0.0} <music21.meter.TimeSignature 4/4>
-                {0.0} <music21.note.Note F>
+                {0.0} <music21.stream.Voice 1>
+                    {0.0} <music21.note.Note F>
         {0.0} <music21.stream.PartStaff P1-Staff2>
             {0.0} <music21.instrument.Instrument 'P1: MusicXML Part: '>
             {0.0} <music21.stream.Measure 1 offset=0.0>
                 {0.0} <music21.clef.BassClef>
                 {0.0} <music21.key.KeySignature of no sharps or flats>
                 {0.0} <music21.meter.TimeSignature 4/4>
-                {0.0} <music21.note.Note B>
+                {0.0} <music21.stream.Voice 2>
+                    {0.0} <music21.note.Note B>
         {0.0} <music21.layout.StaffGroup
                  <music21.stream.PartStaff P1-Staff1><music21.stream.PartStaff P1-Staff2>>
 

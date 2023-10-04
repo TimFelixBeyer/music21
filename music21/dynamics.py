@@ -245,15 +245,8 @@ class Dynamic(base.Music21Object):
 
     def _setValue(self, value):
         self._value = value
-        if self._value in longNames:
-            self.longName = longNames[self._value]
-        else:
-            self.longName = None
-
-        if self._value in englishNames:
-            self.englishName = englishNames[self._value]
-        else:
-            self.englishName = None
+        self.longName = longNames.get(self._value)
+        self.englishName = englishNames.get(self._value)
 
     value = property(_getValue, _setValue,
                      doc='''
@@ -281,20 +274,17 @@ class Dynamic(base.Music21Object):
         if self._volumeScalar is not None:
             return self._volumeScalar
         # use default
-        elif self._value in dynamicStrToScalar:
+        if self._value in dynamicStrToScalar:
             return dynamicStrToScalar[self._value]
         else:
             thisDynamic = self._value
             # ignore leading s like in sf
-            if 's' in thisDynamic:
+            if thisDynamic[0] == "s":
                 thisDynamic = thisDynamic[1:]
             # ignore closing z like in fz
             if thisDynamic[-1] == 'z':
                 thisDynamic = thisDynamic[:-1]
-            if thisDynamic in dynamicStrToScalar:
-                return dynamicStrToScalar[thisDynamic]
-            else:
-                return dynamicStrToScalar[None]
+            return dynamicStrToScalar.get(thisDynamic, dynamicStrToScalar[None])
 
     def _setVolumeScalar(self, value):
         # we can manually set this to be anything, overriding defaults

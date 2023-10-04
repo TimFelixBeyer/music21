@@ -1741,7 +1741,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
           in stream twice.  recurse and shiftOffsets changed to keywordOnly arguments
         '''
         # experimental
-        if self._mutable is False:  # pragma: no cover
+        if not self._mutable:  # pragma: no cover
             raise ImmutableStreamException('Cannot remove from an immutable stream')
         # TODO: Next to clean up... a doozy -- filter out all the different options.
 
@@ -7591,15 +7591,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             posDelete = sorted(list(posDelete))
 
         # all results have been processed
-        posDelete.reverse()  # start from highest and go down
-
-        for i in posDelete:
-            # environLocal.printDebug(['removing note', notes[i]])
-            # get the obj ref
-            nTarget = notes_and_rests[i]
+        for i in reversed(posDelete):
             # Recurse rather than depend on the containers being Measures
             # https://github.com/cuthbertLab/music21/issues/266
-            self.remove(nTarget, recurse=True)
+            self.remove(notes_and_rests[i], recurse=True)
 
         return self
 
@@ -11132,7 +11127,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     # --------------------------------------------------------------------------
     # voice processing routines
     @inPlace(default=False, derivation='makeVoices')
-    def makeVoices(self, *, inPlace=False, fillGaps=True):
+    def makeVoices(self, *, fillGaps=True):
         '''
         If this Stream has overlapping Notes or Chords, this method will isolate
         all overlaps in unique Voices, and place those Voices in the Stream.
@@ -12437,10 +12432,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                                        mustFinishInSpan=False,
                                                        mustBeginInSpan=True,
                                                        ).getElementsByClass(Measure)
-            highestMeasure = 0
-            for m in measuresToCheck:
-                if highestMeasure is None or m.number > highestMeasure:
-                    highestMeasure = m.number
+            highestMeasure = max(m.number for m in measuresToCheck)
 
         # remove the source variant
         self.remove(v)
@@ -12710,7 +12702,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # above which measures should be shifted by the value up to the next key. It is easiest
         # to do this in reverse order so there is no overlapping.
         previousBoundary = None
-        for k in sorted(oldCorrections, key=lambda x: -1 * x):
+        for k in sorted(oldCorrections, reverse=True):
             shift = oldCorrections[k]
             for m in oldMeasures:
                 if previousBoundary is None or m.number < previousBoundary:
@@ -12719,7 +12711,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             previousBoundary = k
 
         previousBoundary = None
-        for k in sorted(newCorrections, key=lambda x: -1 * x):
+        for k in sorted(newCorrections, reverse=True):
             shift = newCorrections[k]
             for m in newMeasures:
                 if previousBoundary is None or m.number < previousBoundary:
@@ -12784,10 +12776,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         from music21 import variant
 
         # containedPart must be in self, or an exception is raised.
-        if not (containedPart in self):
+        if containedPart not in self:
             raise variant.VariantException(f'Could not find {containedPart} in {self}')
 
-        if inPlace is True:
+        if inPlace:
             returnObj = self
             returnPart = containedPart
         else:
@@ -12817,8 +12809,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     nOffset = e.getOffsetBySite(newPart)
                     newPart.remove(e)
                     r = note.Rest()
-                    r.style.hideObjectOnPrint = True
                     r.duration.quarterLength = nQuarterLength
+                    r.style.hideObjectOnPrint = True
                     newPart.insert(nOffset, r)
                 elif 'Measure' in eClasses:  # Recurse if measure
                     measureDuration = e.duration.quarterLength
@@ -13317,22 +13309,19 @@ class Measure(Stream):
         # TODO: it is possible that this should be cached or exposed as a method
         #     as this search may take some time.
         if self.timeSignature is not None:
-            ts = self.timeSignature
-        else:  # do a context-based search
-            tsStream = self.getTimeSignatures(searchContext=True,
-                                              returnDefault=False,
-                                              sortByCreationTime=True)
-            if not tsStream:
-                try:
-                    ts = self.bestTimeSignature()
-                except exceptions21.Music21Exception:
-                    return duration.Duration(self.highestTime)
-
-                # raise StreamException(
-                #   'cannot determine bar duration without a time signature reference')
-            else:  # it is the first found
-                ts = tsStream[0]
-        return ts.barDuration
+            return self.timeSignature.barDuration
+        # do a context-based search
+        tsStream = self.getTimeSignatures(searchContext=True,
+                                            returnDefault=False,
+                                            sortByCreationTime=True)
+        if tsStream:
+            return tsStream[0].barDuration
+            # raise StreamException(
+            #   'cannot determine bar duration without a time signature reference')
+        try:
+            return self.bestTimeSignature().barDuration
+        except exceptions21.Music21Exception:
+            return duration.Duration(self.highestTime)
 
     # --------------------------------------------------------------------------
     # Music21Objects are stored in the Stream's elements list
@@ -14030,7 +14019,6 @@ class Score(Stream):
 
                 # collect all unique quarter lengths
                 for e in m_or_p.notesAndRests:
-                    # environLocal.printDebug(['examining e', i, e, e.quarterLength])
                     uniqueQuarterLengths.add(e.quarterLength)
 
             # after ql for all parts, find divisor

@@ -2705,7 +2705,7 @@ class TremoloSpanner(spanner.Spanner):
     def numberOfMarks(self, num):
         try:
             num = int(num)
-            if num < 0 or num > 8:
+            if not (0 <= num <= 8):
                 raise ValueError(str(num))
             self._numberOfMarks = num
         except ValueError as ve:

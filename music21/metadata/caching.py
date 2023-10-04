@@ -159,8 +159,7 @@ class MetadataCachingJob:
             else:
                 environLocal.printDebug(
                     'addFromPaths: got stream without metadata, '
-                    'creating stub: {0}'.format(
-                        common.relativepath(str(self.cleanFilePath))))
+                    f'creating stub: {common.relativepath(str(self.cleanFilePath))}')
                 metadataEntry = metadata.bundles.MetadataEntry(
                     sourcePath=self.cleanFilePath,
                     metadataPayload=None,
@@ -169,7 +168,7 @@ class MetadataCachingJob:
                 self.results.append(metadataEntry)
         except Exception:  # wide catch is fine. pylint: disable=broad-exception-caught
             environLocal.warn('Had a problem with extracting metadata '
-                              'for {0}, piece ignored'.format(self.filePath))
+                              f'for {self.filePath}, piece ignored')
             environLocal.warn(traceback.format_exc())
 
     def parseOpus(self, parsedObject):

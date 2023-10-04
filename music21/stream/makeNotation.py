@@ -138,8 +138,6 @@ def makeBeams(
             raise stream.StreamException(
                 'cannot process a stream that is neither a Measure nor has no Measures')
 
-    lastTimeSignature = None
-
     m: stream.Measure
     for m in mColl:
         # this means that the first of a stream of time signatures will
@@ -422,16 +420,16 @@ def makeMeasures(
                                    inPlace=True,  # copy already made
                                    )
         return s
+
+    if s.hasVoices():
+        # cannot make flat if there are voices, as would destroy stream partitions
+        # parts containing voices are less likely to occur since MIDI parsing changes in v7
+        srcObj = s
     else:
-        if s.hasVoices():
-            # cannot make flat if there are voices, as would destroy stream partitions
-            # parts containing voices are less likely to occur since MIDI parsing changes in v7
-            srcObj = s
-        else:
-            srcObj = s.flatten()
-        if not srcObj.isSorted:
-            srcObj = srcObj.sorted()
-        voiceCount = len(srcObj.voices)
+        srcObj = s.flatten()
+    if not srcObj.isSorted:
+        srcObj = srcObj.sorted()
+    voiceCount = len(srcObj.voices)
 
     # environLocal.printDebug([
     #    'Stream.makeMeasures(): passed in meterStream', meterStream,
@@ -452,10 +450,10 @@ def makeMeasures(
         ts = meterStream
         meterStream = stream.Stream()
         meterStream.insert(0, ts)
-    else:  # check that the meterStream is a Stream!
-        if not isinstance(meterStream, stream.Stream):
-            raise stream.StreamException(
-                'meterStream is neither a Stream nor a TimeSignature!')
+    elif not isinstance(meterStream, stream.Stream):
+        # check that the meterStream is a Stream!
+        raise stream.StreamException(
+            'meterStream is neither a Stream nor a TimeSignature!')
 
     # environLocal.printDebug([
     #    'makeMeasures(): meterStream', 'meterStream[0]', meterStream[0],
@@ -495,10 +493,7 @@ def makeMeasures(
     offsetMapList = srcObj.offsetMap()
     # environLocal.printDebug(['makeMeasures(): offset map', offsetMap])
     # offsetMapList.sort() not necessary; just get min and max
-    if offsetMapList:
-        oMax = max([x.endTime for x in offsetMapList])
-    else:
-        oMax = 0
+    oMax = max([x.endTime for x in offsetMapList], default=0)
 
     # if a ref stream is provided, get the highest time from there
     # only if it is greater than the highest time yet encountered

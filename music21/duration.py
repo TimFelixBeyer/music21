@@ -893,12 +893,11 @@ def durationTupleFromQuarterLength(ql=1.0) -> DurationTuple:
     except KeyError:
         ql = opFrac(ql)
         dots, durType = dottedMatch(ql)
-        if durType is not False:
-            nt = DurationTuple(durType, dots, ql)
-            _durationTupleCacheQuarterLength[ql] = nt
-            return nt
-        else:
+        if durType is False:
             return DurationTuple('inexpressible', 0, ql)
+        nt = DurationTuple(durType, dots, ql)
+        _durationTupleCacheQuarterLength[ql] = nt
+        return nt
 
 
 def durationTupleFromTypeDots(durType='quarter', dots=0):
@@ -1187,9 +1186,7 @@ class Tuplet(prebase.ProtoM21Object):
             return NotImplemented
         for attr in ('numberNotesActual', 'numberNotesNormal',
                      'durationActual', 'durationNormal'):
-            myAttr = getattr(self, attr, None)
-            otherAttr = getattr(other, attr, None)
-            if myAttr != otherAttr:
+            if getattr(self, attr, None) != getattr(other, attr, None):
                 return False
         return True
 

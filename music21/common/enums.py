@@ -16,10 +16,7 @@ from enum import Enum, EnumMeta
 class StrEnumMeta(EnumMeta):
     def __contains__(cls, item):
         if isinstance(item, str):
-            if item in cls.__members__.values():
-                return True
-            else:
-                return False
+            return item in cls.__members__.values()
         try:
             return super().__contains__(item)
         except TypeError:  # pragma: no cover
@@ -69,10 +66,7 @@ class BooleanEnum(Enum):
     '''
     @staticmethod
     def is_bool_tuple(v):
-        if isinstance(v, tuple) and len(v) == 2 and isinstance(v[0], bool):
-            return True
-        else:
-            return False
+        return isinstance(v, tuple) and len(v) == 2 and isinstance(v[0], bool)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):

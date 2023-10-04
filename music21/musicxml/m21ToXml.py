@@ -1004,12 +1004,12 @@ class XMLExporterBase:
         if 'footnotes' not in e and 'comments' not in e:
             return
 
-        makeFootnote = False
         if e.footnotes:
             c = e.footnotes[0]
             makeFootnote = True
         elif e.comments:
             c = e.comments[0]
+            makeFootnote = False
         else:
             return
 

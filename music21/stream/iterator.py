@@ -28,11 +28,11 @@ from music21.common.classTools import tempAttribute, saveAttributes
 from music21.common.enums import OffsetSpecial
 from music21.common.types import M21ObjType, StreamType, ChangedM21ObjType
 from music21 import note
-from music21.stream import filters
 from music21 import prebase
 from music21 import base   # just for typing. (but in a bound, so keep here)
 
 from music21.sites import SitesException
+from music21.stream import filters
 
 if t.TYPE_CHECKING:
     from music21 import stream

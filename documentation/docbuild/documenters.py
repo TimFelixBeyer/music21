@@ -501,22 +501,21 @@ class ClassDocumenter(ObjectDocumenter):
             definingClassDocumenter = type(self).fromIdentityMap(
                 definingClass
             )
-            if definingClassDocumenter not in inheritedMembersMapping:
-                inheritedMembersMapping[definingClassDocumenter] = []
-            inheritedMembersMapping[definingClassDocumenter].append(documenter)
+            inheritedMembersMapping.setdefault(definingClassDocumenter, []).append(documenter)
 
     # SPECIAL METHODS #
 
     def run(self):
-        result = []
-        result.extend(self.makeHeading(self.referent.__name__, 2))
-        result.extend(self.rstAutodocDirectiveFormat)
-        result.extend(self.rstBasesFormat)
-        result.extend(self.rstReadonlyPropertiesFormat)
-        result.extend(self.rstReadwritePropertiesFormat)
-        result.extend(self.rstMethodsFormat)
-        result.extend(self.rstDocAttrFormat)
-        return result
+        return [
+            *self.makeHeading(self.referent.__name__, 2),
+            *self.rstAutodocDirectiveFormat,
+            *self.rstBasesFormat,
+            *self.rstReadonlyPropertiesFormat,
+            *self.rstReadwritePropertiesFormat,
+            *self.rstMethodsFormat,
+            *self.rstDocAttrFormat,
+        ]
+
 
     def __hash__(self):
         return hash((type(self), self.referent))

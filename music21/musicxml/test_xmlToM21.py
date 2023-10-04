@@ -322,9 +322,9 @@ class Test(unittest.TestCase):
         s = converter.parse(testPrimitive.mixedVoices1a)
         # s.show('text')
         self.assertEqual(len(s.parts), 2)
-        # there are voices, but they have been removed
+        # there is one voice
         self.assertEqual(len(s.parts[0].getElementsByClass(
-            stream.Measure)[0].voices), 0)
+            stream.Measure)[0].voices), 1)
 
         # s.parts[0].show('t')
         # self.assertEqual(len(s.parts[0].voices), 2)
@@ -1051,7 +1051,7 @@ class Test(unittest.TestCase):
         '''
         from music21 import corpus
         sch = corpus.parse('schoenberg/opus19/movement6')
-        r = sch.parts[1].measure(1).notesAndRests[0]
+        r = sch.parts[1].measure(1).flatten().notesAndRests[0]
         self.assertEqual(r.duration.type, 'quarter')
         self.assertEqual(r.fullMeasure, 'auto')
 
@@ -1271,7 +1271,7 @@ class Test(unittest.TestCase):
         self.assertEqual(hiddenRest.style.hideObjectOnPrint, True)
         self.assertEqual(hiddenRest.quarterLength, 2.0)
 
-        self.assertEqual(len(lh_last.voices), 0)
+        self.assertEqual(len(lh_last.voices), 1)
         self.assertEqual([r.style.hideObjectOnPrint for r in lh_last[note.Rest]], [False] * 3)
 
     def testHiddenRestImpliedVoice(self):

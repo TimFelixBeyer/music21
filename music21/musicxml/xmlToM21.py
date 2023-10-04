@@ -869,6 +869,7 @@ class MusicXMLImporter(XMLParserBase):
 
         # Fill gaps with rests where needed
         s.coreElementsChanged()
+        empty_voices = []
         for m in s[stream.Measure]:
             for v in m.voices:
                 if v:  # do not bother with empty voices
@@ -881,7 +882,12 @@ class MusicXMLImporter(XMLParserBase):
                                 fillGaps=True,
                                 inPlace=True,
                                 hideRests=True)
+                else:
+                    empty_voices.append(v)
+
             m.layoutWidth = m.layoutWidth['temp']
+        # remove empty voices
+        s.remove(empty_voices, recurse=True)
 
         s.definesExplicitSystemBreaks = self.definesExplicitSystemBreaks
         s.definesExplicitPageBreaks = self.definesExplicitPageBreaks
@@ -1971,7 +1977,7 @@ class PartParser(XMLParserBase):
         self.setLastMeasureInfo(m)
         # TODO: move this into the measure parsing,
         #     because it should happen on a voice level.
-        if measureParser.fullMeasureRest is True:
+        if measureParser.fullMeasureRest:
             # recurse is necessary because it could be in voices...
             r1 = m[note.Rest].first()
 
@@ -2203,9 +2209,9 @@ class PartParser(XMLParserBase):
         elif (mHighestTime == 0.0
               and not m.recurse().notesAndRests.getElementsNotOfClass('Harmony')
               ):
-            # this routine fixes a bug in PDFtoMusic and other MusicXML writers
-            # that omit empty rests in a Measure.  It is a very quick test if
-            # the measure has any notes.  Slower if it does not.
+            # This routine fixes a bug in PDFtoMusic and other MusicXML writers
+            # that omit empty rests in a Measure. It is a very quick test if
+            # the measure has any notes. Slower if it doesn't.
             r = note.Rest()
             r.duration.quarterLength = lastTimeSignatureQuarterLength
             m.insert(0.0, r)

@@ -1476,7 +1476,7 @@ class Test(unittest.TestCase):
         '''
         sch = corpus.parse('schoenberg/opus19', 2)
         self.assertEqual(len(sch.stripTies().flatten().notes), 46)
-        measure = sch.stripTies().parts[0].getElementsByClass('Measure')[6]
+        measure = sch.stripTies().parts[0].getElementsByClass('Measure')[6].flatten()
         self.assertEqual(len(measure.notes), 3)
         self.assertEqual(measure.notes[0].offset, 0.5)
         self.assertEqual(measure.notes[1].offset, 2.5)
@@ -5607,7 +5607,7 @@ class Test(unittest.TestCase):
         self.assertEqual(m1.highestTime, 1.0)
         self.assertEqual(m1.paddingLeft, 3.0)
         self.assertEqual(m1.duration.quarterLength, 1.0)
-        self.assertEqual([e.offset for e in m1.notes], [0.0])
+        self.assertEqual([e.offset for e in m1.flatten().notes], [0.0])
         # s.parts[0].show()
         post = s.chordify()
         # pst.show('text', addEndTimes=True)

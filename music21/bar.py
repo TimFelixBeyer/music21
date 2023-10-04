@@ -64,10 +64,7 @@ def typeToMusicXMLBarStyle(value):
     >>> bar.typeToMusicXMLBarStyle('regular')
     'regular'
     '''
-    if value.lower() in reverseBarTypeDict:
-        return reverseBarTypeDict[value.lower()]
-    else:
-        return value
+    return reverseBarTypeDict.get(value.lower(), value)
 
 def standardizeBarType(value):
     '''
@@ -84,10 +81,9 @@ def standardizeBarType(value):
 
     if value in barTypeList:
         return value
-    elif value in barTypeDict:
+    try:
         return barTypeDict[value]
-    # if not match
-    else:
+    except KeyError:
         raise BarException(f'cannot process style: {value}')
 
 
@@ -194,9 +190,6 @@ class Barline(base.Music21Object):
         * Changed in v5.7: was a property before.
         '''
         return typeToMusicXMLBarStyle(self.type)
-
-
-
 
 
 

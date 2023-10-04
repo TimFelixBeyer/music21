@@ -106,14 +106,13 @@ class Editorial(prebase.ProtoM21Object, dict):
     def __getattr__(self, name):
         if name in self:
             return self[name]
-        elif name in self.predefinedLists:
+        if name in self.predefinedLists:
             self[name] = []
             return self[name]
-        elif name in self.predefinedNones:
+        if name in self.predefinedNones:
             self[name] = None
             return self[name]
-        else:
-            raise AttributeError(f'Editorial does not have an attribute {name}')
+        raise AttributeError(f'Editorial does not have an attribute {name}')
 
     def __setattr__(self, name, value):
         self[name] = value

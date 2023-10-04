@@ -1502,15 +1502,12 @@ def assignPacketsToChannels(
                     or (start <= o < stop)
                     or (start < oEnd < stop)):
                 # if there is a cent shift active in the already used channel
-                # environLocal.printDebug(['matchedOffset overlap'])
-                centShiftList = uniqueChannelEvents[key_tuple]
-                if centShiftList:
-                    # only add if unique
-                    if usedChannel not in channelExclude:
-                        channelExclude.append(usedChannel)
                 # or if this event has a shift, then we can exclude
                 # the channel already used without a shift
-                elif centShift:
+                # environLocal.printDebug(['matchedOffset overlap'])
+                centShiftList = uniqueChannelEvents[key_tuple]
+                if centShiftList or centShift:
+                    # only add if unique
                     if usedChannel not in channelExclude:
                         channelExclude.append(usedChannel)
                         # cannot break early w/o sorting
@@ -2048,24 +2045,17 @@ def midiTrackToStream(
             # execute; chordSub will be None
             if chordSub:
                 # composite.append(chordSub)
-                c = midiEventsToChord(chordSub, ticksPerQuarter)
-                o = notes[i][0][0] / ticksPerQuarter
-                c.editorial.midiTickStart = notes[i][0][0]
-
-                s.coreInsert(o, c)
-                # iSkip = len(chordSub)  # amount of accumulated chords
+                chordOrNote = midiEventsToChord(chordSub, ticksPerQuarter)
                 chordSub = []
             else:  # just append the note, chordSub is empty
                 # composite.append(notes[i])
-                n: note.NotRest = midiEventsToNote(notes[i], ticksPerQuarter)
+                chordOrNote: note.NotRest = midiEventsToNote(notes[i], ticksPerQuarter)
                 # the time is the first value in the first pair
                 # need to round, as floating point error is likely
-                o = notes[i][0][0] / ticksPerQuarter
-                n.editorial.midiTickStart = notes[i][0][0]
+            o = notes[i][0][0] / ticksPerQuarter
+            chordOrNote.editorial.midiTickStart = notes[i][0][0]
 
-                s.coreInsert(o, n)
-                # iSkip = 1
-            # break  # exit secondary loop
+            s.coreInsert(o, chordOrNote)
             i += 1
 
     elif len(notes) == 1:  # rare case of just one note
@@ -2110,10 +2100,10 @@ def midiTrackToStream(
     if voicesRequired:
         for m in s.getElementsByClass(stream.Measure):
             # Gaps will be filled by makeRests, below, which now recurses
-            m.makeVoices(inPlace=True, fillGaps=False)
+            m.makeVoices(fillGaps=False, inPlace=True)
     s.makeTies(inPlace=True)
     # always need to fill gaps, as rests are not found in any other way
-    s.makeRests(inPlace=True, fillGaps=True, timeRangeFromBarDuration=True)
+    s.makeRests(fillGaps=True, timeRangeFromBarDuration=True, inPlace=True)
     return s
 
 

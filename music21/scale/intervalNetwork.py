@@ -641,7 +641,6 @@ class IntervalNetwork:
         degreeCount += 1
         nPrevious = nLow
         for i, eName in enumerate(descendingEdgeList):
-
             # first, create the next node
             if i < len(descendingEdgeList) - 1:  # if not last
                 n = Node(id=self.nodeIdCount, degree=degreeCount)

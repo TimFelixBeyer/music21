@@ -427,14 +427,12 @@ class BrailleSegment(text.BrailleText):
                     continue
             except TypeError:
                 pass
-            allKeys.append('Measure {0}, {1} {2}:\n'.format(itemKey.measure,
-                                                             affinityNames[itemKey.affinity],
-                                                             itemKey.ordinal + 1))
+            allKeys.append(f'Measure {itemKey.measure}, {affinityNames[itemKey.affinity]} {itemKey.ordinal + 1}:\n')
             gStr = str(grouping)
             allGroupings.append(gStr)
             prevKey = itemKey
         allElementGroupings = '\n'.join([''.join([k, g, '\n==='])
-                                          for (k, g) in list(zip(allKeys, allGroupings))])
+                                          for k, g in list(zip(allKeys, allGroupings))])
         out = '\n'.join(['---begin segment---',
                           name,
                           allElementGroupings,

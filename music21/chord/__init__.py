@@ -156,9 +156,7 @@ class ChordBase(note.NotRest):
     def __eq__(self, other):
         if not super().__eq__(other):
             return False
-        if not len(self.notes) == len(other.notes):
-            return False
-        return True
+        return len(self.notes) == len(other.notes)
 
     def __hash__(self):
         return super().__hash__()
@@ -3684,9 +3682,7 @@ class Chord(ChordBase):
         False
         '''
         uniquePitchNames = set(self.pitchNames)
-        if len(uniquePitchNames) == 3 and self.third and self.fifth:
-            return True
-        return False
+        return bool(len(uniquePitchNames) == 3 and self.third and self.fifth)
 
     def removeRedundantPitches(self, *, inPlace=False):
         '''
@@ -3752,8 +3748,7 @@ class Chord(ChordBase):
 
         * Changed in v6: inPlace defaults to False.
         '''
-        return self._removePitchByRedundantAttribute('nameWithOctave',
-                                                     inPlace=inPlace)
+        return self._removePitchByRedundantAttribute('nameWithOctave', inPlace=inPlace)
 
     def removeRedundantPitchClasses(self, *, inPlace=False):
         '''
@@ -3775,8 +3770,7 @@ class Chord(ChordBase):
 
         * Changed in v6: inPlace defaults to False.
         '''
-        return self._removePitchByRedundantAttribute('pitchClass',
-                                                     inPlace=inPlace)
+        return self._removePitchByRedundantAttribute('pitchClass', inPlace=inPlace)
 
     def removeRedundantPitchNames(self, *, inPlace=False):
         '''
@@ -3800,8 +3794,7 @@ class Chord(ChordBase):
 
         * Changed in v6: inPlace defaults to False.
         '''
-        return self._removePitchByRedundantAttribute('name',
-                                                     inPlace=inPlace)
+        return self._removePitchByRedundantAttribute('name', inPlace=inPlace)
 
     @overload
     def root(self,
@@ -3995,14 +3988,14 @@ class Chord(ChordBase):
                 # reset inversion if root changes
             return None
 
-        elif find is True:
+        elif find:
             if 'root' in self._overrides:
                 del self._overrides['root']
             if 'inversion' in self._cache:
                 del self._cache['inversion']
             self._cache['root'] = self._findRoot()
             return self._cache['root']
-        elif ('root' not in self._overrides) and find is not False:
+        elif ('root' not in self._overrides) and find is None:
             if 'root' in self._cache:
                 return self._cache['root']
             else:

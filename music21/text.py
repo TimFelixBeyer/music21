@@ -458,16 +458,7 @@ class LanguageDetector:
         if not excerpt:
             return None
         excTrigram = Trigram(excerpt)
-        maxLang = ''
-        maxDifference = 1.0
-        for lang in self.languageCodes:
-            langDiff = self.trigrams[lang] - excTrigram
-            if langDiff < maxDifference:
-                maxLang = lang
-                maxDifference = langDiff
-
-        return maxLang
-
+        return min(self.languageCodes, key=lambda lang: self.trigrams[lang] - excTrigram)
 
     def mostLikelyLanguageNumeric(self, excerpt=None):
         '''
@@ -497,11 +488,11 @@ class LanguageDetector:
         '''
         if excerpt is None or excerpt == '':
             return 0
-        else:
-            langCode = self.mostLikelyLanguage(excerpt)
-            for i in range(len(self.languageCodes)):
-                if self.languageCodes[i] == langCode:
-                    return i + 1
+
+        langCode = self.mostLikelyLanguage(excerpt)
+        try:
+            return self.languageCodes.index(langCode) + 1
+        except IndexError:
             raise TextException('got a language that was not in the codes; should not happen')
 
 
@@ -560,8 +551,7 @@ class Trigram:
     def length(self):
         if self._length is None:
             return self.measure()
-        else:
-            return self._length
+        return self._length
 
     def parseExcerpt(self, excerpt):
         pair = '  '
