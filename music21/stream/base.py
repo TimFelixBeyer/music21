@@ -7522,7 +7522,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                     idx_start = j
                                     tied_note = notes_and_rests[j]
                                     # Previous notes can never have a tie that hasnt been dealt with
-                                    assert tied_note.tie is None
+                                    # assert tied_note.tie is None
                                     current_duration += tied_note.quarterLength
                                     for sp in f.spanners:
                                         if tied_note in sp:
@@ -7531,8 +7531,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                                 notes_and_rests[idx_start])
                                     break
                             else:
-                                print(n.duration.quarterLength, n.measureNumber, n.offset, n.pitch)
-                                raise ValueError(f"Continue tie misused as start tie (?, ?) -> ({n.offset}, {n.pitch})!")
+                                # print(n.duration.quarterLength, n.measureNumber, n.offset, n.pitch)
+                                warnings.warn(f"Continue tie misused as start tie (?, ?) → ({n.offset}, {n.pitch}), ignoring")
+                                # raise ValueError(f"Continue tie misused as start tie (?, ?) -> ({n.offset}, {n.pitch})!")
                             # Find end for this one
                             for j in range(i + 1, len(notes_and_rests)):
                                 if j in posDelete or j in tied:
@@ -8379,24 +8380,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         12.0
         '''
         # TODO: Perfect timespans candidate
-        if 'HighestOffset' in self._cache and self._cache['HighestOffset'] is not None:
-            pass  # return cache unaltered
-        elif not self._elements:
-            self._cache['HighestOffset'] = 0.0
-        elif self.isSorted is True:
-            eLast = self._elements[-1]
-            self._cache['HighestOffset'] = self.elementOffset(eLast)
-        else:  # iterate through all elements
-            highestOffsetSoFar = None
-            for e in self._elements:
-                candidateOffset = self.elementOffset(e)
-                if highestOffsetSoFar is None or candidateOffset > highestOffsetSoFar:
-                    highestOffsetSoFar = candidateOffset
-
-            if highestOffsetSoFar is not None:
-                self._cache['HighestOffset'] = float(highestOffsetSoFar)
-            else:
-                self._cache['HighestOffset'] = None
+        if self._cache.get('HighestOffset') is None:
+            if self.isSorted and self._elements:
+                eLast = self._elements[-1]
+                self._cache['HighestOffset'] = self.elementOffset(eLast)
+            else:  # iterate through all elements
+                highestOffset = max([self.elementOffset(e) for e in self._elements], default=0.0)
+                self._cache['HighestOffset'] = highestOffset
         return self._cache['HighestOffset']
 
     def _setHighestTime(self, value):
@@ -8478,15 +8468,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # TODO(msc) -- why is cache 'HighestTime' and not 'highestTime'?
         # environLocal.printDebug(['_getHighestTime', 'isSorted', self.isSorted, self])
 
-        # remove cache -- durations might change...
-        if 'HighestTime' in self._cache and self._cache['HighestTime'] is not None:
-            pass  # return cache unaltered
-        elif not self._elements:
-            # _endElements does not matter here, since ql > 0 on endElements not allowed.
-            self._cache['HighestTime'] = 0.0
-            return 0.0
-        else:
-            highestTimeSoFar = 0.0
+        if self._cache.get('HighestTime') is None:
+
             # TODO: optimize for a faster way of doing this.
             #     but cannot simply look at the last element even if isSorted
             #     because what if the penultimate
@@ -8495,11 +8478,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             #     Take the case where a whole note appears a 0.0, but a
             #     textExpression (ql=0) at 0.25 --
             #     isSorted would be true, but highestTime should be 4.0 not 0.25
-            for e in self._elements:
-                candidateOffset = self.elementOffset(e) + e.duration.quarterLength
-                if candidateOffset > highestTimeSoFar:
-                    highestTimeSoFar = candidateOffset
-            self._cache['HighestTime'] = opFrac(highestTimeSoFar)
+            highestTime = max([self.elementOffset(e) + e.duration.quarterLength for e in self._elements], default=0.0)
+            # call to opFrac may be unneccessary
+            self._cache['HighestTime'] = opFrac(highestTime)
         return self._cache['HighestTime']
 
     @property
@@ -8540,23 +8521,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> r.lowestOffset
         97.0
         '''
-        if 'lowestOffset' in self._cache and self._cache['LowestOffset'] is not None:
-            pass  # return cache unaltered
-        elif not self._elements:
-            self._cache['LowestOffset'] = 0.0
-        elif self.isSorted is True:
-            eFirst = self._elements[0]
-            self._cache['LowestOffset'] = self.elementOffset(eFirst)
-        else:  # iterate through all elements
-            minOffsetSoFar = None
-            for e in self._elements:
-                candidateOffset = self.elementOffset(e)
-                if minOffsetSoFar is None or candidateOffset < minOffsetSoFar:
-                    minOffsetSoFar = candidateOffset
-            self._cache['LowestOffset'] = minOffsetSoFar
-
-            # environLocal.printDebug(['_getLowestOffset: iterated elements', min])
-
+        if self._cache.get('LowestOffset') is None:
+            if self.isSorted and self._elements:
+                eFirst = self._elements[0]
+                self._cache['LowestOffset'] = self.elementOffset(eFirst)
+            else:  # iterate through all elements
+                lowestOffset = min([self.elementOffset(e) for e in self._elements], default=0.0)
+                self._cache['LowestOffset'] = lowestOffset
         return self._cache['LowestOffset']
 
     def _getDuration(self):
