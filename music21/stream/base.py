@@ -7436,7 +7436,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # Flatten all chords
             for c in self.recurse().getElementsByClass('Chord'):
                 for noteObj in c.notes:
-                    noteObj.duration = c.duration
+                    noteObj.duration = copy.deepcopy(c.duration)
                     c.activeSite.insert(c.offset, noteObj)
                 c.activeSite.remove(c)
             ties = {"start": 0, "continue": 0, "stop": 0}

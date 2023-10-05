@@ -1301,8 +1301,8 @@ def makeTies(
                         retainOrigin=True,
                         displayTiedAccidentals=displayTiedAccidentals
                     )
-                    # mNext.coreSelfActiveSite(eRemain)
-                    # manually set activeSite
+                    # duration of measure may have changed
+                    v.coreElementsChanged(clearIsSorted=False)
                     # cannot use coreInsert here
                     dst.insert(0, eRemain)
 

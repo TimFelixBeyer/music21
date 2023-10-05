@@ -1693,26 +1693,10 @@ class IntervalNetwork:
 
         isFirst = True
         while True:
-            appendPitch = False
-            if (minPitchObj is not None
-                    and _gte(p.ps, minPitchObj.ps)
-                    and maxPitchObj is not None
-                    and _lte(p.ps, maxPitchObj.ps)):
-                appendPitch = True
-            elif (minPitchObj is not None
-                  and _gte(p.ps, minPitchObj.ps)
-                  and maxPitchObj is None):
-                appendPitch = True
-            elif (maxPitchObj is not None
-                  and _lte(p.ps, maxPitchObj.ps)
-                  and minPitchObj is None):
-                appendPitch = True
-            elif minPitchObj is None and maxPitchObj is None:
-                appendPitch = True
-
-            # environLocal.printDebug(['realizeDescending', 'appending pitch', pCollect,
-            #        'includeFirst', includeFirst])
-
+            appendPitch = (
+                (minPitchObj is None or _gte(p.ps, minPitchObj.ps))
+                and (maxPitchObj is None or _lte(p.ps, maxPitchObj.ps))
+            )
             if (appendPitch and not isFirst) or (appendPitch and isFirst and includeFirst):
                 pre.append(pCollect)
                 preNodeId.append(n.id)
@@ -1900,30 +1884,25 @@ class IntervalNetwork:
                                                         alteredDegrees=alteredDegrees,
                                                         includeFirst=True)
 
+                merged_dict = {}
                 # We need to create union of both lists, but keep order,
                 # and also keep the nodeId list in order
+                i, j = 0, 0
 
-                merged = []
-                foundPitches = []  # just for membership comparison
-                i = 0
-                j = 0
-                maxRecursion = 9999
-                while maxRecursion > 0 and i < len(post) and j < len(pre):
-                    maxRecursion -= 1
-                    if i < len(post) and post[i] not in foundPitches:
-                        foundPitches.append(post[i])
-                        merged.append((post[i], postNodeId[i]))
+                # Merge while ensuring no duplicate pitches
+                while i < len(post) and j < len(pre):
+                    if post[i] not in merged_dict:
+                        merged_dict[post[i]] = postNodeId[i]
                     i += 1
-                    if j < len(pre) and pre[j] not in foundPitches:
-                        foundPitches.append(pre[j])
-                        merged.append((pre[j], preNodeId[j]))
+
+                    if pre[j] not in merged_dict:
+                        merged_dict[pre[j]] = preNodeId[j]
                     j += 1
-                # transfer to two lists
-                mergedPitches = []
-                mergedNodes = []
-                for x, y in merged:
-                    mergedPitches.append(x)
-                    mergedNodes.append(y)
+
+                # Splitting the dictionary into two lists
+                mergedPitches = list(merged_dict.keys())
+                mergedNodes = list(merged_dict.values())
+
             else:
                 raise IntervalNetworkException(
                     f'cannot match direction specification: {direction!r}')
