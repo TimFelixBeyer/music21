@@ -1263,20 +1263,20 @@ def makeTies(
                                 # Check if we can add the element to the voice:
                                 if any(n.offset < overshot for n in dst.notes):
                                     # Need to move into new voice
-                                    v = stream.Voice(id=max(int(v.id) for v in mNext.voices) + 1)
-                                    mNext.insert(0, v)
-                                    dst = v
+                                    v_new = stream.Voice(id=max(int(v.id) for v in mNext.voices) + 1)
+                                    mNext.insert(0, v_new)
+                                    dst = v_new
 
                             except KeyError:
-                                v = stream.Voice(id=vId)
-                                mNext.insert(0, v)
-                                dst = v
+                                v_new = stream.Voice(id=vId)
+                                mNext.insert(0, v_new)
+                                dst = v_new
                         else:
                             dst = mNext.getElementById(vId)
                             if dst is None:
-                                v = stream.Voice(id=vId)
-                                mNext.insert(0, v)
-                                dst = v
+                                v_new = stream.Voice(id=vId)
+                                mNext.insert(0, v_new)
+                                dst = v_new
                     # src does not have voice, but dst does
                     else:  # place in top-most voice
                         dst = mNext.voices[0]
@@ -1289,7 +1289,6 @@ def makeTies(
                         dst = mNext.voices[0]
                     else:  # no voices in either
                         dst = mNext
-
                 if eOffset >= mEnd:
                     # move elements that lie past the measure boundary to the next measure
                     dst.insert(eOffset - mEnd, e)
