@@ -2182,11 +2182,6 @@ class PartParser(XMLParserBase):
         else:
             lastTimeSignatureQuarterLength = 4.0  # sensible default.
 
-        if self.lastTimeSignature is not None:
-            lastTimeSignatureQuarterLength = self.lastTimeSignature.barDuration.quarterLength
-        else:
-            lastTimeSignatureQuarterLength = 4.0  # sensible default.
-
         if mHighestTime == lastTimeSignatureQuarterLength:
             mOffsetShift = mHighestTime
         elif mHighestTime > lastTimeSignatureQuarterLength:
@@ -2222,6 +2217,7 @@ class PartParser(XMLParserBase):
                     m.padAsAnacrusis()
                     # environLocal.printDebug(['incompletely filled Measure found on musicxml
                     #    import; interpreting as an anacrusis:', 'paddingLeft:', m.paddingLeft])
+                mOffsetShift = mHighestTime
             else:
                 if self.lastMeasureWasShort:
                     if m.barDurationProportion() < 1.0:
