@@ -6731,10 +6731,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # see if there is any key signatures to add to altered pitches
         if alteredPitches is None:
             alteredPitches = []
-        addAlteredPitches: list[pitch.Pitch] = []
         if isinstance(useKeySignature, key.KeySignature):
-            addAlteredPitches = useKeySignature.alteredPitches
-        elif useKeySignature is True:  # get from defined contexts
+            alteredPitches += useKeySignature.alteredPitches
+        elif useKeySignature:  # get from defined contexts
             # will search local, then activeSite
             ksIter: t.Union[
                 list[key.KeySignature],
@@ -6751,8 +6750,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if ksIter:
                 # assume we want the first found; in some cases it is possible
                 # that this may not be true
-                addAlteredPitches = ksIter[0].alteredPitches
-        alteredPitches += addAlteredPitches
+                alteredPitches += ksIter[0].alteredPitches
         # environLocal.printDebug(['processing makeAccidentals() with alteredPitches:',
         #   alteredPitches])
 

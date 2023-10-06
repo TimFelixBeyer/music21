@@ -273,39 +273,34 @@ class NoteworthyTranslator:
         generalNote.duration = durationObject
 
         # if Slur
-        if self.withinSlur is True and thisNoteIsSlurred is False:
+        if self.withinSlur and not thisNoteIsSlurred:
             music21SlurObj = spanner.Slur(self.beginningSlurNote, generalNote)
             self.currentMeasure.append(music21SlurObj)
-            self.withinSlur = False
-        elif thisNoteIsSlurred is True:
-            self.withinSlur = True
-        else:
-            self.withinSlur = False
+        self.withinSlur = thisNoteIsSlurred
 
     def setTieFromPitchInfo(self, noteOrChord, pitchInfo):
         '''
         sets the tie status for a noteOrChord from the pitchInfo
         '''
-        thisNoteBeginsATie = False
-        thisNoteIsTied = False
+        noteBeginsATie = False
+        noteIsTied = False
 
         if pitchInfo[-1] == '^':
-            if self.withinTie is False:
-                thisNoteBeginsATie = True
-            thisNoteIsTied = True
+            if not self.withinTie:
+                noteBeginsATie = True
+            noteIsTied = True
             self.withinTie = True
 
         achord = noteOrChord if isinstance(noteOrChord, chord.Chord) else None
 
         # if Tied
-        if thisNoteBeginsATie:
+        if noteBeginsATie:
             if achord is not None:
                 for p in achord.pitches:
                     achord.setTie(tie.Tie('start'), p)
             else:
                 noteOrChord.tie = tie.Tie('start')
-
-        if self.withinTie is True and thisNoteIsTied is False:
+        elif self.withinTie and not noteIsTied:
             if achord is not None:
                 for p in achord.pitches:
                     achord.setTie(tie.Tie('stop'), p)
@@ -378,7 +373,7 @@ class NoteworthyTranslator:
             elif accidental == 'v':
                 accidental = '--'
         positionNote = int(pos)
-        (noteStep, octave) = self.getStepAndOctaveFromPosition(positionNote)
+        noteStep, octave = self.getStepAndOctaveFromPosition(positionNote)
 
         p = pitch.Pitch()
         p.step = noteStep
@@ -392,9 +387,7 @@ class NoteworthyTranslator:
         elif pName in self.activeAccidentals:
             p.accidental = pitch.Accidental(self.activeAccidentals[pName])
         else:
-            stepAccidental = self.currentKey.accidentalByStep(noteStep)
-            if stepAccidental is not None:
-                p.accidental = stepAccidental
+            p.accidental = self.currentKey.accidentalByStep(noteStep)
         return p
 
     def getStepAndOctaveFromPosition(self, positionNote):

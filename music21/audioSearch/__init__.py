@@ -93,17 +93,14 @@ def histogram(data, bins):
     minValue = min(data)
     lengthEachBin = (maxValue - minValue) / bins
 
-    container = []
-    for i in range(int(bins)):
-        container.append(0)
+    container = [0] * int(bins)
     for i in data:
         count = 1
         while i > minValue + count * lengthEachBin:
             count += 1
         container[count - 1] += 1
 
-    binsLimits = []
-    binsLimits.append(minValue)
+    binsLimits = [minValue]
     count = 1
     for i in range(int(bins)):
         binsLimits.append(minValue + count * lengthEachBin)
@@ -334,7 +331,7 @@ def pitchFrequenciesToObjects(detectedPitchesFreq, useScale=None):
         tot_octave = 0
         while i < len(detectedPitchObjects) - 1 and detectedPitchObjects[i].name == name:
             tot_octave = tot_octave + detectedPitchObjects[i].octave
-            i = i + 1
+            i += 1
         tot_octave = round(tot_octave / (i - hold))
         for j in range(i - hold):
             detectedPitchObjects[hold + j - 1].octave = tot_octave

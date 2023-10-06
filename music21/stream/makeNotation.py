@@ -610,9 +610,8 @@ def makeMeasures(
             if start == end == oMax:
                 post.storeAtEnd(e)
                 continue
-            else:
-                raise stream.StreamException(
-                    f'cannot place element {e} with start/end {start}/{end} within any measures')
+            raise stream.StreamException(
+                f'cannot place element {e} with start/end {start}/{end} within any measures')
 
         # in the case of a Clef, and possibly other measure attributes,
         # the element may have already been placed in this measure
@@ -1968,13 +1967,14 @@ def splitElementsToCompleteTuplets(
                 partial_tuplet_sum = 0.0
                 continue
             next_gn = gn.next(note.GeneralNote, activeSiteOnly=True)
-            if next_gn and next_gn.offset != opFrac(gn.offset + gn.quarterLength):
-                continue
-            if next_gn and next_gn.duration.expressionIsInferred:
-                if 0 < ql_to_complete < next_gn.quarterLength:
-                    unused_left_edited_in_place, right = next_gn.splitAtQuarterLength(
-                        ql_to_complete, addTies=addTies)
-                    container.insert(next_gn.offset + ql_to_complete, right)
+            if (
+                next_gn is not None
+                and next_gn.offset == opFrac(gn.offset + gn.quarterLength)
+                and next_gn.duration.expressionIsInferred
+                and 0 < ql_to_complete < next_gn.quarterLength
+            ):
+                _, right = next_gn.splitAtQuarterLength(ql_to_complete, addTies=addTies)
+                container.insert(next_gn.offset + ql_to_complete, right)
 
 
 def consolidateCompletedTuplets(
@@ -2092,8 +2092,6 @@ def consolidateCompletedTuplets(
                 if gn.duration.tuplets:
                     partial_tuplet_sum = gn.quarterLength
                     last_tuplet = gn.duration.tuplets[0]
-                    if t.TYPE_CHECKING:
-                        assert last_tuplet is not None
                     completion_target = last_tuplet.totalTupletLength()
                     to_consolidate = [gn]
                 else:

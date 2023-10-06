@@ -77,8 +77,8 @@ def writeToUser(msg, wrapLines=True, linesPerPage=20):
     else:
         # divide into lines if lines breaks are already in place
         lines = msg.split('\n')
-    post = []
     if wrapLines:
+        post = []
         for sub in lines:
             if sub == '':
                 post.append('')

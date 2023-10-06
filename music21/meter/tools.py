@@ -555,14 +555,14 @@ def divisionOptionsAlgo(n, d) -> MeterOptions:
             for nMod in group:
                 seq.append(f'{nMod}/{d}')
             opts.append(tuple(seq))
-    if n == 7:
+    elif n == 7:
         for group in ((2, 2, 3), (3, 2, 2), (2, 3, 2)):
             seq = []
             for nMod in group:
                 seq.append(f'{nMod}/{d}')
             opts.append(tuple(seq))
     # not really necessary but an example of a possibility
-    if n == 10:
+    elif n == 10:
         for group in ((2, 2, 3, 3),):
             seq = []
             for nMod in group:
@@ -610,11 +610,9 @@ def divisionOptionsPreset(n, d) -> MeterOptions:
      ('1/64', '1/64', '1/64', '1/64', '1/64', '1/64', '1/64', '1/64', '1/64', '1/64'),
      ('5/32',), ('10/64',), ('20/128',), ('2/32', '2/32', '1/32'), ('2/32', '1/32', '2/32'))
     '''
-    opts = []
     if n == 5:
-        opts.append((f'2/{d}', f'2/{d}', f'1/{d}'))
-        opts.append((f'2/{d}', f'1/{d}', f'2/{d}'))
-    return tuple(opts)
+        return ((f'2/{d}', f'2/{d}', f'1/{d}'), (f'2/{d}', f'1/{d}', f'2/{d}'))
+    return ()
 
 
 

@@ -4702,7 +4702,6 @@ class Pitch(prebase.ProtoM21Object):
         '''
         if self.octave is None:
             raise PitchException('Cannot call transposeBelowTarget with an octaveless Pitch.')
-        assert self.octave is not None
 
         while self.ps > target.ps:
             # ref 20, min 10, lower ref.
@@ -4776,7 +4775,6 @@ class Pitch(prebase.ProtoM21Object):
         '''
         if self.octave is None:
             raise PitchException('Cannot call transposeAboveTarget with an octaveless Pitch.')
-        assert self.octave is not None
 
         # case where self is below target
         while self.ps < target.ps:

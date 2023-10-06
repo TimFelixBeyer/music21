@@ -329,8 +329,9 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
          None]
         '''
         for i in range(0, len(beamsList)):
-            if ((i == 0 or beamsList[i - 1] is None)
-                    and (i + 1 == len(beamsList) or beamsList[i + 1] is None)):
+            previousBeamIsNone = (i == 0 or beamsList[i - 1] is None)
+            nextBeamIsNone = (i + 1 == len(beamsList) or beamsList[i + 1] is None)
+            if previousBeamIsNone and nextBeamIsNone:
                 beamsList[i] = None
         return beamsList
 

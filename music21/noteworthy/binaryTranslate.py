@@ -327,7 +327,7 @@ class NWCConverter:
         pp = self.parsePosition
         value = struct.unpack('<h', fc[pp:pp + 2])[0]
 
-        if updateParsePosition is True:
+        if updateParsePosition:
             self.parsePosition = pp + 2
         return value
 
@@ -340,7 +340,7 @@ class NWCConverter:
         pp = self.parsePosition
         value = ord(fc[pp:pp + 1])
         # print(value)
-        if updateParsePosition is True:
+        if updateParsePosition:
             self.parsePosition = pp + 1
         return value
 
@@ -361,7 +361,7 @@ class NWCConverter:
         fc = self.fileContents
         pp = self.parsePosition
         value = fc[pp:pp + bytesToRead]
-        if updateParsePosition is True:
+        if updateParsePosition:
             self.parsePosition = pp + bytesToRead
         return value
 
@@ -384,7 +384,7 @@ class NWCConverter:
             ret = fc[self.parsePosition:]
         else:
             ret = fc[self.parsePosition:nulPosition]
-        if updateParsePosition is True:
+        if updateParsePosition:
             self.parsePosition = nulPosition + 1
         return ret
 

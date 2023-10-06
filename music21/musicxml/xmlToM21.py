@@ -1979,11 +1979,7 @@ class PartParser(XMLParserBase):
         #     because it should happen on a voice level.
         if measureParser.fullMeasureRest:
             # recurse is necessary because it could be in voices...
-            r1 = m[note.Rest].first()
-
-            if t.TYPE_CHECKING:
-                # fullMeasureRest is True, means Rest will be found
-                assert r1 is not None
+            r1: note.Rest = m[note.Rest].first()
 
             if self.lastTimeSignature is not None:
                 lastTSQl = self.lastTimeSignature.barDuration.quarterLength
@@ -2644,13 +2640,13 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
 
         # --- now we know what we need to add, add em
         m = self.stream
-        if addPageLayout is True:
+        if addPageLayout:
             pl = self.xmlPrintToPageLayout(mxPrint)
             m.insert(0.0, pl)  # should this be parserOffset?
-        if addSystemLayout is True or addPageLayout is False:
+        if addSystemLayout or not addPageLayout:
             sl = self.xmlPrintToSystemLayout(mxPrint)
             m.insert(0.0, sl)
-        if addStaffLayout is True:
+        if addStaffLayout:
             # assumes addStaffLayout is there...
             slFunc = self.xmlStaffLayoutToStaffLayout
             stlList = [slFunc(mx) for mx in mxPrint.iterfind('staff-layout')]
@@ -3397,7 +3393,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         'silver'
         '''
         spannerBundle = self.spannerBundle
-        if freeSpanners is True:
+        if freeSpanners:
             spannerBundle.freePendingSpannedElementAssignment(n)
 
         # ATTRIBUTES, including color and position

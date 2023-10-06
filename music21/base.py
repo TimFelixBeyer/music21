@@ -692,8 +692,7 @@ class Music21Object(prebase.ProtoM21Object):
         try:
             reprId = hex(int(reprId))
         except (ValueError, TypeError):
-            pass
-        return f'id={reprId}'
+            return f'id={reprId}'
 
     # --------------------------------------------------------------------------
 
@@ -794,10 +793,8 @@ class Music21Object(prebase.ProtoM21Object):
         True
         '''
         # anytime something is changed here, change in style.StyleMixin and vice-versa
-        if not self.hasStyleInformation:
-            StyleClass = self._styleClass
-            self._style = StyleClass()
-        assert self._style is not None  # for mypy.
+        if self._style is None:
+            self._style = self._styleClass()
         return self._style
 
     @style.setter
@@ -1251,12 +1248,10 @@ class Music21Object(prebase.ProtoM21Object):
             # its elements list, it is an orphan and should be removed
             # note: this permits non-site context Streams to continue
             if s.isStream and self not in s:
-                if not excludeStorageStreams:  # get all
-                    orphans.append(id(s))
                 # only get those that are not Storage Streams
-                elif ('SpannerStorage' not in s.classes
-                        and 'VariantStorage' not in s.classes):
-                    # environLocal.printDebug(['removing orphan:', s])
+                if not excludeStorageStreams:
+                    orphans.append(id(s))
+                elif 'SpannerStorage' not in s.classes and 'VariantStorage' not in s.classes:
                     orphans.append(id(s))
         for i in orphans:
             self.sites.removeById(i)
