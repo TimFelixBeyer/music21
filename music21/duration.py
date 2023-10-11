@@ -1263,7 +1263,7 @@ class Tuplet(prebase.ProtoM21Object):
 
     def setDurationType(
         self,
-        durType: str | int | float | fractions.Fraction,
+        durType: str | OffsetQLIn,
         dots=0
     ):
         '''

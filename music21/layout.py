@@ -615,13 +615,13 @@ def divideByPages(
 
     for pageStartM, pageEndM in pageMeasureTuples:
         pageNumber += 1
-        if printUpdates is True:
+        if printUpdates:
             print('updating page', pageNumber)
         thisPage = Page()
         thisPage.measureStart = pageStartM
         thisPage.measureEnd = pageEndM
         thisPage.pageNumber = pageNumber
-        if fastMeasures is True:
+        if fastMeasures:
             thisPageAll = scoreIn.measures(pageStartM, pageEndM,
                                            collect=[],
                                            gatherSpanners=GatherSpanners.NONE)
@@ -643,7 +643,7 @@ def divideByPages(
                 continue
             systemNumber += 1  # global, not on this page...
             pageSystemNumber += 1
-            if fastMeasures is True:
+            if fastMeasures:
                 measureStacks = scoreIn.measures(systemStartM, systemEndM,
                                                  collect=[],
                                                  gatherSpanners=GatherSpanners.NONE)
@@ -776,7 +776,7 @@ class LayoutScore(stream.Opus):
         '''
         return stream.Score.show(self, fmt=fmt, app=app, **keywords)
 
-    def getPageAndSystemNumberFromMeasureNumber(self, measureNumber):
+    def getPageAndSystemNumberFromMeasureNumber(self, measureNumber: int) -> tuple[int, int]:
         '''
         Given a layoutScore from divideByPages and a measureNumber returns a tuple
         of (pageId, systemId).  Note that pageId is probably one less than the page number,
@@ -790,36 +790,24 @@ class LayoutScore(stream.Opus):
         >>> l.getPageAndSystemNumberFromMeasureNumber(80)
         (3, 3)
         '''
-        if 'pageAndSystemNumberFromMeasureNumbers' not in self._cache:
-            self._cache['pageAndSystemNumberFromMeasureNumbers'] = {}
-        dataCache = self._cache['pageAndSystemNumberFromMeasureNumbers']
+        dataCache = self._cache.setdefault('pageAndSystemNumberFromMeasureNumbers', {})
 
         if measureNumber in dataCache:
             return dataCache[measureNumber]
 
-        foundPage = None
-        foundPageId = None
-
         for pageId, thisPage in enumerate(self.pages):
-            if measureNumber < thisPage.measureStart or measureNumber > thisPage.measureEnd:
-                continue
-            foundPage = thisPage
-            foundPageId = pageId
-            break
-
-        if foundPage is None:
+            if thisPage.measureStart <= measureNumber <= thisPage.measureEnd:
+                foundPage = thisPage
+                foundPageId = pageId
+                break
+        else:
             raise LayoutException('Cannot find this measure on any page!')
 
-        foundSystem = None
-        foundSystemId = None
         for systemId, thisSystem in enumerate(foundPage.systems):
-            if measureNumber < thisSystem.measureStart or measureNumber > thisSystem.measureEnd:
-                continue
-            foundSystem = thisSystem
-            foundSystemId = systemId
-            break
-
-        if foundSystem is None:
+            if thisSystem.measureStart <= measureNumber <= thisSystem.measureEnd:
+                foundSystemId = systemId
+                break
+        else:
             raise LayoutException("that's strange, this measure was supposed to be on this page, "
                                   + "but I couldn't find it anywhere!")
         dataCache[measureNumber] = (foundPageId, foundSystemId)
@@ -841,9 +829,7 @@ class LayoutScore(stream.Opus):
         >>> layout.PageSize(171.0, 204.0, 171.0, 171.0, 1457.0, 1886.0) #_DOCS_HIDE
         PageSize(top=171.0, left=204.0, right=171.0, bottom=171.0, width=1457.0, height=1886.0)
         '''
-        if 'marginsAndSizeForPageId' not in self._cache:
-            self._cache['marginsAndSizeForPageId'] = {}
-        dataCache = self._cache['marginsAndSizeForPageId']
+        dataCache = self._cache.setdefault('marginsAndSizeForPageId', {})
         if pageId in dataCache:
             return dataCache[pageId]
 
@@ -920,8 +906,7 @@ class LayoutScore(stream.Opus):
         >>> ls.getPositionForSystem(0, 4)
         SystemSize(top=2144.0, left=0.0, right=0.0, bottom=2583.0)
         '''
-        if 'positionForSystem' not in self._cache:
-            self._cache['positionForSystem'] = {}
+        self._cache.setdefault('positionForSystem', {})
         positionForSystemCache = self._cache['positionForSystem']
         cacheKey = f'{pageId}-{systemId}'
         if cacheKey in positionForSystemCache:
@@ -1311,7 +1296,7 @@ class LayoutScore(stream.Opus):
             numSystems = len(self.pages[previousPageId].systems)
             return previousPageId, numSystems - 1
 
-    def getPositionForStaffMeasure(self, staffId, measureNumber, returnFormat='tenths'):
+    def getPositionForStaffMeasure(self, staffId, measureNumber: int, returnFormat='tenths'):
         '''
         Given a layoutScore from divideByPages, a staffId, and a measureNumber,
         returns a tuple of ((top, left), (bottom, right), pageId)
@@ -1359,9 +1344,7 @@ class LayoutScore(stream.Opus):
         >>> ls.getPositionForStaffMeasure(1, 24)
         ((328.0, 100.0), (360.0, 431.0), 1)
         '''
-        if 'positionForPartMeasure' not in self._cache:
-            self._cache['positionForPartMeasure'] = {}
-        positionForPartMeasureCache = self._cache['positionForPartMeasure']
+        positionForPartMeasureCache = self._cache.setdefault('positionForPartMeasure', {})
         if measureNumber not in positionForPartMeasureCache:
             positionForPartMeasureCache[measureNumber] = {}
         dataCache = positionForPartMeasureCache[measureNumber]
@@ -1402,7 +1385,7 @@ class LayoutScore(stream.Opus):
         # return self.getPositionForStaffIdSystemIdPageIdMeasure(
         #    staffId, systemId, pageId, measureNumber, returnFormat)
 
-    def measurePositionWithinSystem(self, measureNumber, pageId=None, systemId=None):
+    def measurePositionWithinSystem(self, measureNumber: int, pageId=None, systemId=None):
         '''
         Given a measure number, find the start and end X positions (with respect to
         the system margins) for the measure.
@@ -1434,7 +1417,6 @@ class LayoutScore(stream.Opus):
 
         thisSystem = self.pages[pageId].systems[systemId]
         startOffset = 0.0
-        width = None
         thisSystemStaves = thisSystem.staves
         measureStream = thisSystemStaves[0].getElementsByClass(stream.Measure)
         for i, m in enumerate(measureStream):
@@ -1456,12 +1438,9 @@ class LayoutScore(stream.Opus):
             else:
                 currentWidth = float(currentWidth)
             if m.number == measureNumber:
-                width = currentWidth
-                break
-            else:
-                startOffset += currentWidth
-
-        return startOffset, startOffset + width
+                return startOffset, startOffset + currentWidth
+            startOffset += currentWidth
+        raise LayoutException(f'Could not find measure {measureNumber} in system {systemId}, page {pageId}.')
 
     def getAllMeasurePositionsInDocument(self, returnFormat='tenths', printUpdates=False):
         '''
@@ -1476,7 +1455,7 @@ class LayoutScore(stream.Opus):
         numStaves = len(self.pages[0].systems[0].staves)
         allRetInfo = []
         for mNum in range(self.measureStart, self.measureEnd + 1):
-            if printUpdates is True:  # so fast now that it's not needed
+            if printUpdates:  # so fast now that it's not needed
                 print('Doing measure ', mNum)
             mList = []
             for staffNum in range(numStaves):

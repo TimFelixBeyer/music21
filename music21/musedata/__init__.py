@@ -1341,8 +1341,8 @@ class MuseDataPart(prebase.ProtoM21Object):
                 #        self._divisionsPerQuarterNote])
             else:
                 # '$ K:-3   Q:4   T:3/4   C:22', 'Q:'
-                self._divisionsPerQuarterNote = int(
-                    self._getDigitsFollowingTag(line, 'Q:'))
+                digits = self._getDigitsFollowingTag(line, 'Q:')
+                self._divisionsPerQuarterNote = int(digits)
 
         return self._divisionsPerQuarterNote
 

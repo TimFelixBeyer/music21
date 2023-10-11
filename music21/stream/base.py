@@ -396,20 +396,17 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 return str(self.id)
             elif isinstance(self.id, int):
                 return hex(self.id)
-            else:  # pragma: no cover
-                return ''
-        else:  # pragma: no cover
-            return ''
+        return ''  # pragma: no cover
 
     def write(self, fmt=None, fp=None, **keywords):
         # ...    --- see base.py calls .write(
-        if self.isSorted is False and self.autoSort:  # pragma: no cover
+        if not self.isSorted and self.autoSort:  # pragma: no cover
             self.sort()
         return super().write(fmt=fmt, fp=fp, **keywords)
 
     def show(self, fmt=None, app=None, **keywords):
         # ...    --- see base.py calls .write(
-        if self.isSorted is False and self.autoSort:
+        if not self.isSorted and self.autoSort:
             self.sort()
         return super().show(fmt=fmt, app=app, **keywords)
 
@@ -1586,7 +1583,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         objId = id(el)
 
-        if 'index' in self._cache and self._cache['index'] is not None:
+        if self._cache.get('index') is not None:
             try:
                 return self._cache['index'][objId]
             except KeyError:
@@ -2074,7 +2071,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     def setElementOffset(
         self,
         element: base.Music21Object,
-        offset: int | float | Fraction | OffsetSpecial,
+        offset: int | OffsetQLSpecial,
     ):
         '''
         Sets the Offset for an element that is already in a given stream.
@@ -5510,7 +5507,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                           searchContext=True,
                           returnDefault=True,
                           recurse=True,
-                          sortByCreationTime=True):
+                          sortByCreationTime=True) -> Stream[meter.TimeSignature]:
         '''
         Collect all :class:`~music21.meter.TimeSignature` objects in this stream.
         If no TimeSignature objects are defined, get a default (4/4 or whatever
@@ -7442,7 +7439,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 if n.tie is not None:
                     ties[n.tie.type] += 1
             f = self.flatten()
-            notes_and_rests: StreamType = f.notes.stream()#.addFilter(
+            notes_and_rests: Stream[note.Note] = f.notes.stream()#.addFilter(
             #     lambda el, _iterator: el.quarterLength > 0
             # ).stream()
             # there are several valid tie-combinations
@@ -7597,7 +7594,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         return self
 
-    def extendTies(self, ignoreRests=False, pitchAttr='nameWithOctave'):
+    def extendTies(self, ignoreRests: bool=False, pitchAttr: str='nameWithOctave'):
         '''
         Connect any adjacent pitch space values that are the
         same with a Tie. Adjacent pitches can be Chords, Notes, or Voices.
@@ -7608,7 +7605,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         The `pitchAttr` determines the pitch attribute that is
         used for comparison. Any valid pitch attribute name can be used.
         '''
-        def _getNextElements(srcStream, currentIndex, targetOffset):
+        def _getNextElements(srcStream, currentIndex, targetOffset) -> list[note.NotRest]:
             # need to find next event that start at the appropriate offset
             if currentIndex == len(srcStream) - 1:  # assume flat
                 # environLocal.printDebug(['_getNextElements: nothing to process',
@@ -7617,19 +7614,14 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # iterate over all possible elements
             if ignoreRests:
                 # need to find the offset of the first thing that is not rest
-                for j in range(currentIndex + 1, len(srcStream._elements)):
-                    el = srcStream._elements[j]
+                for el in srcStream._elements[currentIndex + 1:]:
                     if isinstance(el, note.NotRest):
                         # change target offset to this position
-                        targetOffset = srcStream._elements[j].getOffsetBySite(
-                            srcStream)
+                        targetOffset = el.getOffsetBySite(srcStream)
                         break
             match = srcStream.getElementsByOffset(targetOffset)
             # filter matched elements
-            post = []
-            for matchEl in match:
-                if isinstance(matchEl, note.NotRest):
-                    post.append(matchEl)
+            post = [m for m in match if isinstance(m, note.NotRest)]
             return post
 
         # take all flat elements; this will remove all voices; just use offset
@@ -8394,7 +8386,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         self._cache['HighestTime'] = value
 
     @property
-    def highestTime(self):
+    def highestTime(self) -> OffsetQL:
         '''
         Returns the maximum of all Element offsets plus their Duration
         in quarter lengths. This value usually represents the last
@@ -8467,7 +8459,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # environLocal.printDebug(['_getHighestTime', 'isSorted', self.isSorted, self])
 
         if self._cache.get('HighestTime') is None:
-
             # TODO: optimize for a faster way of doing this.
             #     but cannot simply look at the last element even if isSorted
             #     because what if the penultimate
@@ -9835,7 +9826,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             self._cache['hasMeasures'] = any(True for obj in self._elements if isinstance(obj, Measure))
         return self._cache['hasMeasures']
 
-    def hasVoices(self):
+    def hasVoices(self) -> bool:
         '''
         Return a boolean value showing if this Stream contains Voices
         '''
@@ -9844,7 +9835,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             self._cache['hasVoices'] = any(True for obj in self._elements if 'Voice' in obj.classes)
         return self._cache['hasVoices']
 
-    def hasPartLikeStreams(self):
+    def hasPartLikeStreams(self) -> bool:
         '''
         Return a boolean value showing if this Stream contains any Parts,
         or Part-like sub-Streams.
@@ -10525,7 +10516,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         Used in getOverlaps inside makeVoices.
         '''
         flatStream = self.flatten()
-        if flatStream.isSorted is False:
+        if not flatStream.isSorted:
             flatStream = flatStream.sorted()
         # these may not be sorted
         durSpanSorted = self._getDurSpan(flatStream)
@@ -10562,7 +10553,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         organize into a dictionary by the relevant or first offset
         '''
         flatStream = self.flatten()
-        if flatStream.isSorted is False:
+        if not flatStream.isSorted:
             flatStream = flatStream.sorted()
 
         if len(layeringMap) != len(flatStream):
@@ -13349,24 +13340,22 @@ class Measure(Stream):
                     return e
         return None
 
-    def _setLeftBarline(self, barlineObj):
-        insert = True
+    def _setLeftBarline(self, barlineObj: str | bar.Barline | None):
+        # Prepare the new barline object
         if isinstance(barlineObj, str):
             barlineObj = bar.Barline(barlineObj)
-            barlineObj.location = 'left'
-        elif barlineObj is None:  # assume removal
-            insert = False
-        else:  # assume a Barline object
+        if barlineObj:
             barlineObj.location = 'left'
 
-        oldLeftBarline = self._getLeftBarline()
-        if oldLeftBarline is not None:
-            # environLocal.printDebug(['_setLeftBarline()', 'removing left barline'])
-            junk = self.pop(self.index(oldLeftBarline))
-        if insert:
-            # environLocal.printDebug(['_setLeftBarline()',
-            # 'inserting new left barline', barlineObj])
+        # Remove the old left barline, if any
+        oldLeftBarline = self._getLeftBarline()  # Optimize this function if necessary
+        if oldLeftBarline:
+            self.pop(self.index(oldLeftBarline))  # Optimize if the index is already known
+
+        # If we were given a barline, insert it
+        if barlineObj is not None:
             self.insert(0, barlineObj)
+
 
     leftBarline = property(_getLeftBarline,
                            _setLeftBarline,
@@ -13386,32 +13375,23 @@ class Measure(Stream):
                 return e
         return None
 
-    def _setRightBarline(self, barlineObj):
-        insert = True
+    def _setRightBarline(self, barlineObj: str | bar.Barline | None):
         if isinstance(barlineObj, str):
             barlineObj = bar.Barline(barlineObj)
-            barlineObj.location = 'right'
-        elif barlineObj is None:  # assume removal
-            insert = False
-        else:  # assume a Barline object
+        if barlineObj:
             barlineObj.location = 'right'
 
         # if a repeat, setup direction if not assigned
         if barlineObj is not None and isinstance(barlineObj, bar.Repeat):
-            # environLocal.printDebug(['got barline obj w/ direction', barlineObj.direction])
             if barlineObj.direction in ['start', None]:
                 barlineObj.direction = 'end'
         oldRightBarline = self._getRightBarline()
 
         if oldRightBarline is not None:
-            # environLocal.printDebug(['_setRightBarline()', 'removing right barline'])
-            junk = self.pop(self.index(oldRightBarline))
+            self.remove(oldRightBarline)
         # insert into _endElements
-        if insert:
+        if barlineObj:
             self.storeAtEnd(barlineObj)
-
-        # environLocal.printDebug(['post _setRightBarline', barlineObj,
-        #    'len of elements highest', len(self._endElements)])
 
     rightBarline = property(_getRightBarline,
                             _setRightBarline,
@@ -13481,9 +13461,7 @@ class Part(Stream):
     def _getPartName(self):
         if self._partName is not None:
             return self._partName
-        elif '_partName' in self._cache:
-            return self._cache['_partName']
-        else:
+        if '_partName' not in self._cache:
             pn = None
             for e in self[instrument.Instrument]:
                 pn = e.partName
@@ -13492,7 +13470,7 @@ class Part(Stream):
                 if pn is not None:
                     break
             self._cache['_partName'] = pn
-            return pn
+        return self._cache['_partName']
 
     def _setPartName(self, newName):
         self._partName = newName
@@ -13592,7 +13570,6 @@ class Part(Stream):
         alteredPitches=None,
         cautionaryPitchClass=True,
         cautionaryAll=False,
-        inPlace=False,
         overrideStatus=False,
         cautionaryNotImmediateRepeat=True,
         tiePitchSet=None,
@@ -13720,7 +13697,7 @@ class Score(Stream):
                  numberEnd,
                  collect=('Clef', 'TimeSignature', 'Instrument', 'KeySignature'),
                  gatherSpanners=GatherSpanners.ALL,
-                 indicesNotNumbers=False):
+                 indicesNotNumbers=False) -> Score:
         # noinspection PyShadowingNames
         '''
         This method overrides the :meth:`~music21.stream.Stream.measures`
@@ -13978,7 +13955,7 @@ class Score(Stream):
 
         m_or_p: Measure | Part
         for i in range(mCount):  # may be 1
-            uniqueQuarterLengths = {}
+            uniqueQuarterLengths = set()
             p: Part
             for p in self.getElementsByClass(Part):
                 if p.hasMeasures():
@@ -14342,15 +14319,15 @@ class Opus(Stream):
         elif common.runningInNotebook():
             return Stream.write(self, fmt, fp, **keywords)
 
-        delete = False
-        if fp is None:
+        # Mark for deletion, because it won't actually be used
+        delete = fp is None
+        if delete:
             if fmt is None:
                 suffix = '.' + environLocal['writeFormat']
             else:
                 unused_format, suffix = common.findFormat(fmt)
             fp = environLocal.getTempFile(suffix=suffix, returnPathlib=False)
-            # Mark for deletion, because it won't actually be used
-            delete = True
+
         if isinstance(fp, str):
             fp = pathlib.Path(fp)
 

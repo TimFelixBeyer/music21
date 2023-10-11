@@ -1833,15 +1833,13 @@ class RecursiveIterator(StreamIterator, Sequence[M21ObjType]):
                     # self.childRecursiveIterator.parentIterator = None
                     self.childRecursiveIterator = None
 
-            if self.returnSelf is True and self.matchesFilters(self.srcStream):
+            if self.returnSelf and self.matchesFilters(self.srcStream):
                 self.activeInformation['stream'] = None
                 self.activeInformation['elementIndex'] = -1
                 self.activeInformation['lastYielded'] = self.srcStream
                 self.returnSelf = False
                 return t.cast(M21ObjType, self.srcStream)
-
-            elif self.returnSelf is True:
-                self.returnSelf = False
+            self.returnSelf = False
 
             if self.elementIndex >= self.elementsLength:
                 self.iterSection = '_endElements'
@@ -1878,10 +1876,10 @@ class RecursiveIterator(StreamIterator, Sequence[M21ObjType]):
 
                 childRecursiveIterator.iteratorStartOffsetInHierarchy = newStartOffset
                 self.childRecursiveIterator = childRecursiveIterator
-            if self.matchesFilters(e) is False:
+            if not self.matchesFilters(e):
                 continue
 
-            if self.restoreActiveSites is True:
+            if self.restoreActiveSites:
                 self.srcStream.coreSelfActiveSite(e)
 
             self.updateActiveInformation()

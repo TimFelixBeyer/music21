@@ -442,6 +442,8 @@ def insertRepeatEnding(s: stream.Stream, start, end, endingNumber: int = 1, *, i
         return s
 
     measures = [s.measure(i) for i in range(start, end + 1)]
+    if measures[0] is None:
+        raise Exception(f'cannot find start measure {start}')
     rb = spanner.RepeatBracket(measures, number=endingNumber)
 
     # adding repeat bracket to stream at beginning of repeated section.
@@ -735,7 +737,7 @@ class Expander(t.Generic[StreamType]):
         the source stream has already been deep-copied and will be discarded later
         '''
         canExpand = self.isExpandable()
- 
+
         if canExpand is False:
             raise ExpanderException(
                 'cannot expand Stream: badly formed repeats or repeat expressions')
@@ -1574,7 +1576,7 @@ class Expander(t.Generic[StreamType]):
         highestIndexRepeated = None
 
         # store for each rb {repeatBracket:[], validIndices=[]}
-        boundaries = []
+        boundaries: list[dict] = []
         # it is critical that the brackets are in order as presented
         for rb in rBrackets:
             repeatBracketsMemo[id(rb)] = rb

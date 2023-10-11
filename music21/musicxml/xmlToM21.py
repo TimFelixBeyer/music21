@@ -869,7 +869,7 @@ class MusicXMLImporter(XMLParserBase):
 
         # Fill gaps with rests where needed
         s.coreElementsChanged()
-        empty_voices = []
+        empty_voices = {}
         for m in s[stream.Measure]:
             for v in m.voices:
                 if v:  # do not bother with empty voices
@@ -883,11 +883,12 @@ class MusicXMLImporter(XMLParserBase):
                                 inPlace=True,
                                 hideRests=True)
                 else:
-                    empty_voices.append(v)
+                    empty_voices.setdefault(m, []).append(v)
 
             m.layoutWidth = m.layoutWidth['temp']
         # remove empty voices
-        s.remove(empty_voices, recurse=True)
+        for m, vs in empty_voices.items():
+            m.remove(vs)
 
         s.definesExplicitSystemBreaks = self.definesExplicitSystemBreaks
         s.definesExplicitPageBreaks = self.definesExplicitPageBreaks
@@ -2692,7 +2693,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         # note of a chord
         # TODO: Unpitched
 
-        offsetIncrement: float | fractions.Fraction = 0.0
+        offsetIncrement: OffsetQL = 0.0
 
         isRest = (mxNote.find('rest') is not None)
         isChord = (mxNote.find('chord') is not None) or nextNoteIsChord  # first note of chord is not identified.

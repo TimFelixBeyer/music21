@@ -811,7 +811,6 @@ class Metadata(base.Music21Object):
                 raise ValueError(
                     f'md.{name} can only be set to an iterable (e.g. a list, tuple, etc).'
                 )
-
         # Is name a uniqueName?
         if name in properties.UNIQUE_NAME_TO_NAMESPACE_NAME:
             self._set(
@@ -819,36 +818,29 @@ class Metadata(base.Music21Object):
                 value,
                 isCustom=False
             )
-            return
-
         # Is name a grandfathered workId?
-        if name in properties.MUSIC21_WORK_ID_TO_NAMESPACE_NAME:
+        elif name in properties.MUSIC21_WORK_ID_TO_NAMESPACE_NAME:
             self._set(
                 properties.MUSIC21_WORK_ID_TO_NAMESPACE_NAME[name],
                 value,
                 isCustom=False
             )
-            return
-
         # Is name a grandfathered workId abbreviation?
-        if name in properties.MUSIC21_ABBREVIATION_TO_NAMESPACE_NAME:
+        elif name in properties.MUSIC21_ABBREVIATION_TO_NAMESPACE_NAME:
             self._set(
                 properties.MUSIC21_ABBREVIATION_TO_NAMESPACE_NAME[name],
                 value,
                 isCustom=False
             )
-            return
-
         # Is name one of the three grandfathered plural contributor
         # attribute setters?
-        if name in ('composers', 'librettists', 'lyricists'):
+        elif name in ('composers', 'librettists', 'lyricists'):
             uniqueName = name[:-1]  # remove the trailing 's'
             self._set(uniqueName, value, isCustom=False)
-            return
-
-        # OK, we've covered everything we know about; fall back to setting
-        # bare attributes (including the ones in base classes).
-        super().__setattr__(name, value)
+        else:
+            # OK, we've covered everything we know about; fall back to setting
+            # bare attributes (including the ones in base classes).
+            super().__setattr__(name, value)
 
 
     @overload
@@ -1138,7 +1130,7 @@ class Metadata(base.Music21Object):
 
                     # see if there is an associated grandfathered workId, and if so,
                     # search for that, too.
-                    
+
                     workId: str | None = properties.UNIQUE_NAME_TO_MUSIC21_WORK_ID.get(uniqueName)
 
                     if workId is None:

@@ -79,7 +79,7 @@ class DiscreteAnalysis:
         # store alternative solutions, which may be sorted or not
         self.alternativeSolutions = []
 
-    def _rgbToHex(self, rgb: Sequence[float | int]) -> str:
+    def _rgbToHex(self, rgb: Sequence[int | float]) -> str:
         '''
         Utility conversion method
 

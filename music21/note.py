@@ -613,10 +613,10 @@ class GeneralNote(base.Music21Object):
                 tempDuration = Duration(1.0)
             else:
                 tempDuration = Duration(**keywords)
-                if 'quarterLength' in keywords:
-                    del keywords['quarterLength']
-                if 'type' in keywords:
-                    del keywords['type']
+                for attr in ['type', 'dots', 'quarterLength', 'durationTuple', 'components', 'client']:
+                    if attr in keywords:
+                        del keywords[attr]
+
                 # only apply default if components are empty
                 # looking at currentComponents so as not to trigger
                 # _updateComponents
@@ -1498,9 +1498,8 @@ class Note(NotRest):
                  name: str | None = None,
                  nameWithOctave: str | None = None,
                  **keywords):
-        super().__init__(**keywords)
-        self._chordAttached: chord.Chord | None
 
+        self._chordAttached: chord.Chord | None
         if pitch is not None:
             if isinstance(pitch, Pitch):
                 self.pitch = pitch
@@ -1512,9 +1511,13 @@ class Note(NotRest):
             elif not name:
                 name = 'C4'
             self.pitch = Pitch(name, **keywords)
-
+        for attr in ["step", "octave", "accidental", "microtone", "pitchClass", "midi", "ps", "fundamental"]:
+            if attr in keywords:
+                del keywords[attr]
         # noinspection PyProtectedMember
         self.pitch._client = self
+
+        super().__init__(**keywords)
 
     # --------------------------------------------------------------------------
     # operators, representations, and transformations

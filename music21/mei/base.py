@@ -199,10 +199,8 @@ from music21 import pitch
 from music21 import stream
 from music21 import spanner
 from music21 import tie
+from music21.common.types import OffsetQLIn
 
-
-if t.TYPE_CHECKING:
-    from fractions import Fraction
 
 environLocal = environment.Environment('mei.base')
 
@@ -389,7 +387,7 @@ def safePitch(
 
 
 def makeDuration(
-    base: float | int | Fraction = 0.0,
+    base: OffsetQLIn = 0.0,
     dots: int = 0
 ) -> duration.Duration:
     '''

@@ -403,7 +403,7 @@ class TabChord(TabChordBase):
         super().__init__()
         self.altchord: str | None = None
         self.totbeat: str | None = None
-        self.length: fractions.Fraction | float | None = None
+        self.length: float | fractions.Fraction | None = None
         self.dcml_version: int = 1
 
 class TabChordV2(TabChordBase):

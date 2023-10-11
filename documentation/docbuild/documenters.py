@@ -435,8 +435,7 @@ class ClassDocumenter(ObjectDocumenter):
 
         self.findAttributes()
 
-        if self.referent not in self._identityMap:
-            self._identityMap[self.referent] = self
+        self._identityMap.setdefault(self.referent, self)
 
 
     def findAttributes(self):
@@ -541,10 +540,10 @@ class ClassDocumenter(ObjectDocumenter):
             result.append(banner.format(
                 classDocumenter.rstCrossReferenceString))
             result.append('')
-            memberDocumenters = mapping[classDocumenter]
             result.append('.. hlist::')
             result.append('   :columns: 3')
             result.append('')
+            memberDocumenters = mapping[classDocumenter]
             for memberDocumenter in memberDocumenters:
                 result.append(f'   - {memberDocumenter.rstCrossReferenceString}')
             result.append('')

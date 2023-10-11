@@ -1386,9 +1386,9 @@ class ScoreExporter(XMLExporterBase, PartStaffExporterMixin):
         self.scoreLayouts: list[layout.ScoreLayout] = []
         self.firstScoreLayout: layout.ScoreLayout | None = None
         self.textBoxes: list[text.TextBox] = []
-        self.highestTime = 0.0
+        self.highestTime: OffsetQL = 0.0
 
-        self.refStreamOrTimeRange = [0.0, self.highestTime]
+        self.refStreamOrTimeRange: list[OffsetQL] = [0.0, self.highestTime]
 
         self.partExporterList: list[PartExporter] = []
 
@@ -2586,7 +2586,7 @@ class PartExporter(XMLExporterBase):
 
         if parent is None:
             self.meterStream: stream.Stream[meter.TimeSignatureBase] = stream.Stream()
-            self.refStreamOrTimeRange = [0.0, 0.0]
+            self.refStreamOrTimeRange: list[OffsetQL] = [0.0, 0.0]
             self.midiChannelList = []
             self.makeNotation = True
         else:
@@ -7317,10 +7317,8 @@ class MeasureExporter(XMLExporterBase):
 
         Stores in self.transpositionInterval.  Returns None
         '''
-        if self.parent is None:
-            return None
-        if self.parent.stream is None:
-            return None
+        if self.parent is None or self.parent.stream is None:
+            return
 
         m = self.stream
         self.measureOffsetStart = m.getOffsetBySite(self.parent.stream)
@@ -7330,15 +7328,15 @@ class MeasureExporter(XMLExporterBase):
             self.measureOffsetStart + m.duration.quarterLength,
             includeEndBoundary=False)
         if not instSubStream:
-            return None
+            return
 
         instSubObj = instSubStream.first()
         if instSubObj.transposition is None:
-            return None
+            return
         self.transpositionInterval = instSubObj.transposition
         # do here???
         # self.mxTranspose = self.intervalToMXTranspose()
-        return None
+        return
 
 
 # unittests moved to test_m21ToXml

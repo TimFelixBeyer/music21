@@ -261,13 +261,13 @@ def _convertPitchClassToNumber(
     '''
     if isinstance(ps, (int, float)):
         return ps
-    else:  # assume it is a string
-        if ps in ('a', 'A', 't', 'T'):
-            return 10
-        if ps in ('b', 'B', 'e', 'E'):
-            return 11
-        # maybe it is a string of an integer?
-        return int(ps)
+    # assume it is a string
+    if ps in ('a', 'A', 't', 'T'):
+        return 10
+    if ps in ('b', 'B', 'e', 'E'):
+        return 11
+    # maybe it is a string of an integer?
+    return int(ps)
 
 
 def convertPitchClassToStr(pc: int) -> str:
@@ -379,12 +379,9 @@ def _convertPsToStep(
     >>> pitch._convertPsToStep(59.9999999)
     ('C', <music21.pitch.Accidental natural>, <music21.pitch.Microtone (+0c)>, 0)
     '''
-    if isinstance(ps, int):
-        pc = ps % 12
-        alter = 0.0
-        micro = 0.0
-    elif ps == int(ps):
-        pc = int(ps) % 12
+    ps_int = int(ps)
+    if ps == ps_int:
+        pc = ps_int % 12
         alter = 0.0
         micro = 0.0
     else:
@@ -865,7 +862,7 @@ class Microtone(prebase.ProtoM21Object, SlottedObjectMixin):
 
     # PRIVATE METHODS #
 
-    def _parseString(self, value):
+    def _parseString(self, value: str):
         '''
         Parse a string representation.
         '''
@@ -889,7 +886,7 @@ class Microtone(prebase.ProtoM21Object, SlottedObjectMixin):
     # PUBLIC PROPERTIES #
 
     @property
-    def alter(self):
+    def alter(self) -> float:
         '''
         Return the microtone value in accidental alter values.
 
@@ -899,7 +896,7 @@ class Microtone(prebase.ProtoM21Object, SlottedObjectMixin):
         return self.cents * 0.01
 
     @property
-    def cents(self):
+    def cents(self) -> int | float:
         '''
         Return the microtone value in cents.  This is not a settable property.
         To set the value in cents, simply use that value as a creation
@@ -911,14 +908,14 @@ class Microtone(prebase.ProtoM21Object, SlottedObjectMixin):
         return _convertHarmonicToCents(self._harmonicShift) + self._centShift
 
     @property
-    def harmonicShift(self):
+    def harmonicShift(self) -> int:
         '''
         Set or get the harmonic shift, altering the microtone
         '''
         return self._harmonicShift
 
     @harmonicShift.setter
-    def harmonicShift(self, value):
+    def harmonicShift(self, value: int):
         self._harmonicShift = value
 
 
@@ -980,7 +977,7 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         self._displayType = 'normal'
         # normal, always, never, if-absolutely-necessary,
         # unless-repeated, even-tied
-        self._displayStatus = None  # None, True, False
+        self._displayStatus: bool | None = None  # None, True, False
 
         # not yet managed by properties: TODO
         self.displayStyle = 'normal'  # 'parentheses', 'bracket', 'both'
@@ -1035,12 +1032,9 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         >>> a == c
         False
         '''
-        if not isinstance(other, Accidental):
+        if other is None or not isinstance(other, Accidental):
             return False
-        if self.name == other.name:
-            return True
-        else:
-            return False
+        return self.name == other.name
 
     def __ge__(self, other):
         '''
@@ -1052,7 +1046,9 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         True
 
         '''
-        return self.__gt__(other) or self.__eq__(other)
+        if other is None or not isinstance(other, Accidental):
+            return False
+        return self.alter >= other.alter
 
     def __gt__(self, other):
         '''
@@ -1071,10 +1067,7 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         '''
         if other is None or not isinstance(other, Accidental):
             return False
-        if self.alter > other.alter:
-            return True
-        else:
-            return False
+        return self.alter > other.alter
 
     def __le__(self, other):
         '''
@@ -1089,7 +1082,9 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         >>> a <= c
         True
         '''
-        return self.__lt__(other) or self.__eq__(other)
+        if other is None or not isinstance(other, Accidental):
+            return False
+        return self.alter <= other.alter
 
     def __lt__(self, other):
         '''
@@ -1108,10 +1103,7 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         '''
         if other is None or not isinstance(other, Accidental):
             return False
-        if self.alter < other.alter:
-            return True
-        else:
-            return False
+        return self.alter < other.alter
 
     def _reprInternal(self):
         return self.name
@@ -1220,7 +1212,6 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
                       'eses', -2):
             self._name = 'double-flat'
             self._alter = -2.0
-
         elif name in ('half-sharp', accidentalNameToModifier['half-sharp'],
                       'quarter-sharp', 'ih', 'semisharp', 0.5):
             self._name = 'half-sharp'
@@ -1287,10 +1278,8 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         >>> a.isTwelveTone()
         True
         '''
-        if self.name in ('half-sharp', 'one-and-a-half-sharp',
-                         'half-flat', 'one-and-a-half-flat'):
-            return False
-        return True
+        return self.name not in ('half-sharp', 'one-and-a-half-sharp',
+            'half-flat', 'one-and-a-half-flat')
 
     # --------------------------------------------------------------------------
     def setAttributeIndependently(self, attribute, value):
@@ -1497,7 +1486,7 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         self._displayType = value
 
     @property
-    def displayStatus(self):
+    def displayStatus(self) -> bool | None:
         '''
         Determines if this Accidental is to be displayed;
         can be None (for not set), True, or False.  In general do not
@@ -1538,7 +1527,7 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         return self._displayStatus
 
     @displayStatus.setter
-    def displayStatus(self, value):
+    def displayStatus(self, value: bool | None):
         if value not in (True, False, None):
             raise AccidentalException(f'Supplied display status is not supported: {value}')
         self._displayStatus = value
@@ -1595,7 +1584,6 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
         '''
         # keep lower case
         return self.name
-
 
 
 # ------------------------------------------------------------------------------
@@ -2038,7 +2026,7 @@ class Pitch(prebase.ProtoM21Object):
         return False
 
     # noinspection PyArgumentList
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> Pitch:
         '''
         highly optimized -- it knows exactly what can only have a scalar value and
         just sets that directly, only running deepcopy on the other bits.
@@ -2256,8 +2244,8 @@ class Pitch(prebase.ProtoM21Object):
             return self._microtone
 
     @microtone.setter
-    def microtone(self, value: float | int | str | None | Microtone):
-        if isinstance(value, (str, float, int)):
+    def microtone(self, value: int | float | str | None | Microtone):
+        if isinstance(value, (int, float, str)):
             self._microtone = Microtone(value)
         elif value is None:  # set to zero
             self._microtone = Microtone(0)
@@ -2511,7 +2499,7 @@ class Pitch(prebase.ProtoM21Object):
     # --------------------------------------------------------------------------
 
     @property
-    def ps(self):
+    def ps(self) -> float:
         '''
         The ps property permits getting and setting
         a pitch space value, a floating point number
@@ -2607,7 +2595,7 @@ class Pitch(prebase.ProtoM21Object):
         return ps
 
     @ps.setter
-    def ps(self, value):
+    def ps(self, value: int | float):
         # can assign microtone here; will be either None or a Microtone object
         self.step, acc, self._microtone, octShift = _convertPsToStep(value)
 
@@ -2623,7 +2611,7 @@ class Pitch(prebase.ProtoM21Object):
         self.spellingIsInferred = True
 
     @property
-    def midi(self):
+    def midi(self) -> int:
         '''
         Get or set a pitch value in MIDI.
         MIDI pitch values are like ps values (pitchSpace) rounded to
@@ -2693,7 +2681,7 @@ class Pitch(prebase.ProtoM21Object):
         >>> p.midi
         1
         '''
-        def schoolYardRounding(x):
+        def schoolYardRounding(x: int | float) -> int:
             '''
             This is round "up" at 0.5 (regardless of negative or positive)
 
@@ -2706,10 +2694,10 @@ class Pitch(prebase.ProtoM21Object):
         roundedPS = schoolYardRounding(self.ps)
         if roundedPS > 127:
             value = (12 * 9) + (roundedPS % 12)
-            if value < (127 - 12):
+            if value + 12 < 127:
                 value += 12
         elif roundedPS < 0:
-            value = 0 + (roundedPS % 12)
+            value = roundedPS % 12
         else:
             value = roundedPS
         return value
@@ -2720,7 +2708,7 @@ class Pitch(prebase.ProtoM21Object):
         midi values are constrained within the range of 0 to 127
         floating point values,
         '''
-        value = round(value)
+        value: int = round(value)
         if value > 127:
             value = (12 * 9) + (value % 12)  # highest oct plus modulus
             if value < (127 - 12):
@@ -3988,9 +3976,8 @@ class Pitch(prebase.ProtoM21Object):
         '''
         if other.octave is None or self.octave is None:
             return (other.ps - self.ps) % 12 == 0
-        else:
-            # if pitch spaces are equal, these are enharmonics
-            return other.ps == self.ps
+        # if pitch spaces are equal, these are enharmonics
+        return other.ps == self.ps
 
     # a cache so that interval objects can be reused...
     _transpositionIntervals: dict[t.Literal['d2', '-d2'], interval.Interval] = {}
@@ -5045,7 +5032,7 @@ class Pitch(prebase.ProtoM21Object):
         # store if a match was found and display set from past pitches
         setFromPitchPast = False
 
-        if (cautionaryPitchClass is True
+        if (cautionaryPitchClass
                 and (acc is None
                      or acc.displayType != 'if-absolutely-necessary')):
             # warn no matter what octave; thus create new pSelf without octave
@@ -5105,7 +5092,7 @@ class Pitch(prebase.ProtoM21Object):
 
             # create Pitch objects for comparison; remove pitch space
             # information if we are only doing a pitch class comparison
-            if (cautionaryPitchClass is True
+            if (cautionaryPitchClass
                     and (acc is None or acc.displayType != 'if-absolutely-necessary')):
                 # no octave; create new without oct
                 pPast = Pitch(pitchPastAll[i].name)
@@ -5138,7 +5125,7 @@ class Pitch(prebase.ProtoM21Object):
             # regardless of if 'unless-repeated' is set, this will catch
             # a repeated case
 
-            elif (continuousRepeatsInMeasure is True
+            elif (continuousRepeatsInMeasure
                   and pPast.accidental is not None
                   and pSelf.accidental is not None
                   and acc is not None  # redundant with pSelf -- for mypy
@@ -5250,7 +5237,7 @@ class Pitch(prebase.ProtoM21Object):
                   and pSelf.accidental is not None
                   and pPast.accidental.name == pSelf.accidental.name
                   and acc is not None  # redundant.  for mypy
-                  and octaveMatch is True):
+                  and octaveMatch):
                 if (not cautionaryNotImmediateRepeat
                         and pPast.accidental.displayStatus is not False):
                     # do not show (unless previous note's accidental wasn't displayed
@@ -5279,19 +5266,17 @@ class Pitch(prebase.ProtoM21Object):
             # but, because of ties, the first to be displayed
             if not self._nameInKeySignature(alteredPitches):
                 set_displayStatus(True)
-            else:
-                if acc is not None:
-                    acc.displayStatus = False
+            elif acc is not None:
+                acc.displayStatus = False
             # displayAccidentalIfNoPreviousAccidentals = False  # just to be sure
-        elif not setFromPitchPast and acc is not None:
-            if acc.name == 'natural':
-                acc.displayStatus = self._stepInKeySignature(alteredPitches)
-            else:
-                acc.displayStatus = not self._nameInKeySignature(alteredPitches)
-
-        # if we have natural that alters the key sig, create a natural
-        elif not setFromPitchPast and acc is None:
-            if self._stepInKeySignature(alteredPitches):
+        elif not setFromPitchPast:
+            if acc is not None:
+                if acc.name == 'natural':
+                    acc.displayStatus = self._stepInKeySignature(alteredPitches)
+                else:
+                    acc.displayStatus = not self._nameInKeySignature(alteredPitches)
+            # if we have natural that alters the key sig, create a natural
+            elif self._stepInKeySignature(alteredPitches):
                 set_displayStatus(True)
 
     def getStringHarmonic(self, chordIn):

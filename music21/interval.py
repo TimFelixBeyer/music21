@@ -735,7 +735,7 @@ class IntervalBase(base.Music21Object):
     def transposePitch(self,
                        pitch1: pitch.Pitch,
                        *,
-                       inPlace: bool = t.Literal[False]) -> pitch.Pitch:
+                       inPlace: bool = False) -> pitch.Pitch:
         return pitch1
 
     @overload
@@ -743,7 +743,7 @@ class IntervalBase(base.Music21Object):
     def transposePitch(self,
                        pitch1: pitch.Pitch,
                        *,
-                       inPlace: bool = t.Literal[True]) -> None:
+                       inPlace: bool = True) -> None:
         return None
 
     @abc.abstractmethod
@@ -1063,11 +1063,11 @@ class GenericInterval(IntervalBase):
         Returns simpleUndirectedSteps and undirectedOctaves.
         '''
         # unisons (even augmented) are neither steps nor skips.
-        steps, octaves = math.modf(self.undirected / 7)
-        steps = int(steps * 7 + 0.001)
-        octaves = int(octaves)
+        undirected = self.undirected
+        steps = undirected % 7
+        octaves = undirected // 7
         if steps == 0:
-            octaves = octaves - 1
+            octaves -= 1
             steps = 7
         return steps, octaves
 
@@ -1100,8 +1100,7 @@ class GenericInterval(IntervalBase):
         simpleUndirected = self.simpleUndirected
         if self.undirectedOctaves >= 1 and simpleUndirected == 1:
             return 8
-        else:
-            return simpleUndirected
+        return simpleUndirected
 
     @property
     def undirectedOctaves(self) -> int:

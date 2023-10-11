@@ -485,7 +485,7 @@ class Music21Object(prebase.ProtoM21Object):
         # offset when activeSite is already garbage collected/dead,
         # as in short-lived sites
         # like .getElementsByClass().stream()
-        self._activeSiteStoredOffset: float | fractions.Fraction | None = None
+        self._activeSiteStoredOffset: OffsetQL | None = None
 
         # store a derivation object to track derivations from other Streams
         # pass a reference to this object
@@ -512,6 +512,8 @@ class Music21Object(prebase.ProtoM21Object):
             self.activeSite = activeSite
         if quarterLength is not None:
             self.duration.quarterLength = quarterLength
+        if keywords:  # should be empty
+            raise Music21ObjectException(f"Keywords {keywords} were passed, but not understood")
 
     def __eq__(self: _M21T, other) -> t.TypeGuard[_M21T]:
         '''
@@ -2663,6 +2665,8 @@ class Music21Object(prebase.ProtoM21Object):
         '''
         if useSite is False:
             useSite = self.activeSite
+        if t.TYPE_CHECKING:
+            assert useSite is not False
 
         foundOffset: OffsetQL | OffsetSpecial
         if useSite is None:
@@ -3267,7 +3271,7 @@ class Music21Object(prebase.ProtoM21Object):
 
     def splitByQuarterLengths(
         self,
-        quarterLengthList: list[int | float | fractions.Fraction],
+        quarterLengthList: list[OffsetQLIn],
         addTies=True,
         displayTiedAccidentals=False
     ) -> _SplitTuple:
@@ -3507,7 +3511,7 @@ class Music21Object(prebase.ProtoM21Object):
                     mNumber = m.number  # type: ignore
         return mNumber
 
-    def _getMeasureOffset(self, includeMeasurePadding=True) -> float | fractions.Fraction:
+    def _getMeasureOffset(self, includeMeasurePadding=True) -> OffsetQL:
         # noinspection PyShadowingNames
         '''
         Try to obtain the nearest Measure that contains this object,
@@ -3584,7 +3588,7 @@ class Music21Object(prebase.ProtoM21Object):
         return ts
 
     @property
-    def beat(self) -> fractions.Fraction | float:
+    def beat(self) -> OffsetQL:
         # noinspection PyShadowingNames
         '''
         Return the beat of this object as found in the most

@@ -141,10 +141,8 @@ class ChordBase(note.NotRest):
 
         # inherit Duration object from GeneralNote
         # keep it here in case we have no notes
-        durationKeyword = None
-        if 'duration' in keywords:
-            durationKeyword = keywords['duration']
 
+        durationKeyword = keywords.get('duration')
         durationKeyword = self._add_core_or_init(notes, useDuration=durationKeyword)
 
         if durationKeyword is not None:
@@ -774,9 +772,7 @@ class Chord(ChordBase):
     def __eq__(self, other):
         if not super().__eq__(other):
             return False
-        if set(self.pitches) != set(other.pitches):
-            return False
-        return True
+        return set(self.pitches) == set(other.pitches)
 
     def __hash__(self):
         return super().__hash__()
@@ -832,26 +828,17 @@ class Chord(ChordBase):
         KeyError: 'Cannot access component with: None'
         '''
         foundNote: note.Note
-        attributes: tuple[str, ...]
+        attributes: tuple[str, ...] = ()
 
         keyErrorStr = f'Cannot access component with: {key!r}'
         if isinstance(key, str):
-            if key.count('.'):
+            if "." in key:
                 key, attrStr = key.split('.', 1)
-                if not attrStr.count('.'):
-                    attributes = (attrStr,)
-                else:
-                    attributes = tuple(attrStr.split('.'))
-            else:
-                attributes = ()
-
+                attributes = tuple(attrStr.split('.'))
             try:
                 key = int(key)
             except ValueError:
                 pass
-
-        else:
-            attributes = ()
 
         if isinstance(key, int):
             try:
@@ -897,16 +884,14 @@ class Chord(ChordBase):
         if not attributes:
             return foundNote
 
-        currentValue: t.Any = foundNote
-
         for attr in attributes:
             if attr == 'volume':  # special handling
                 # noinspection PyArgumentList
-                currentValue = currentValue._getVolume(forceClient=self)
+                foundNote = foundNote._getVolume(forceClient=self)
             else:
-                currentValue = getattr(currentValue, attr)
+                foundNote = getattr(foundNote, attr)
 
-        return currentValue
+        return foundNote
 
     def __setitem__(self, key, value):
         '''
@@ -1031,11 +1016,12 @@ class Chord(ChordBase):
         else:
             returnObj = self
 
-        uniquePitches = []
+        uniquePitches = set()
         deleteComponents = []
         for comp in returnObj._notes:
-            if getattr(comp.pitch, attribute) not in uniquePitches:
-                uniquePitches.append(getattr(comp.pitch, attribute))
+            attr = getattr(comp.pitch, attribute)
+            if attr not in uniquePitches:
+                uniquePitches.add(attr)
             else:
                 deleteComponents.append(comp)
 
@@ -1437,7 +1423,7 @@ class Chord(ChordBase):
             # reset inversion if bass changes
             return None
 
-        if 'bass' in self._overrides and find is not True:
+        if find is not True and 'bass' in self._overrides:
             return self._overrides['bass']
 
         if find is False:
@@ -1446,11 +1432,10 @@ class Chord(ChordBase):
         if 'bass' in self._overrides:
             del self._overrides['bass']
 
-        if find is not True and 'bass' in self._cache:
+        if find is None and 'bass' in self._cache:
             return self._cache['bass']
-        else:
-            self._cache['bass'] = self._findBass()
-            return self._cache['bass']
+        self._cache['bass'] = self._findBass()
+        return self._cache['bass']
 
     def canBeDominantV(self) -> bool:
         '''
@@ -1464,10 +1449,7 @@ class Chord(ChordBase):
         >>> gDim.canBeDominantV()
         False
         '''
-        if self.isMajorTriad() or self.isDominantSeventh():
-            return True
-        else:
-            return False
+        return self.isMajorTriad() or self.isDominantSeventh()
 
     def canBeTonic(self) -> bool:
         '''
@@ -1482,10 +1464,7 @@ class Chord(ChordBase):
         True
 
         '''
-        if self.isMajorTriad() or self.isMinorTriad():
-            return True
-        else:
-            return False
+        return self.isMajorTriad() or self.isMinorTriad()
 
     @overload
     def closedPosition(
@@ -1633,7 +1612,7 @@ class Chord(ChordBase):
             if p.diatonicNoteNum < pBass.diatonicNoteNum:
                 p.octave += 1
 
-        if leaveRedundantPitches is not True:
+        if not leaveRedundantPitches:
             returnObj.removeRedundantPitches(inPlace=True)  # here we can always be in place...
 
         # if not inPlace, creates a second new chord object!
@@ -1677,13 +1656,8 @@ class Chord(ChordBase):
         >>> chord.Chord().containsSeventh()
         False
         '''
-        if not self.containsTriad():
-            return False
         # no need to cache, since third, fifth, and seventh are cached
-        if self.seventh is None:
-            return False
-
-        return True
+        return self.containsTriad() and (self.seventh is not None)
 
     def containsTriad(self) -> bool:
         '''
@@ -1710,13 +1684,7 @@ class Chord(ChordBase):
         False
         '''
         # no need to cache, since third and fifth are cached
-        if self.third is None:
-            return False
-
-        if self.fifth is None:
-            return False
-
-        return True
+        return self.third is not None and self.fifth is not None
 
     def _findRoot(self) -> pitch.Pitch:
         '''
@@ -1726,7 +1694,7 @@ class Chord(ChordBase):
         Generally use root() instead, since if a chord doesn't know its root,
         root() will run ._findRoot() automatically.
         '''
-        def rootnessFunction(rootThirdList):
+        def rootnessFunction(rootThirdList: list[bool]):
             '''
             Returns a value for how likely this pitch is to be a root given the
             number of thirds and fifths above it.
@@ -1741,11 +1709,8 @@ class Chord(ChordBase):
             Rootness function might be divided by the inversion number
             in case that's a problem.
             '''
-            score = 0
-            for root_index, val in enumerate(rootThirdList):
-                if val is True:
-                    score += 1 / (root_index + 6)
-            return score
+            return sum([1 / (i + 6) for i, val in enumerate(rootThirdList) if val])
+
 
         # FIND ROOT FAST -- for cases where one note has perfectly stacked
         # thirds, like E C G; but not C E B-
@@ -1790,11 +1755,12 @@ class Chord(ChordBase):
         # the highest scoring note...
         # this is the slowest...
 
-        rootnessFunctionScores = []
+        bestRootnessScore = -1
+        mostRootyIndex = 0
         orderedChordSteps = (3, 5, 7, 2, 4, 6)
 
-        for p in nonDuplicatingPitches:
-            currentListOfThirds = []
+        for i, p in enumerate(nonDuplicatingPitches):
+            currentListOfThirds: list[bool]  = []
             this_step_num = pitch.STEP_TO_DNN_OFFSET[p.step]
             for chordStepTest in orderedChordSteps:
                 if (this_step_num + chordStepTest - 1) % 7 in stepNumsToPitches:
@@ -1803,9 +1769,9 @@ class Chord(ChordBase):
                     currentListOfThirds.append(False)
 
             rootnessScore = rootnessFunction(currentListOfThirds)
-            rootnessFunctionScores.append(rootnessScore)
-
-        mostRootyIndex = rootnessFunctionScores.index(max(rootnessFunctionScores))
+            if rootnessScore > bestRootnessScore:
+                bestRootnessScore = rootnessScore
+                mostRootyIndex = i
         return nonDuplicatingPitches[mostRootyIndex]
 
     def geometricNormalForm(self) -> list[int]:
@@ -2797,13 +2763,9 @@ class Chord(ChordBase):
             i = interval.Interval(c4.pitches[0], c4.pitches[1])
             return i.isConsonant()
         elif len(c2.pitches) == 3:
-            if ((self.isMajorTriad() is True or self.isMinorTriad() is True)
-                    and (self.inversion() != 2)):
-                return True
-            else:
-                return False
-        else:
-            return False
+            return ((self.isMajorTriad() is True or self.isMinorTriad() is True)
+                    and (self.inversion() != 2))
+        return False
 
     @cacheMethod
     def isDiminishedSeventh(self):

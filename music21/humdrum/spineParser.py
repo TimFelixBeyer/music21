@@ -1328,7 +1328,7 @@ class KernSpine(HumdrumSpine):
                     thisObject = SpineComment(eventC)
                     if thisObject.comment == '':
                         thisObject = None
-                elif eventC.count(' '):
+                elif ' ' in eventC:
                     thisObject = self.processChordEvent(eventC)
                 else:  # Note or Rest
                     thisObject = self.processNoteEvent(eventC)

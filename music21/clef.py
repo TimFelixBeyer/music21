@@ -127,10 +127,10 @@ class Clef(base.Music21Object):
     classSortOrder = 0
 
     def __init__(self, **keywords) -> None:
+        self.line: int | None = keywords.pop("line", None)
         super().__init__(**keywords)
         self.sign: str | None = None
         # line counts start from the bottom up, the reverse of musedata
-        self.line: int | None = None
         self._octaveChange: int = 0  # set to zero as default
         # musicxml has an attribute for clefOctaveChange,
         # an integer to show transposing clef

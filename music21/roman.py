@@ -1223,7 +1223,6 @@ def romanNumeralFromChord(
         if degree:  # None if not in chord
             secondaryAsRoman = RomanNumeral(degree,
                                             keyObj,
-                                            preferSecondaryDominants=False
                                             ).romanNumeralAlone
             primaryFigure = romanNumeralFromChord(chordObj,
                                                   key.Key(possibleSecondaryTonic),

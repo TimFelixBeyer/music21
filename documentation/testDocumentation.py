@@ -194,7 +194,7 @@ def getDocumentationFiles(runOne=False):
 def main(runOne: str | bool = False):
     if runOne is False:
         nbvalNotebook.runAll()
-    elif '.ipynb' in runOne:
+    elif isinstance(runOne, str) and '.ipynb' in runOne:
         nbvalNotebook.findAndRun(runOne)
 
     totalTests = 0

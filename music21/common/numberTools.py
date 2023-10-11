@@ -245,7 +245,7 @@ def opFrac(num: int) -> float:
     pass
 
 @overload
-def opFrac(num: float | Fraction) -> float | Fraction:
+def opFrac(num: OffsetQL) -> OffsetQL:
     pass
 
 # no type checking due to accessing protected attributes (for speed)
@@ -418,7 +418,7 @@ def mixedNumeral(expr: numbers.Real,
     return '0'
 
 
-def roundToHalfInteger(num: float | int) -> float | int:
+def roundToHalfInteger(num: int | float) -> int | float:
     '''
     Given a floating-point number, round to the nearest half-integer. Returns int or float
 
@@ -465,7 +465,7 @@ def roundToHalfInteger(num: float | int) -> float | int:
         return intVal + 1
 
 
-def addFloatPrecision(x, grain=1e-2) -> float | Fraction:
+def addFloatPrecision(x, grain=1e-2) -> OffsetQL:
     '''
     Given a value that suggests a floating point fraction, like 0.33,
     return a Fraction or float that provides greater specification, such as Fraction(1, 3)
@@ -778,7 +778,7 @@ def weightedSelection(values: list[int],
     return values[index]
 
 
-def approximateGCD(values: Collection[int | float | Fraction], grain: float = 1e-4) -> float:
+def approximateGCD(values: Collection[OffsetQLIn], grain: float = 1e-4) -> float:
     '''
     Given a list of values, find the lowest common divisor of floating point values.
 

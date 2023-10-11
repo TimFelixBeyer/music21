@@ -81,12 +81,12 @@ class Style(ProtoM21Object):
     def __init__(self) -> None:
         self.size = None
 
-        self.relativeX: float | int | None = None
-        self.relativeY: float | int | None = None
-        self.absoluteX: float | int | None = None
+        self.relativeX: int | float | None = None
+        self.relativeY: int | float | None = None
+        self.absoluteX: int | float | None = None
 
         # managed by property below.
-        self._absoluteY: float | int | None = None
+        self._absoluteY: int | float | None = None
 
         self._enclosure: Enclosure | None = None
 
@@ -99,8 +99,8 @@ class Style(ProtoM21Object):
         self.units: str = 'tenths'
         self.hideObjectOnPrint: bool = False
 
-        self.dashLength: float | int | None = None
-        self.spaceLength: float | int | None = None
+        self.dashLength: int | float | None = None
+        self.spaceLength: int | float | None = None
 
     def _getEnclosure(self) -> Enclosure | None:
         return self._enclosure
