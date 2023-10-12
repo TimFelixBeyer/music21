@@ -5264,8 +5264,9 @@ class MeasureExporter(XMLExporterBase):
 
         self.setPrintStyle(mx, expression)
         # TODO: trill-sound
-        if getattr(expression, 'placement', None) is not None:
-            mx.set('placement', expression.placement)
+        placement = getattr(expression, 'placement', None)
+        if placement is not None:
+            mx.set('placement', placement)
         if isinstance(expression, expressions.Fermata):
             mx.set('type', str(expression.type))
             if expression.shape in ('angled', 'square'):  # only valid shapes
@@ -6672,7 +6673,7 @@ class MeasureExporter(XMLExporterBase):
             # leftBarline may be None. that's okay
             self.setBarline(leftBarline, 'left')
 
-    def setBarline(self, barline, position):
+    def setBarline(self, barline: bar.Barline | bar.Repeat | None, position) -> Element:
         '''
         sets either a left or right barline from a
         bar.Barline() object or bar.Repeat() object
@@ -6680,12 +6681,11 @@ class MeasureExporter(XMLExporterBase):
         mxRepeat = None
         if barline is None:
             mxBarline = Element('barline')
+        elif isinstance(barline, bar.Repeat):
+            mxBarline = Element('barline')
+            mxRepeat = self.repeatToXml(barline)
         else:
-            if isinstance(barline, bar.Repeat):
-                mxBarline = Element('barline')
-                mxRepeat = self.repeatToXml(barline)
-            else:
-                mxBarline = self.barlineToXml(barline)
+            mxBarline = self.barlineToXml(barline)
 
         synchronizeIds(mxBarline, barline)
 
@@ -6757,7 +6757,7 @@ class MeasureExporter(XMLExporterBase):
             mxBarline.set('location', barObject.location)
         return mxBarline
 
-    def repeatToXml(self, r):
+    def repeatToXml(self, r: bar.Repeat):
         # noinspection PyShadowingNames
         '''
         returns a <repeat> tag from a barline object.
@@ -6828,9 +6828,8 @@ class MeasureExporter(XMLExporterBase):
         if m.clef is not None:
             mxAttributes.append(self.clefToXml(m.clef))
 
-        found = m.getElementsByClass(layout.StaffLayout)
-        if found:
-            sl = found[0]  # assume only one per measure
+        # assume only one per measure
+        if (sl := m.getElementsByClass(layout.StaffLayout).first()):
             mxAttributes.append(self.staffLayoutToXmlStaffDetails(sl))
 
         if self.transpositionInterval is not None:
@@ -7308,7 +7307,7 @@ class MeasureExporter(XMLExporterBase):
         Makes a set of spanners from repeat brackets
         '''
         spannersOnStream = self.spannerBundle.getBySpannedElement(self.stream)
-        self.rbSpanners = spannersOnStream.getByClass('RepeatBracket')
+        self.rbSpanners = [s for s in spannersOnStream.getByClass('RepeatBracket') if not s.hidden]
 
     def setTranspose(self):
         '''

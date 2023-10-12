@@ -941,10 +941,7 @@ class VoiceLeadingQuartet(base.Music21Object):
             if isinstance(thisInterval, str):
                 thisInterval = interval.Interval(thisInterval)
 
-            if self.vIntervals[1].simpleName == thisInterval.simpleName:
-                return True
-            else:
-                return False
+            return self.vIntervals[1].simpleName == thisInterval.simpleName
 
     def hiddenFifth(self) -> bool:
         '''

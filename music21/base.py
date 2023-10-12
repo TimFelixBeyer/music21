@@ -986,7 +986,7 @@ class Music21Object(prebase.ProtoM21Object):
         if site is None:
             return self._naiveOffset
 
-        tryOrigin: Music21Object = self
+        tryOrigin: Music21Object | None = self
         originMemo = set()
         maxSearch = 100
         while maxSearch > 0:

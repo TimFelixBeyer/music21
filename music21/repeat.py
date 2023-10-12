@@ -1402,12 +1402,10 @@ class Expander(t.Generic[StreamType]):
         new = streamObj.__class__()
 
         # can provide indices
-        forcedIndices = False
+        forcedIndices = repeatIndices is not None
         if repeatIndices is None:
             # find innermost
             repeatIndices = self.findInnermostRepeatIndices(streamObj)
-        else:  # use passed
-            forcedIndices = True
         # environLocal.printDebug(['got new repeat indices:', repeatIndices])
 
         # renumber measures starting with the first number found here
@@ -1566,7 +1564,6 @@ class Expander(t.Generic[StreamType]):
             # environLocal.printDebug(['cannot find innermost in a group:',
             # 'innermost', innermost, 'groupFocus', groupFocus])
             return self.processInnermostRepeatBars(streamObj)
-        # else:  # have innermost in a bracket
         rBrackets = groupFocus['repeatBrackets']
         # get all measures before bracket
         streamObjPre = streamObj[:innermost[0]]
@@ -1646,7 +1643,7 @@ class Expander(t.Generic[StreamType]):
                 #   [n.name for n in out.flatten().pitches]])
                 streamBracketRepeats.append(out)
                 # highest index will always be the last copied, up until end
-                highestIndexRepeated = max(data['validIndices'])
+                highestIndexRepeated: int = max(data['validIndices'])
 
         new = streamObj.__class__()
         for m in streamObjPre:
@@ -1742,7 +1739,7 @@ class Expander(t.Generic[StreamType]):
         '''
         # This assumes just a stream of measures.
         # Also assumes the stream has already been copied unless makeDeepCopy is True.
-        if makeDeepCopy is True:
+        if makeDeepCopy:
             streamObj = copy.deepcopy(streamObj)
         repeatBracketsMemo = {}  # store completed brackets
 

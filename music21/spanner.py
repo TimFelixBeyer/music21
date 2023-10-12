@@ -1521,6 +1521,7 @@ class RepeatBracket(Spanner):
                  *spannedElements,
                  number: int | str | Iterable[int] = 0,
                  overrideDisplay: str | None = None,
+                 hidden: bool = False,
                  **keywords):
         super().__init__(*spannedElements, **keywords)
 
@@ -1531,6 +1532,7 @@ class RepeatBracket(Spanner):
         self.numberRange: list[int] = []
         self.overrideDisplay = overrideDisplay
         self.number = number
+        self.hidden = hidden
 
     @property
     def _numberSpanIsAdjacent(self) -> bool:

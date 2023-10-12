@@ -6740,14 +6740,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if searchKeySignatureByContext:
                 ks = self.getContextByClass(key.KeySignature)
                 if ks is not None:
-                    ksIter = [ks]
+                    alteredPitches += ks.alteredPitches
             else:
                 ksIter = self.getElementsByClass(key.KeySignature)
-
-            if ksIter:
-                # assume we want the first found; in some cases it is possible
-                # that this may not be true
-                alteredPitches += ksIter[0].alteredPitches
+                if ksIter:
+                    # assume we want the first found; in some cases it is possible
+                    # that this may not be true
+                    alteredPitches += ksIter[0].alteredPitches
         # environLocal.printDebug(['processing makeAccidentals() with alteredPitches:',
         #   alteredPitches])
 
@@ -7432,6 +7431,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             for c in self.recurse().getElementsByClass('Chord'):
                 for noteObj in c.notes:
                     noteObj.duration = copy.deepcopy(c.duration)
+                    noteObj.expressions = copy.deepcopy(c.expressions)
+                    noteObj.articulations = copy.deepcopy(c.articulations)
                     c.activeSite.insert(c.offset, noteObj)
                 c.activeSite.remove(c)
             ties = {"start": 0, "continue": 0, "stop": 0}
@@ -7453,6 +7454,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             posDelete = set()
             tied = set()
             for i, n in enumerate(notes_and_rests):
+                if t.TYPE_CHECKING:
+                    assert isinstance(n, note.Note)
                 if n.isRest or i in posDelete or i in tied:
                     continue
                 if n.tie is not None:
@@ -9800,7 +9803,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     # --------------------------------------------------------------------------
     # get boolean information from the Stream
 
-    def hasMeasures(self):
+    def hasMeasures(self) -> bool:
         '''
         Return a boolean value showing if this Stream contains Measures.
 
@@ -13849,7 +13852,7 @@ class Score(Stream):
         given by text expressions such as D.C. al Segno.
 
         This method always returns a new Stream, with deepcopies
-        of all contained elements at all level.
+        of all contained elements at all levels.
 
         Note that copySpanners is ignored here, as they are always copied.
         '''

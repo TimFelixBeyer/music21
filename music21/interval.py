@@ -1373,12 +1373,12 @@ class GenericInterval(IntervalBase):
             return GenericInterval(self.undirected * (-1 * self.direction))
 
     @overload
-    def transposePitch(self, p: pitch.Pitch, inPlace=t.Literal[True]) -> pitch.Pitch:
-        return p
+    def transposePitch(self, p: pitch.Pitch, inPlace=t.Literal[True]) -> None:
+        return None
 
     @overload
-    def transposePitch(self, p: pitch.Pitch, inPlace=t.Literal[False]) -> None:
-        return None
+    def transposePitch(self, p: pitch.Pitch, inPlace=t.Literal[False]) -> pitch.Pitch:
+        return p
 
     def transposePitch(self, p: pitch.Pitch, inPlace=False) -> pitch.Pitch | None:
         '''

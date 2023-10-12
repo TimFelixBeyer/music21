@@ -869,7 +869,7 @@ class Microtone(prebase.ProtoM21Object, SlottedObjectMixin):
         # strip any delimiters
         value = value.replace(MICROTONE_OPEN, '')
         value = value.replace(MICROTONE_CLOSE, '')
-        centValue = 0
+        centValue = 0.0
 
         # need to look for and split off harmonic definitions
         if value[0] == '+' or value[0].isdigit():

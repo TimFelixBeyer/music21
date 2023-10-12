@@ -1835,8 +1835,28 @@ class PartParser(XMLParserBase):
             # staffIndex should be staffKey - 1, but you never know...
             removeClasses = STAFF_SPECIFIC_CLASSES[:]
             if staffIndex != 0:  # spanners only on the first staff.
-                removeClasses.append('Spanner')
+                # removeClasses.append('Spanner')
+                spanners_except_repeat_bracket = [
+                    "DynamicWedge",
+                    "TrillExtension",
+                    "TremoloSpanner",
+                    "ArpeggioMarkSpanner"
+                    "StaffGroup",
+                    "CarterAccelerandoSign",
+                    "Slur",
+                    "MultiMeasureRest",
+                    "Ottava",
+                    "Line",
+                    "Glissando",
+                    "TempoChangeSpanner",
+                    "RitardandoSpanner",
+                    "AccelerandoSpanner",
+                    "Neume",
+                ]
+                removeClasses.extend(spanners_except_repeat_bracket)
             newPartStaff = self.stream.template(removeClasses=removeClasses, fillWithRests=False)
+            for rb in newPartStaff.getElementsByClass("RepeatBracket"):
+                rb.hidden = True
             partStaffId = f'{self.partId}-Staff{staffKey}'
             newPartStaff.id = partStaffId
             # set group for components (recurse?)

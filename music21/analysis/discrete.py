@@ -1245,28 +1245,21 @@ class MelodicIntervalDiversity(DiscreteAnalysis):
             # get only Notes for now, skipping rests and chords
             # flatten to reach notes contained in measures
             noteStream = p.flatten().stripTies(inPlace=False).getElementsByClass(note.Note).stream()
-            # noteStream.show()
-            for i, n in enumerate(noteStream):
-                if i <= len(noteStream) - 2:
-                    nNext = noteStream[i + 1]
+            for i, n in enumerate(noteStream[:-1]):
+                # environLocal.printDebug(['creating interval from notes:', n, nNext, i])
+                i = interval.Interval(n, noteStream[i + 1])
+                if ignoreUnison:  # will apply to enharmonic eq unisons
+                    if i.chromatic.semitones == 0:
+                        continue
+                if ignoreDirection:
+                    if i.chromatic.semitones < 0:
+                        i = i.reverse()
+                # must use directed name for cases where ignoreDirection
+                # is false
+                if i.directedName not in found:
+                    found[i.directedName] = [i, 1]
                 else:
-                    nNext = None
-
-                if nNext is not None:
-                    # environLocal.printDebug(['creating interval from notes:', n, nNext, i])
-                    i = interval.Interval(n, nNext)
-                    if ignoreUnison:  # will apply to enharmonic eq unisons
-                        if i.chromatic.semitones == 0:
-                            continue
-                    if ignoreDirection:
-                        if i.chromatic.semitones < 0:
-                            i = i.reverse()
-                    # must use directed name for cases where ignoreDirection
-                    # is false
-                    if i.directedName not in found:
-                        found[i.directedName] = [i, 1]
-                    else:
-                        found[i.directedName][1] += 1  # increment counter
+                    found[i.directedName][1] += 1  # increment counter
 
 #         def compare(x, y):
 #             return abs(x.chromatic.semitones) - abs(y.chromatic.semitones)
@@ -1292,11 +1285,7 @@ class MelodicIntervalDiversity(DiscreteAnalysis):
 # -----------------------------------------------------------------------------
 # public access function
 
-def analyzeStream(
-    streamObj: stream.Stream,
-    method: str,
-    **keywords
-):
+def analyzeStream(streamObj: stream.Stream, method: str):
     '''
     Public interface to discrete analysis methods to be applied
     to a Stream given as an argument. Methods return process-specific data format.
@@ -1334,21 +1323,17 @@ def analyzeStream(
         # this synonym is being added for compatibility
         method = 'span'
 
-    analysisClassName: type[DiscreteAnalysis] | None = analysisClassFromMethodName(method)
+    analysisClassName: type[DiscreteAnalysis] = analysisClassFromMethodName(method)
 
-    if analysisClassName is not None:
-        obj = analysisClassName()
-        # environLocal.printDebug(['analysis method used:', obj])
-        return obj.getSolution(streamObj)
-
-    # if no match raise error
-    raise DiscreteAnalysisException(f'no such analysis method: {method}')
+    obj = analysisClassName()
+    # environLocal.printDebug(['analysis method used:', obj])
+    return obj.getSolution(streamObj)
 
 
 # noinspection SpellCheckingInspection
-def analysisClassFromMethodName(method: str) -> type[DiscreteAnalysis] | None:
+def analysisClassFromMethodName(method: str) -> type[DiscreteAnalysis]:
     '''
-    Returns an analysis class given a method name, or None if none can be found
+    Returns an analysis class given a method name, or errors if none can be found
 
     Searches first the class name, then the .identifiers array for each class,
     then a subset of any identifier.
@@ -1363,9 +1348,6 @@ def analysisClassFromMethodName(method: str) -> type[DiscreteAnalysis] | None:
 
     >>> acfmn('key')
     <class 'music21.analysis.discrete.AardenEssen'>
-
-    >>> print(repr(acfmn('unknown-format')))
-    None
     '''
     analysisClasses: list[type[DiscreteAnalysis]] = [
         Ambitus,
@@ -1375,36 +1357,25 @@ def analysisClassFromMethodName(method: str) -> type[DiscreteAnalysis] | None:
         BellmanBudge,
         TemperleyKostkaPayne,
     ]
-    match: type[DiscreteAnalysis] | None = None
     for analysisClass in analysisClasses:
         # this is a very loose matching, as there are few classes now
         if (method.lower() in analysisClass.__name__.lower()
                 or method.lower() in analysisClass.name):
-            match = analysisClass
-            # environLocal.printDebug(['matched analysis class name'])
-            break
+            return analysisClass
 
-    if match is None:
-        # no match for exact class name, so check to see if .identifiers matches
-        for analysisClass in analysisClasses:
-            for idStr in analysisClass.identifiers:
-                if method == idStr:
-                    match = analysisClass
-                    # environLocal.printDebug(['matched idStr', idStr])
-                    break
+    # no match for exact class name, so check to see if .identifiers matches
+    for analysisClass in analysisClasses:
+        for idStr in analysisClass.identifiers:
+            if method == idStr:
+                return analysisClass
 
-    if match is None:
-        # no match for identifiers, so see if the id is a subset of identifiers.
-        for analysisClass in analysisClasses:
-            for idStr in analysisClass.identifiers:
-                if method in idStr:
-                    match = analysisClass
-                    # environLocal.printDebug(['matched idStr', idStr])
-                    break
-            if match is not None:
-                break
-
-    return match
+    # no match for identifiers, so see if the id is a subset of identifiers.
+    for analysisClass in analysisClasses:
+        for idStr in analysisClass.identifiers:
+            if method in idStr:
+                return analysisClass
+    # if no match raise error
+    raise DiscreteAnalysisException(f'no such analysis method: {method}')
 
 # -----------------------------------------------------------------------------
 
