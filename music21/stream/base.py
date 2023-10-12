@@ -7553,7 +7553,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         current_duration += tied_note.quarterLength
                                         break
                                     else:
-                                        raise ValueError(f"Unexpected start tie ({tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitch}).")
+                                         warnings.warn(f"Unexpected start tie ({tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitch}), treating as continue.")
+                                         current_duration += tied_note.quarterLength
+                                         # raise ValueError(f"Unexpected start tie ({tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitc
+                                         continue
                             else:
                                 ns = notes_and_rests[idx_start]
                                 raise ValueError(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")

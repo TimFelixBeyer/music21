@@ -193,7 +193,7 @@ def cacheMethod(method):
 
 
 T = t.TypeVar('T')
-def inPlace(default, deepcopy=None, derivation=None, passthrough=False):
+def inPlace(default: bool, deepcopy: bool=False, derivation: str | bool=None, passthrough: bool=False):
     """Decorator to allow a function to be called inPlace or not.
     Simplifies a lot of common patterns.
     Usually an inPlace function works as follows:
@@ -215,16 +215,16 @@ def inPlace(default, deepcopy=None, derivation=None, passthrough=False):
     default : bool
         If True, the function will be called inPlace by default.
     deepcopy : bool, optional
-        Whether to deepcopy, by default True
+        Whether to deepcopy, by default False
     derivation : _type_, optional
-        If der, by default None
+        Whether it is a derivation, by default not (None)
     """
-    if deepcopy is None and derivation is None:
+    if not deepcopy and derivation is None:
         raise ValueError('Cannot use inPlace=False without deepcopy or derivation')
-    if deepcopy is not None and derivation is not None:
+    if deepcopy and derivation is not None:
         raise ValueError('Cannot use both deepcopy and derivation')
 
-    def decorator(func: t.Callable[..., T]):
+    def decorator(func: t.Callable[..., T]) -> t.Callable[..., T | None]:
         @overload
         def inPlaceWrapper(arg, *args, inPlace=t.Literal[False], **kwargs) -> T:
             return func(arg, *args, **kwargs)
