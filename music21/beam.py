@@ -272,7 +272,7 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
                      2/None>/<music21.beam.Beam 3/None>>,
          None]
         '''
-        beamsList: list[Beams | None] = []
+        beamsList: list[Beams|None] = []
         for el in srcList:
             # if a dur cannot be beamable under any circumstance, replace
             # it with None; this includes Rests
@@ -291,7 +291,7 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
         return beamsList
 
     @staticmethod
-    def removeSandwichedUnbeamables(beamsList: list[Beams | None]):
+    def removeSandwichedUnbeamables(beamsList: list[Beams|None]):
         # noinspection PyShadowingNames
         '''
         Go through the naiveBeamsList and remove beams from objects surrounded
@@ -333,6 +333,7 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
             nextBeamIsNone = (i + 1 == len(beamsList) or beamsList[i + 1] is None)
             if previousBeamIsNone and nextBeamIsNone:
                 beamsList[i] = None
+
         return beamsList
 
     @staticmethod
@@ -343,7 +344,7 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
         16ths are not beamed by default.
         '''
         # sanitize two partials in a row:
-        for bThis, bNext in zip(beamsList[:-1], beamsList[1:]):
+        for i, (bThis, bNext) in enumerate(zip(beamsList[:-1], beamsList[1:])):
             if not bThis or not bNext:
                 continue
 
@@ -351,7 +352,7 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
             if not bThisNum:
                 continue
 
-            for i, thisNum in enumerate(bThisNum):
+            for thisNum in bThisNum:
                 thisBeam = bThis.getByNumber(thisNum)
                 if thisBeam.type != 'partial' or thisBeam.direction != 'right':
                     continue
@@ -405,7 +406,7 @@ class Beams(prebase.ProtoM21Object, EqualSlottedObjectMixin):
         return beamsList
 
     @staticmethod
-    def sanitizePartialBeams(beamsList: list[Beams | None]) -> list[Beams | None]:
+    def sanitizePartialBeams(beamsList: list[Beams|None]) -> list[Beams|None]:
         '''
         It is possible at a late stage to have beams that only consist of partials
         or beams with a 'start' followed by 'partial/left' or possibly 'stop' followed

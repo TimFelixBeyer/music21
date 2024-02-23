@@ -58,7 +58,7 @@ class Corpus(prebase.ProtoM21Object):
 
     _pathsCache: dict[tuple[str, tuple[str, ...]], list[pathlib.Path]] = {}
 
-    _directoryInformation: tuple[()] | Sequence[tuple[str, str, bool]] = ()
+    _directoryInformation: tuple[()]|Sequence[tuple[str, str, bool]] = ()
 
     parseUsingCorpus = True
 
@@ -265,8 +265,8 @@ class Corpus(prebase.ProtoM21Object):
 
     def getWorkList(
         self,
-        workName: str | pathlib.Path,
-        movementNumber: int | Collection[int] | None = None,
+        workName: str|pathlib.Path,
+        movementNumber: int|Collection[int]|None = None,
         *,
         fileExtensions: Iterable[str] = (),
     ):
@@ -376,7 +376,7 @@ class Corpus(prebase.ProtoM21Object):
     def search(
         self,
         query: str,
-        field: str | None = None,
+        field: str|None = None,
         *,
         fileExtensions: Iterable[str] = (),
         **keywords
@@ -581,6 +581,7 @@ class CoreCorpus(Corpus):
         ('trecento', 'Fourteenth-Century Italian Music', False),
         ('verdi', 'Giuseppe Verdi', True),
         ('weber', 'Carl Maria von Weber', True),
+        ('webern', 'Anton Webern', True),
     )
 
     _noCorpus = False
@@ -731,7 +732,7 @@ class LocalCorpus(Corpus):
 
     # INITIALIZER #
 
-    def __init__(self, name: str | None = None):
+    def __init__(self, name: str|None = None):
         if not isinstance(name, (str, type(None))):
             raise CorpusException('Name must be a string or None')
 
@@ -881,7 +882,7 @@ class LocalCorpus(Corpus):
 
         return Corpus._pathsCache[cacheKey]
 
-    def removePath(self, directoryPath: str | pathlib.Path) -> None:
+    def removePath(self, directoryPath: str|pathlib.Path) -> None:
         r'''
         Remove a directory path from a local corpus.
 

@@ -310,7 +310,7 @@ class IntervalException(exceptions21.Music21Exception):
 # some utility functions
 
 def _extractPitch(
-    nOrP: note.Note | pitch.Pitch
+    nOrP: note.Note|pitch.Pitch
 ) -> pitch.Pitch:
     '''
     utility function to return either the object itself
@@ -407,7 +407,7 @@ def convertDiatonicNumberToStep(dn: int) -> tuple[StepName, int]:
         stepNumber = (dn - 1) - (octave * 7)
         return STEPNAMES[stepNumber], (octave - 1)
 
-def parseSpecifier(value: str | int | Specifier) -> Specifier:
+def parseSpecifier(value: str|int|Specifier) -> Specifier:
     '''
     Given an integer or a string representing a "specifier" (major, minor,
     perfect, diminished, etc.), return the Specifier.
@@ -427,7 +427,7 @@ def parseSpecifier(value: str | int | Specifier) -> Specifier:
     >>> interval.parseSpecifier('a')
     <Specifier.AUGMENTED>
 
-    This is not very useful, but there for completeness:
+    This is not very useful, but they are there for completeness:
 
     >>> interval.parseSpecifier(interval.Specifier.MAJOR)
     <Specifier.MAJOR>
@@ -476,10 +476,10 @@ def parseSpecifier(value: str | int | Specifier) -> Specifier:
 
     raise IntervalException(f'Cannot find a match for value: {value!r}')
 
-def convertGeneric(value: int | str) -> int:
+def convertGeneric(value: int|str) -> int:
     '''
     Convert an interval specified in terms of its name (second, third)
-    into an integer. If integers are passed, assume the are correct.
+    into an integer. If integers are passed, assume they are correct.
 
     >>> interval.convertGeneric(3)
     3
@@ -541,7 +541,7 @@ def convertGeneric(value: int | str) -> int:
 
 
 def convertSemitoneToSpecifierGenericMicrotone(
-    count: int | float
+    count: int|float
 ) -> tuple[Specifier, int, float]:
     '''
     Given a number of semitones (positive or negative),
@@ -593,7 +593,7 @@ def convertSemitoneToSpecifierGenericMicrotone(
     return (spec, (generic + (octave * 7)) * dirScale, cents)
 
 
-def convertSemitoneToSpecifierGeneric(count: int | float) -> tuple[Specifier, int]:
+def convertSemitoneToSpecifierGeneric(count: int|float) -> tuple[Specifier, int]:
     '''
     Given a number of semitones, return a default diatonic specifier, and
     a number that can be used as a GenericInterval
@@ -630,7 +630,8 @@ def convertSemitoneToSpecifierGeneric(count: int | float) -> tuple[Specifier, in
     (<Specifier.MINOR>, 2)
     '''
     # strip off microtone
-    return convertSemitoneToSpecifierGenericMicrotone(count)[:2]
+    specifier, semitones, unused_cent_offset = convertSemitoneToSpecifierGenericMicrotone(count)
+    return (specifier, semitones)
 
 
 _pythagorean_cache: dict[str, tuple[pitch.Pitch, Fraction]] = {}
@@ -892,7 +893,7 @@ class GenericInterval(IntervalBase):
     * Changed in v6: large intervals get abbreviations
     '''
     def __init__(self,
-                 value: int | str = 'Unison',
+                 value: int|str = 'Unison',
                  **keywords):
         super().__init__(**keywords)
         self._value: int = 1
@@ -1431,7 +1432,7 @@ class GenericInterval(IntervalBase):
     def transposePitchKeyAware(
         self,
         p: pitch.Pitch,
-        k: key.KeySignature | None = None,
+        k: key.KeySignature|None = None,
         *,
         inPlace: bool = False
     ):
@@ -1528,7 +1529,7 @@ class GenericInterval(IntervalBase):
         if not inPlace:
             return newPitch
 
-    def getDiatonic(self, specifier: Specifier | str) -> DiatonicInterval:
+    def getDiatonic(self, specifier: Specifier|str) -> DiatonicInterval:
         '''
         Given a specifier, return a :class:`~music21.interval.DiatonicInterval` object.
 
@@ -1674,8 +1675,8 @@ class DiatonicInterval(IntervalBase):
     }
 
     def __init__(self,
-                 specifier: str | int = 'P',
-                 generic: int | GenericInterval | str = 1,
+                 specifier: str|int = 'P',
+                 generic: int|GenericInterval|str = 1,
                  **keywords):
         super().__init__(**keywords)
 
@@ -2225,13 +2226,13 @@ class ChromaticInterval(IntervalBase):
     True
     '''
 
-    def __init__(self, semitones: int | float = 0, **keywords):
+    def __init__(self, semitones: int|float = 0, **keywords):
         super().__init__(**keywords)
 
         if semitones == int(semitones):
             semitones = int(semitones)
 
-        self.semitones: int | float = semitones
+        self.semitones: int|float = semitones
 
     def _reprInternal(self) -> str:
         return str(self.directed)
@@ -2282,7 +2283,7 @@ class ChromaticInterval(IntervalBase):
         return round(self.semitones * 100.0, 5)
 
     @property
-    def directed(self) -> int | float:
+    def directed(self) -> int|float:
         '''
         A synonym for `.semitones`
 
@@ -2293,7 +2294,7 @@ class ChromaticInterval(IntervalBase):
         return self.semitones
 
     @property
-    def undirected(self) -> int | float:
+    def undirected(self) -> int|float:
         '''
         The absolute value of the number of semitones:
 
@@ -2324,7 +2325,7 @@ class ChromaticInterval(IntervalBase):
         return Direction.OBLIQUE
 
     @property
-    def mod12(self) -> int | float:
+    def mod12(self) -> int|float:
         '''
         The number of semitones within an octave using modulo arithmatic.
 
@@ -2342,7 +2343,7 @@ class ChromaticInterval(IntervalBase):
         return self.semitones % 12
 
     @property
-    def simpleUndirected(self) -> int | float:
+    def simpleUndirected(self) -> int|float:
         '''
         The number of semitones within an octave while ignoring direction.
 
@@ -2360,7 +2361,7 @@ class ChromaticInterval(IntervalBase):
         return self.undirected % 12
 
     @property
-    def simpleDirected(self) -> int | float:
+    def simpleDirected(self) -> int|float:
         '''
         The number of semitones within an octave while preserving direction.
 
@@ -2478,7 +2479,7 @@ class ChromaticInterval(IntervalBase):
         >>> p5.ps
         65.0
 
-        Afterwards, spelling of the new pitch will always be inferred.
+        Afterward, the spelling of the new pitch will always be inferred.
 
         >>> p4.spellingIsInferred
         False
@@ -2592,8 +2593,8 @@ def _stringToDiatonicChromatic(
 
 
 def notesToGeneric(
-    n1: pitch.Pitch | note.Note,
-    n2: pitch.Pitch | note.Note
+    n1: pitch.Pitch|note.Note,
+    n2: pitch.Pitch|note.Note
 ) -> GenericInterval:
     '''
     Given two :class:`~music21.note.Note` objects,
@@ -2620,8 +2621,8 @@ def notesToGeneric(
     return GenericInterval(genDist)
 
 def notesToChromatic(
-    n1: pitch.Pitch | note.Note,
-    n2: pitch.Pitch | note.Note
+    n1: pitch.Pitch|note.Note,
+    n2: pitch.Pitch|note.Note
 ) -> ChromaticInterval:
     '''
     Given two :class:`~music21.note.Note` objects,
@@ -2730,8 +2731,8 @@ def intervalsToDiatonic(
 
 
 def intervalFromGenericAndChromatic(
-    gInt: GenericInterval | int,
-    cInt: ChromaticInterval | int | float,
+    gInt: GenericInterval|int,
+    cInt: ChromaticInterval|int|float,
 ) -> Interval:
     '''
     Given a :class:`~music21.interval.GenericInterval` and a
@@ -2986,16 +2987,16 @@ class Interval(IntervalBase):
                                pitch.Pitch,
                                note.Note,
                                None] = None,
-                 arg1: pitch.Pitch | note.Note | None = None,
+                 arg1: pitch.Pitch|note.Note|None = None,
                  /,
                  *,
-                 diatonic: DiatonicInterval | None = None,
-                 chromatic: ChromaticInterval | None = None,
-                 pitchStart: pitch.Pitch | None = None,
-                 pitchEnd: pitch.Pitch | None = None,
-                 noteStart: note.Note | pitch.Pitch | None = None,
-                 noteEnd: note.Note | pitch.Pitch | None = None,
-                 name: str | None = None,
+                 diatonic: DiatonicInterval|None = None,
+                 chromatic: ChromaticInterval|None = None,
+                 pitchStart: pitch.Pitch|None = None,
+                 pitchEnd: pitch.Pitch|None = None,
+                 noteStart: note.Note|pitch.Pitch|None = None,
+                 noteEnd: note.Note|pitch.Pitch|None = None,
+                 name: str|None = None,
                  **keywords):
         super().__init__(**keywords)
 
@@ -3071,8 +3072,8 @@ class Interval(IntervalBase):
         self.chromatic: ChromaticInterval = chromatic
 
         # these can be accessed through pitchStart and pitchEnd properties
-        self._pitchStart: pitch.Pitch | None = pitchStart
-        self._pitchEnd: pitch.Pitch | None = pitchEnd
+        self._pitchStart: pitch.Pitch|None = pitchStart
+        self._pitchEnd: pitch.Pitch|None = pitchEnd
 
         self.intervalType: t.Literal['harmonic', 'melodic', ''] = ''
 
@@ -3193,15 +3194,15 @@ class Interval(IntervalBase):
         return self.diatonic.directedSimpleNiceName
 
     @property
-    def semitones(self) -> int | float:
+    def semitones(self) -> int|float:
         return self.chromatic.semitones
 
     @property
-    def direction(self) -> Direction | None:
+    def direction(self) -> Direction|None:
         return self.chromatic.direction
 
     @property
-    def specifier(self) -> Specifier | None:
+    def specifier(self) -> Specifier|None:
         return self.diatonic.specifier
 
     @property
@@ -3345,7 +3346,7 @@ class Interval(IntervalBase):
                        *,
                        reverse=False,
                        maxAccidental: int | None = 4,
-                       inPlace=False) -> pitch.Pitch | None:
+                       inPlace=False) -> pitch.Pitch|None:
         '''
         Given a :class:`~music21.pitch.Pitch` object, return a new,
         transposed Pitch, that is transformed
@@ -3542,7 +3543,7 @@ class Interval(IntervalBase):
 
     def reverse(self):
         '''
-        Return an reversed version of this interval.
+        Return a reversed version of this interval.
         If :class:`~music21.pitch.Pitch` objects are stored as
         `pitchStart` and `pitchEnd`, these pitches are reversed.
 
@@ -3673,7 +3674,7 @@ class Interval(IntervalBase):
         self._pitchStart = pitch1
 
     @property
-    def noteStart(self) -> music21.note.Note | None:
+    def noteStart(self) -> music21.note.Note|None:
         '''
         Return or set the Note that pitchStart is attached to.  For
         backwards compatibility
@@ -3686,14 +3687,14 @@ class Interval(IntervalBase):
             return note.Note(pitch=p)
 
     @noteStart.setter
-    def noteStart(self, n: music21.note.Note | None):
+    def noteStart(self, n: music21.note.Note|None):
         if n:
             self.pitchStart = n.pitch
         else:
             self.pitchStart = None
 
     @property
-    def noteEnd(self) -> music21.note.Note | None:
+    def noteEnd(self) -> music21.note.Note|None:
         '''
         Return or set the Note that pitchEnd is attached to.  For
         backwards compatibility
@@ -3706,7 +3707,7 @@ class Interval(IntervalBase):
             return note.Note(pitch=p)
 
     @noteEnd.setter
-    def noteEnd(self, n: music21.note.Note | None):
+    def noteEnd(self, n: music21.note.Note|None):
         if n:
             self.pitchEnd = n.pitch
         else:
@@ -3714,9 +3715,9 @@ class Interval(IntervalBase):
 
 
 # ------------------------------------------------------------------------------
-def getWrittenHigherNote(note1: note.Note | pitch.Pitch,
-                         note2: note.Note | pitch.Pitch
-                         ) -> note.Note | pitch.Pitch:
+def getWrittenHigherNote(note1: note.Note|pitch.Pitch,
+                         note2: note.Note|pitch.Pitch
+                         ) -> note.Note|pitch.Pitch:
     '''
     Given two :class:`~music21.pitch.Pitch` or :class:`~music21.note.Note` objects,
     this function returns the higher element based on diatonic note
@@ -3752,9 +3753,9 @@ def getWrittenHigherNote(note1: note.Note | pitch.Pitch,
         return getAbsoluteHigherNote(note1, note2)
 
 
-def getAbsoluteHigherNote(note1: note.Note | pitch.Pitch,
-                          note2: note.Note | pitch.Pitch
-                          ) -> note.Note | pitch.Pitch:
+def getAbsoluteHigherNote(note1: note.Note|pitch.Pitch,
+                          note2: note.Note|pitch.Pitch
+                          ) -> note.Note|pitch.Pitch:
     '''
     Given two :class:`~music21.pitch.Pitch` or :class:`~music21.note.Note` objects,
     returns the higher element based on sounding pitch.
@@ -3770,9 +3771,9 @@ def getAbsoluteHigherNote(note1: note.Note | pitch.Pitch,
     return note1 if semitones <= 0 else note2
 
 
-def getWrittenLowerNote(note1: note.Note | pitch.Pitch,
-                        note2: note.Note | pitch.Pitch
-                        ) -> note.Note | pitch.Pitch:
+def getWrittenLowerNote(note1: note.Note|pitch.Pitch,
+                        note2: note.Note|pitch.Pitch
+                        ) -> note.Note|pitch.Pitch:
     '''
     Given two :class:`~music21.pitch.Pitch` or :class:`~music21.note.Note` objects,
     returns the lower element based on diatonic note
@@ -3802,9 +3803,9 @@ def getWrittenLowerNote(note1: note.Note | pitch.Pitch,
         return getAbsoluteLowerNote(note1, note2)
 
 
-def getAbsoluteLowerNote(note1: note.Note | pitch.Pitch,
-                         note2: note.Note | pitch.Pitch
-                         ) -> note.Note | pitch.Pitch:
+def getAbsoluteLowerNote(note1: note.Note|pitch.Pitch,
+                         note2: note.Note|pitch.Pitch
+                         ) -> note.Note|pitch.Pitch:
     '''
     Given two :class:`~music21.note.Note` or :class:`~music21.pitch.Pitch` objects, returns
     the lower element based on actual pitch.
@@ -3822,7 +3823,7 @@ def getAbsoluteLowerNote(note1: note.Note | pitch.Pitch,
 
 def transposePitch(
     pitch1: pitch.Pitch,
-    interval1: str | Interval,
+    interval1: str|Interval,
     *,
     inPlace=False
 ) -> pitch.Pitch:
@@ -3875,7 +3876,7 @@ def transposePitch(
 
 def transposeNote(
         note1: note.Note,
-        intervalString: str | Interval) -> note.Note:
+        intervalString: str|Interval) -> note.Note:
     '''
     To be deprecated: call `n.transpose(intervalString)` directly.
 

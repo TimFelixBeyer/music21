@@ -98,7 +98,7 @@ class Variant(base.Music21Object):
         givenElements: t.Union[None,
                                base.Music21Object,
                                Sequence[base.Music21Object]] = None,
-        name: str | None = None,
+        name: str|None = None,
         givenElementsBehavior: GivenElementsBehavior = GivenElementsBehavior.OFFSETS,
         **music21ObjectKeywords,
     ):
@@ -1361,8 +1361,8 @@ def mergePartAsOssia(mainPart, ossiaPart, ossiaName,
 
 def addVariant(
     s: stream.Stream,
-    startOffset: int | float,
-    sVariant: stream.Stream | Variant,
+    startOffset: int|float,
+    sVariant: stream.Stream|Variant,
     variantName=None,
     variantGroups=None,
     replacementDuration=None

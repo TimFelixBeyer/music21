@@ -70,7 +70,7 @@ musicOrdinals[22] = 'Triple-octave'
 # Number methods...
 
 
-def numToIntOrFloat(value: OffsetQLIn) -> int | float:
+def numToIntOrFloat(value: OffsetQLIn) -> int|float:
     '''
     Given a number, return an integer if it is very close to an integer,
     otherwise, return a float.
@@ -249,7 +249,7 @@ def opFrac(num: OffsetQL) -> OffsetQL:
     pass
 
 # no type checking due to accessing protected attributes (for speed)
-def opFrac(num: OffsetQLIn | None) -> OffsetQL | None:
+def opFrac(num: OffsetQLIn|None) -> OffsetQL|None:
     '''
     opFrac -> optionally convert a number to a fraction or back.
 
@@ -418,7 +418,7 @@ def mixedNumeral(expr: numbers.Real,
     return '0'
 
 
-def roundToHalfInteger(num: int | float) -> int | float:
+def roundToHalfInteger(num: int|float) -> int|float:
     '''
     Given a floating-point number, round to the nearest half-integer. Returns int or float
 
@@ -687,7 +687,7 @@ def decimalToTuplet(decNum: float) -> tuple[int, int]:
         return (int(iy), int(jy))
 
 
-def unitNormalizeProportion(values: Sequence[int | float]) -> list[float]:
+def unitNormalizeProportion(values: Sequence[int|float]) -> list[float]:
     '''
     Normalize values within the unit interval, where max is determined by the sum of the series.
 
@@ -726,8 +726,8 @@ def unitNormalizeProportion(values: Sequence[int | float]) -> list[float]:
 
 
 def unitBoundaryProportion(
-    series: Sequence[int | float]
-) -> list[tuple[int | float, float]]:
+    series: Sequence[int|float]
+) -> list[tuple[int|float, float]]:
     '''
     Take a series of parts with an implied sum, and create
     unit-interval boundaries proportional to the series components.
@@ -750,7 +750,7 @@ def unitBoundaryProportion(
 
 
 def weightedSelection(values: list[int],
-                      weights: list[int | float],
+                      weights: list[int|float],
                       randomGenerator=None) -> int:
     '''
     Given a list of values and an equal-sized list of weights,

@@ -159,7 +159,7 @@ class StreamCore(Music21Object):
     def coreSetElementOffset(
         self,
         element: Music21Object,
-        offset: int | float | Fraction | OffsetSpecial,
+        offset: int|float|Fraction|OffsetSpecial,
         *,
         addElement=False,
         setActiveSite=True
@@ -203,7 +203,7 @@ class StreamCore(Music21Object):
         *,
         updateIsFlat: bool = True,
         clearIsSorted: bool = True,
-        memo: list[int] | None = None,
+        memo: list[int]|None = None,
         keepIndex: bool = False,
     ) -> None:
         '''
@@ -538,8 +538,8 @@ class StreamCore(Music21Object):
         recurse: bool = True,
         requireAllPresent: bool = True,
         insert: bool = True,
-        constrainingSpannerBundle: spanner.SpannerBundle | None = None
-    ) -> list[spanner.Spanner] | None:
+        constrainingSpannerBundle: spanner.SpannerBundle|None = None
+    ) -> list[spanner.Spanner]|None:
         '''
         find all spanners that are referenced by elements in the
         (recursed if recurse=True) stream and either inserts them in the Stream
@@ -684,7 +684,7 @@ class StreamCore(Music21Object):
         {1.0} <music21.note.Note D>
         '''
         sb = self.spannerBundle
-        sIter: StreamIterator | RecursiveIterator
+        sIter: StreamIterator|RecursiveIterator
         if recurse:
             sIter = self.recurse()  # type: ignore
         else:

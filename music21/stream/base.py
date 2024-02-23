@@ -84,7 +84,7 @@ StreamException = exceptions21.StreamException
 ImmutableStreamException = exceptions21.ImmutableStreamException
 
 T = t.TypeVar('T')
-RecursiveLyricList = note.Lyric | None | list['RecursiveLyricList']
+RecursiveLyricList = note.Lyric|None|list['RecursiveLyricList']
 
 BestQuantizationMatch = namedtuple(
     'BestQuantizationMatch',
@@ -263,7 +263,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     # forms of checking class
     isStream = True
     isMeasure = False
-    classSortOrder: int | float = -20
+    classSortOrder: int|float = -20
     recursionType: RecursionType = RecursionType.ELEMENTS_FIRST
 
     _styleClass = style.StreamStyle
@@ -342,7 +342,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         self.definesExplicitPageBreaks = False
 
         # property for transposition status;
-        self._atSoundingPitch: bool | t.Literal['unknown'] = 'unknown'
+        self._atSoundingPitch: bool|t.Literal['unknown'] = 'unknown'
 
         # experimental
         self._mutable = True
@@ -731,7 +731,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             f'got {type(k)}'
         )
 
-    def first(self) -> M21ObjType | None:
+    def first(self) -> M21ObjType|None:
         '''
         Return the first element of a Stream.  (Added for compatibility with StreamIterator)
         Or None if the Stream is empty.
@@ -757,7 +757,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         except IndexError:
             return None
 
-    def last(self) -> M21ObjType | None:
+    def last(self) -> M21ObjType|None:
         '''
         Return the last element of a Stream.  (Added for compatibility with StreamIterator)
         Or None if the Stream is empty.
@@ -917,7 +917,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         return tuple(self._cache['elements'])
 
     @elements.setter
-    def elements(self, value: Stream | Iterable[base.Music21Object]):
+    def elements(self, value: Stream|Iterable[base.Music21Object]):
         '''
         Sets this stream's elements to the elements in another stream (just give
         the stream, not the stream's .elements), or to a list of elements.
@@ -1119,7 +1119,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
     # ------------------------------
     @property
-    def clef(self) -> clef.Clef | None:
+    def clef(self) -> clef.Clef|None:
         '''
         Finds or sets a :class:`~music21.clef.Clef` at offset 0.0 in the Stream
         (generally a Measure):
@@ -1160,7 +1160,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         return clefList.first()
 
     @clef.setter
-    def clef(self, clefObj: clef.Clef | None):
+    def clef(self, clefObj: clef.Clef|None):
         # if clef is None; remove object?
         oldClef = self.clef
         if oldClef is not None:
@@ -1173,7 +1173,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         self.insert(0.0, clefObj)
 
     @property
-    def timeSignature(self) -> meter.TimeSignature | None:
+    def timeSignature(self) -> meter.TimeSignature|None:
         '''
         Gets or sets the timeSignature at offset 0.0 of the Stream (generally a Measure)
 
@@ -1225,7 +1225,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         return tsList.first()
 
     @timeSignature.setter
-    def timeSignature(self, tsObj: meter.TimeSignature | None):
+    def timeSignature(self, tsObj: meter.TimeSignature|None):
         oldTimeSignature = self.timeSignature
         if oldTimeSignature is not None:
             # environLocal.printDebug(['removing ts', oldTimeSignature])
@@ -1237,7 +1237,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         self.insert(0, tsObj)
 
     @property
-    def keySignature(self) -> key.KeySignature | None:
+    def keySignature(self) -> key.KeySignature|None:
         '''
         Find or set a Key or KeySignature at offset 0.0 of a stream.
 
@@ -1274,7 +1274,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             return None
 
     @keySignature.setter
-    def keySignature(self, keyObj: key.KeySignature | None):
+    def keySignature(self, keyObj: key.KeySignature|None):
         '''
         >>> a = stream.Measure()
         >>> a.keySignature = key.KeySignature(6)
@@ -1381,7 +1381,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         self.elements = ()
 
-    def cloneEmpty(self: StreamType, derivationMethod: str | None = None) -> StreamType:
+    def cloneEmpty(self: StreamType, derivationMethod: str|None = None) -> StreamType:
         '''
         Create a Stream that is identical to this one except that the elements are empty
         and set derivation.
@@ -1453,7 +1453,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> s.hasElementOfClass('Measure')
         False
 
-        To be deprecated in v8 -- to be removed in v9, use:
+        To be deprecated in v10 -- to be removed in v11, use:
 
         >>> bool(s.getElementsByClass(meter.TimeSignature))
         True
@@ -1479,7 +1479,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         This method provides functionality like a shallow copy,
         but manages locations properly, only copies elements,
         and permits filtering by class type.
-
 
         >>> s1 = stream.Stream()
         >>> s2 = stream.Stream()
@@ -1547,8 +1546,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         Return the first matched index for
         the specified object.
 
-        Raises a StreamException if the object cannot
-        be found.
+        Raises a StreamException if the object cannot be found.
 
         >>> s = stream.Stream()
         >>> n1 = note.Note('G')
@@ -1606,7 +1604,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         raise StreamException(f'cannot find object ({el}) in Stream')
 
     def remove(self,
-               targetOrList: base.Music21Object | Sequence[base.Music21Object],
+               targetOrList: base.Music21Object|Sequence[base.Music21Object],
                *,
                shiftOffsets=False,
                recurse=False):
@@ -1830,7 +1828,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             #     pass  # This should maybe just call a function renumberMeasures
         self.coreElementsChanged(clearIsSorted=False)
 
-    def pop(self, index: int | None = None) -> base.Music21Object:
+    def pop(self, index: int|None = None) -> base.Music21Object:
         '''
         Return and remove the object found at the
         user-specified index value. Index values are
@@ -1958,7 +1956,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
     # pylint: disable=no-member
     def _deepcopySubclassable(self: StreamType,
-                              memo: dict[int, t.Any] | None = None,
+                              memo: dict[int, t.Any]|None = None,
                               *,
                               ignoreAttributes=None,
                               ) -> StreamType:
@@ -2071,7 +2069,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     def setElementOffset(
         self,
         element: base.Music21Object,
-        offset: int | OffsetQLSpecial,
+        offset: int|OffsetQLSpecial,
     ):
         '''
         Sets the Offset for an element that is already in a given stream.
@@ -3387,10 +3385,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     # display methods; in the same manner as show() and write()
 
     def plot(self,
-             plotFormat: str | None = None,
-             xValue: str | None = None,
-             yValue: str | None = None,
-             zValue: str | None = None,
+             plotFormat: str|None = None,
+             xValue: str|None = None,
+             yValue: str|None = None,
+             zValue: str|None = None,
              *,
              returnInNotebook: bool = False,
              **keywords):
@@ -3569,7 +3567,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
     @overload
     def getElementsByClass(self,
-                           classFilterList: str | Iterable[str]
+                           classFilterList: str|Iterable[str]
                            ) -> iterator.StreamIterator[M21ObjType]:
         # Remove all dummy code once Astroid #1015 is fixed
         x: iterator.StreamIterator[M21ObjType] = self.iter()
@@ -3737,7 +3735,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         return self.iter().getElementsByGroup(groupFilterList, returnClone=False)
 
-    def getElementById(self, elementId) -> base.Music21Object | None:
+    def getElementById(self, elementId) -> base.Music21Object|None:
         '''
         Returns the first encountered element for a given id. Return None
         if no match. Note: this uses the id attribute stored on elements,
@@ -4036,7 +4034,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         ] = None,
         *,
         _beforeNotAt: bool = False,
-    ) -> base.Music21Object | None:
+    ) -> base.Music21Object|None:
         # noinspection PyShadowingNames
         '''
         Given an offset, find the element at this offset,
@@ -4168,7 +4166,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             Iterable[type],
             None,
         ] = None,
-    ) -> base.Music21Object | None:
+    ) -> base.Music21Object|None:
         '''
         Get element before (and not at) a provided offset.
 
@@ -4317,8 +4315,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     # _getNotes and _getPitches are found with the interval routines
     def _getMeasureNumberListByStartEnd(
         self,
-        numberStart: int | str,
-        numberEnd: int | str,
+        numberStart: int|str,
+        numberEnd: int|str,
         *,
         indicesNotNumbers: bool
     ) -> list[Measure]:
@@ -4587,7 +4585,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         This is in OMIT
         '''
-        startMeasure: Measure | None
+        startMeasure: Measure|None
 
         returnObj = t.cast(Stream[Measure], self.cloneEmpty(derivationMethod='measures'))
         srcObj = self
@@ -4643,7 +4641,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 measureNumber,
                 *,
                 collect=('Clef', 'TimeSignature', 'Instrument', 'KeySignature'),
-                indicesNotNumbers=False) -> Measure | None:
+                indicesNotNumbers=False) -> Measure|None:
         '''
         Given a measure number, return a single
         :class:`~music21.stream.Measure` object if the Measure number exists, otherwise return None.
@@ -4928,8 +4926,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
     def measureOffsetMap(
         self,
-        classFilterList: list[t.Type] | list[str] | tuple[t.Type] | tuple[str] = ('Measure',)
-    ) -> OrderedDict[float | Fraction, list[Measure]]:
+        classFilterList: list[t.Type]|list[str]|tuple[t.Type]|tuple[str] = ('Measure',)
+    ) -> OrderedDict[float|Fraction, list[Measure]]:
         '''
         If this Stream contains Measures, returns an OrderedDict
         whose keys are the offsets of the start of each measure
@@ -5015,7 +5013,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # environLocal.printDebug(['calling measure offsetMap()'])
 
         # environLocal.printDebug([classFilterList])
-        offsetMap: dict[float | Fraction, list[Measure]] = {}
+        offsetMap: dict[float|Fraction, list[Measure]] = {}
         # first, try to get measures
         # this works best of this is a Part or Score
         if Measure in classFilterList or 'Measure' in classFilterList:
@@ -5179,7 +5177,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     # handling transposition values and status
 
     @property
-    def atSoundingPitch(self) -> bool | t.Literal['unknown']:
+    def atSoundingPitch(self) -> bool|t.Literal['unknown']:
         '''
         Get or set the atSoundingPitch status, that is whether the
         score is at concert pitch or may have transposing instruments
@@ -5203,7 +5201,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         return self._atSoundingPitch
 
     @atSoundingPitch.setter
-    def atSoundingPitch(self, value: bool | t.Literal['unknown']):
+    def atSoundingPitch(self, value: bool|t.Literal['unknown']):
         if value in [True, False, 'unknown']:
             self._atSoundingPitch = value
         else:
@@ -5238,7 +5236,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         reverse: bool = False,
         transposeKeySignature: bool = True,
         preserveAccidentalDisplay: bool = False,
-    ) -> StreamType | None:
+    ) -> StreamType|None:
         '''
         Transpose the Stream according to each instrument's transposition.
 
@@ -5297,7 +5295,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         return self
 
-    def _treatAtSoundingPitch(self) -> bool | str:
+    def _treatAtSoundingPitch(self) -> bool|str:
         '''
         `atSoundingPitch` might be True, False, or 'unknown'. Given that
         setting the property does not automatically synchronize the corresponding
@@ -5691,7 +5689,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         * Changed in v8: recurse is True by default.
         '''
-        instObj: instrument.Instrument | None = None
+        instObj: instrument.Instrument|None = None
 
         if not recurse:
             sIter = self.iter()
@@ -5735,7 +5733,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                       *,
                       searchActiveSite=True,
                       returnDefault=True,
-                      recurse=False) -> instrument.Instrument | None:
+                      recurse=False) -> instrument.Instrument|None:
         '''
         Return the first Instrument found in this Stream, or None.
 
@@ -6654,17 +6652,17 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     def makeAccidentals(
         self,
         *,
-        pitchPast: list[pitch.Pitch] | None = None,
-        pitchPastMeasure: list[pitch.Pitch] | None = None,
-        otherSimultaneousPitches: list[pitch.Pitch] | None = None,
-        useKeySignature: bool | key.KeySignature = True,
-        alteredPitches: list[pitch.Pitch] | None = None,
+        pitchPast: list[pitch.Pitch]|None = None,
+        pitchPastMeasure: list[pitch.Pitch]|None = None,
+        otherSimultaneousPitches: list[pitch.Pitch]|None = None,
+        useKeySignature: bool|key.KeySignature = True,
+        alteredPitches: list[pitch.Pitch]|None = None,
         searchKeySignatureByContext: bool = False,
         cautionaryPitchClass: bool = True,
         cautionaryAll: bool = False,
         overrideStatus: bool = False,
         cautionaryNotImmediateRepeat: bool = True,
-        tiePitchSet: set[str] | None = None
+        tiePitchSet: set[str]|None = None
     ):
         '''
         A method to set and provide accidentals given various conditions and contexts.
@@ -6760,7 +6758,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         if tiePitchSet is None:
             tiePitchSet = set()
 
-        last_measure: Measure | None = None
+        last_measure: Measure|None = None
 
         for e in noteIterator:
             if e.activeSite is not None and e.activeSite.isMeasure:
@@ -6878,15 +6876,15 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                      refStreamOrTimeRange=None,
                      inPlace=False,
                      bestClef=False,
-                     pitchPast: list[pitch.Pitch] | None = None,
-                     pitchPastMeasure: list[pitch.Pitch] | None = None,
-                     useKeySignature: bool | key.KeySignature = True,
-                     alteredPitches: list[pitch.Pitch] | None = None,
+                     pitchPast: list[pitch.Pitch]|None = None,
+                     pitchPastMeasure: list[pitch.Pitch]|None = None,
+                     useKeySignature: bool|key.KeySignature = True,
+                     alteredPitches: list[pitch.Pitch]|None = None,
                      cautionaryPitchClass: bool = True,
                      cautionaryAll: bool = False,
                      overrideStatus: bool = False,
                      cautionaryNotImmediateRepeat: bool = True,
-                     tiePitchSet: set[str] | None = None
+                     tiePitchSet: set[str]|None = None
                      ):
         '''
         This method calls a sequence of Stream methods on this Stream to prepare
@@ -8284,7 +8282,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         el: base.Music21Object,
         *,
         setActiveSite=True
-    ) -> Stream | None:
+    ) -> Stream|None:
         '''
         Returns the container in a hierarchy that this element belongs to.
 
@@ -8872,7 +8870,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     # --------------------------------------------------------------------------
     # Metadata access
 
-    def _getMetadata(self) -> metadata.Metadata | None:
+    def _getMetadata(self) -> metadata.Metadata|None:
         '''
         >>> a = stream.Stream()
         >>> a.metadata = metadata.Metadata()
@@ -8882,7 +8880,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         mdList = mdList.getElementsByOffset(0)
         return mdList.first()
 
-    def _setMetadata(self, metadataObj: metadata.Metadata | None) -> None:
+    def _setMetadata(self, metadataObj: metadata.Metadata|None) -> None:
         '''
         >>> a = stream.Stream()
         >>> a.metadata = metadata.Metadata()
@@ -9058,7 +9056,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     @inPlace(default=False, derivation='transpose')
     def transpose(
         self,
-        value: str | int | 'music21.interval.IntervalBase',
+        value: str|int|'music21.interval.IntervalBase',
         /,
         *,
          recurse=True,
@@ -9457,7 +9455,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             useStream: Stream,
             startIndex: int,
             startOffset: OffsetQL,
-        ) -> tuple[base.Music21Object | None, BestQuantizationMatch | None]:
+        ) -> tuple[base.Music21Object|None, BestQuantizationMatch|None]:
             for next_el in useStream._elements[startIndex:]:
                 next_offset = useStream.elementOffset(next_el)
                 look_ahead_result = bestMatch(float(next_offset), quarterLengthDivisors)
@@ -10206,7 +10204,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         getOverlaps: bool = False,
         noNone: t.Literal[False] = False,
         **keywords
-    ) -> list[note.NotRest | None]:
+    ) -> list[note.NotRest|None]:
         return []
 
     def findConsecutiveNotes(
@@ -10221,7 +10219,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         noNone: bool = False,
         **keywords
     ) -> t.Union[
-            list[note.NotRest | None],
+            list[note.NotRest|None],
             list[note.NotRest],
             list[note.Note],
     ]:
@@ -10284,7 +10282,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         if not self.isSorted and self.autoSort:
             self.sort()
-        returnList: list[note.NotRest | None] = []
+        returnList: list[note.NotRest|None] = []
         lastStart: OffsetQL = 0.0
         lastEnd: OffsetQL = 0.0
         lastContainerEnd: OffsetQL = 0.0
@@ -11164,7 +11162,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # elements changed will already have been called
         return self
 
-    def _maxVoiceCount(self, *, countById=False) -> int | tuple[int, list[str]]:
+    def _maxVoiceCount(self, *, countById=False) -> int|tuple[int, list[str]]:
         '''
         Returns the maximum number of voices in a part.  Used by voicesToParts.
         Minimum returned is 1.  If `countById` is True, returns a tuple of
@@ -12900,7 +12898,7 @@ class Measure(Stream):
             for the amount of padding on the right side of a region.)''',
     }
 
-    def __init__(self, *args, number: int | str = 0, **keywords):
+    def __init__(self, *args, number: int|str = 0, **keywords):
         if len(args) == 1 and isinstance(args[0], int) and number == 0:
             number = args[0]
             args = ()
@@ -13886,8 +13884,8 @@ class Score(Stream):
 
     def measureOffsetMap(
         self,
-        classFilterList: list[t.Type] | list[str] | tuple[t.Type] | tuple[str] = ('Measure',)
-    ) -> OrderedDict[float | Fraction, list[Measure]]:
+        classFilterList: list[t.Type]|list[str]|tuple[t.Type]|tuple[str] = ('Measure',)
+    ) -> OrderedDict[float|Fraction, list[Measure]]:
         '''
         This Score method overrides the
         :meth:`~music21.stream.Stream.measureOffsetMap` method of Stream.
@@ -13905,7 +13903,7 @@ class Score(Stream):
         if not parts:
             return Stream.measureOffsetMap(self, classFilterList)
         # else:
-        offsetMap: dict[float | Fraction, list[Measure]] = {}
+        offsetMap: dict[float|Fraction, list[Measure]] = {}
         for p in parts:
             mapPartial = p.measureOffsetMap(classFilterList)
             # environLocal.printDebug(['mapPartial', mapPartial])
@@ -13942,7 +13940,7 @@ class Score(Stream):
         self: Score,
         *,
         addTies: bool = True,
-    ) -> Score | None:
+    ) -> Score|None:
         '''
         Slice all duration of all part by the minimum duration
         that can be summed to each concurrent duration.
@@ -13959,7 +13957,7 @@ class Score(Stream):
         if mCount == 0:
             mCount = 1  # treat as a single measure
 
-        m_or_p: Measure | Part
+        m_or_p: Measure|Part
         for i in range(mCount):  # may be 1
             uniqueQuarterLengths = set()
             p: Part
@@ -13994,7 +13992,7 @@ class Score(Stream):
         return self
 
     def partsToVoices(self,
-                      voiceAllocation: int | list[list | int] = 2,
+                      voiceAllocation: int|list[list|int] = 2,
                       permitOneVoicePerPart=False,
                       setStems=True):
         # noinspection PyShadowingNames
@@ -14037,7 +14035,7 @@ class Score(Stream):
                 bundle.append(sub)
         # else, assume it is a list of groupings
         elif common.isIterable(voiceAllocation):
-            voiceAllocation = t.cast(list[list | int], voiceAllocation)
+            voiceAllocation = t.cast(list[list|int], voiceAllocation)
             for group in voiceAllocation:
                 sub = []
                 # if a single entry
@@ -14056,7 +14054,7 @@ class Score(Stream):
         s = self.cloneEmpty(derivationMethod='partsToVoices')
         s.metadata = self.metadata
 
-        pActive: Part | None
+        pActive: Part|None
         for sub in bundle:  # each sub contains parts
             if len(sub) == 1 and not permitOneVoicePerPart:
                 # probably need to create a new part and measure
@@ -14398,7 +14396,7 @@ class SpannerStorage(Stream):
 
     * Changed in v8: spannerParent is renamed client.
     '''
-    def __init__(self, givenElements=None, *, client: spanner.Spanner | None = None, **keywords):
+    def __init__(self, givenElements=None, *, client: spanner.Spanner|None = None, **keywords):
         # No longer need store as weakref since Py2.3 and better references
         if client is None:  # should never be none.  Just for testing
             from music21 import spanner
