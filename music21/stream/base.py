@@ -4140,8 +4140,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if span < 0 or (span == 0 and _beforeNotAt):
                 if self.isSorted:
                     break
-                else:
-                    continue
             elif span == nearestTrailSpan:
                 candidates.append((span, e))
             elif span < nearestTrailSpan:
@@ -7431,6 +7429,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     noteObj.duration = copy.deepcopy(c.duration)
                     noteObj.expressions = copy.deepcopy(c.expressions)
                     noteObj.articulations = copy.deepcopy(c.articulations)
+                    if c.style.hideObjectOnPrint and not noteObj.style.hideObjectOnPrint:
+                        print(noteObj.style.__dict__, c.style.__dict__)
                     c.activeSite.insert(c.offset, noteObj)
                 c.activeSite.remove(c)
             ties = {"start": 0, "continue": 0, "stop": 0}
@@ -7590,11 +7590,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     tied.add(idx_start)
             posDelete = sorted(list(posDelete))
 
+        to_delete = [notes_and_rests[i] for i in reversed(posDelete)]
+        self.remove(to_delete, recurse=True)
         # all results have been processed
-        for i in reversed(posDelete):
+        # for i in reversed(posDelete):
             # Recurse rather than depend on the containers being Measures
             # https://github.com/cuthbertLab/music21/issues/266
-            self.remove(notes_and_rests[i], recurse=True)
+            # self.remove(notes_and_rests[i], recurse=True)
 
         return self
 
@@ -11248,10 +11250,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         voiceCount = max(voiceCount, len(voiceIds))
 
-        if not countById:
-            return voiceCount
-        else:
+        if countById:
             return voiceCount, voiceIds
+        return voiceCount
 
     def voicesToParts(self, *, separateById=False):
         # noinspection PyShadowingNames

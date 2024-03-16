@@ -105,10 +105,8 @@ class SortTuple(namedtuple('SortTuple', (
         if isinstance(other, tuple):
             return super().__eq__(other)
         try:
-            if self.atEnd == 1 and other != INFINITY:
-                return False
-            elif self.atEnd == 1:
-                return True
+            if self.atEnd == 1:
+                return other == INFINITY
             else:
                 return self.offset == other
         except ValueError:
@@ -129,10 +127,8 @@ class SortTuple(namedtuple('SortTuple', (
         if isinstance(other, tuple):
             return super().__gt__(other)
         try:
-            if self.atEnd == 1 and other != INFINITY:
-                return True
-            elif self.atEnd == 1:
-                return False
+            if self.atEnd == 1:
+                return other != INFINITY
             else:
                 return self.offset > other
         except ValueError:
@@ -180,7 +176,7 @@ class SortTuple(namedtuple('SortTuple', (
 
     def modify(self, **keywords):
         '''
-        return a new SortTuple identical to the previous, except with
+        Return a new SortTuple identical to the previous, except with
         the given keyword modified.  Works only with keywords.
 
         >>> st = sorting.SortTuple(atEnd=0, offset=1.0, priority=0, classSortOrder=20,
@@ -208,8 +204,7 @@ class SortTuple(namedtuple('SortTuple', (
 
     def add(self, other):
         '''
-        Add all attributes from one sortTuple to another,
-        returning a new one.
+        Add all attributes from one sortTuple to another, returning a new one.
 
         >>> n = note.Note()
         >>> n.offset = 10
@@ -237,7 +232,8 @@ class SortTuple(namedtuple('SortTuple', (
 
     def sub(self, other):
         '''
-        Subtract all attributes from to another.  atEnd and isNotGrace take the min value of either.
+        Subtract all attributes from to another.
+        atEnd and isNotGrace take the min value of either.
 
         >>> n = note.Note()
         >>> n.offset = 10

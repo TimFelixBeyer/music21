@@ -24,11 +24,15 @@ import unittest
 from music21 import articulations
 from music21 import exceptions21
 from music21 import common
+from music21.common.numberTools import clamp
 from music21.common.objects import SlottedObjectMixin
 from music21 import dynamics
 from music21 import environment
 from music21 import prebase
 from music21 import note  # circular but acceptable, because not used at highest level.
+
+if t.TYPE_CHECKING:
+    from fractions import Fraction
 
 environLocal = environment.Environment('volume')
 
@@ -232,8 +236,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
 
         '''
         # velocityIsRelative might be best set at import. e.g., from MIDI,
-        # velocityIsRelative is False, but in other applications, it may not
-        # be
+        # velocityIsRelative is False, but in other applications, it may not be
         val = baseLevel
         dm = None  # no dynamic mark
         # velocity is checked first; the range between 0 and 1 is doubled,
@@ -243,8 +246,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
             if self._velocityScalar is not None:
                 if not self.velocityIsRelative:
                     # if velocity is not relative
-                    # it should fully determine output independent of anything
-                    # else
+                    # it should fully determine output independent of anything else
                     val = self._velocityScalar
                 else:
                     val = val * (self._velocityScalar * 2.0)
@@ -270,7 +272,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
                     val = val * (dm.volumeScalar * 2.0)
             # useArticulations can be a list of 1 or more articulation objects
             # as well as True/False
-            if useArticulations is not False:
+            if useArticulations:
                 am: Iterable[articulations.Articulation]
                 if isinstance(useArticulations, articulations.Articulation):
                     am = [useArticulations]  # place in a list
@@ -284,10 +286,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
                     # add in volume shift for all articulations
                     val += a.volumeShift
         if clip:  # limit between 0 and 1
-            if val > 1:
-                val = 1.0
-            elif val < 0:
-                val = 0.0
+            val = clamp(val, 0.0, 1.0)
         # might want to re-balance range after scaling
         # always update cached result each time this is called
         self._cachedRealized = val
@@ -343,11 +342,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
         vs = self._velocityScalar
         if vs is None:
             return None
-        v = vs * 127
-        if v > 127:
-            v = 127
-        elif v < 0:
-            v = 0
+        v = clamp(vs * 127, 0, 127)
         return round(v)
 
     @velocity.setter
@@ -356,12 +351,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
             self._velocityScalar = None
         elif not common.isNum(value):
             raise VolumeException(f'value provided for velocity must be a number, not {value}')
-        elif value <= 0:
-            self._velocityScalar = 0.0
-        elif value >= 127:
-            self._velocityScalar = 1.0
-        else:
-            self._velocityScalar = value / 127.0
+        self._velocityScalar = clamp(value / 127.0, 0, 1)
 
     @property
     def velocityScalar(self) -> float|None:
@@ -402,17 +392,7 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
         if not common.isNum(value):
             raise VolumeException('value provided for velocityScalar must be a number, '
                                   + f'not {value}')
-
-        scalar: float
-        if value < 0:
-            scalar = 0.0
-        elif value > 1:
-            scalar = 1.0
-        else:
-            if t.TYPE_CHECKING:
-                assert value is not None
-            scalar = float(value)
-        self._velocityScalar = scalar
+        self._velocityScalar = clamp(value, 0.0, 1.0)
 
 
 # ------------------------------------------------------------------------------
@@ -421,7 +401,6 @@ class Volume(prebase.ProtoM21Object, SlottedObjectMixin):
 
 def realizeVolume(srcStream,
                   setAbsoluteVelocity=False,
-                  useDynamicContext=True,
                   useVelocity=True,
                   useArticulations=True):
     '''
@@ -445,12 +424,7 @@ def realizeVolume(srcStream,
     flatSrc = srcStream.flatten()  # assuming sorted
 
     # check for any dynamics
-    dynamicsAvailable = False
-    if flatSrc.getElementsByClass(dynamics.Dynamic):
-        dynamicsAvailable = True
-    else:  # no dynamics available
-        if useDynamicContext is True:  # only if True, and non avail, override
-            useDynamicContext = False
+    dynamicsAvailable = bool(flatSrc.getElementsByClass(dynamics.Dynamic))
 
     if dynamicsAvailable:
         # extend durations of all dynamics
@@ -474,21 +448,19 @@ def realizeVolume(srcStream,
             eStart = e.getOffsetBySite(flatSrc)
 
             # get the most recent dynamic
-            if dynamicsAvailable and useDynamicContext is True:
-                dm = False  # set to not search dynamic context
+            dynamicContext = False  # set to not search dynamic context
+            if bKeys:
                 for k in range(lastRelevantKeyIndex, len(bKeys)):
                     start, end = bKeys[k]
-                    if end > eStart >= start:
+                    if start <= eStart < end:
                         # store to start in the same position
                         # for next element
                         lastRelevantKeyIndex = k
-                        dm = boundaries[bKeys[k]]
+                        dynamicContext = boundaries[bKeys[k]]
                         break
-            else:  # permit supplying a single dynamic context for all material
-                dm = useDynamicContext
             # this returns a value, but all we need to do is to set the
             # cached values stored internally
-            val = e.volume.getRealized(useDynamicContext=dm,
+            val = e.volume.getRealized(useDynamicContext=dynamicContext,
                                        useVelocity=useVelocity,
                                        useArticulations=useArticulations)
             if setAbsoluteVelocity:

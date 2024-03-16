@@ -4356,12 +4356,9 @@ class Pitch(prebase.ProtoM21Object):
                 c = c.getHigherEnharmonic(inPlace=False)
             except AccidentalException:
                 break  # ran out of accidentals
-            if c is None:
+            if c.accidental is not None and abs(c.accidental.alter) > alterLimit:
                 break
-            if c.accidental is not None:
-                if abs(c.accidental.alter) > alterLimit:
-                    break
-            if c in post:  # are we looping?
+            if c in post:  # Check for loops
                 break
             post.append(c)
         # iterative scan downward
@@ -4373,9 +4370,8 @@ class Pitch(prebase.ProtoM21Object):
                 break  # ran out of accidentals
             if c is None:
                 break
-            if c.accidental is not None:
-                if abs(c.accidental.alter) > alterLimit:
-                    break
+            if c.accidental is not None and abs(c.accidental.alter) > alterLimit:
+                break
             if c in post:  # are we looping?
                 break
             post.append(c)

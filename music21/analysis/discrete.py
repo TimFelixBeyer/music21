@@ -1058,7 +1058,7 @@ class Ambitus(DiscreteAnalysis):
             pitches: Iterable[pitch.Pitch] = ()
             if isinstance(n, note.GeneralNote) and not isinstance(n, harmony.ChordSymbol):
                 pitches = n.pitches
-            psFound += [p.ps for p in pitches]
+            psFound.extend([p.ps for p in pitches])
             pitchesFound.extend(pitches)
         # in some cases there is still nothing -- perhaps only ChordSymbols
         if not psFound:

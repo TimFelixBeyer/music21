@@ -882,6 +882,13 @@ def lcm(filterList: Iterable[int]) -> int:
     return lcmVal
 
 
+def clamp(number: OffsetQLIn, minimum, maximum) -> OffsetQLIn:
+    '''
+    Clamp a number between a minimum, and a maximum.
+    '''
+    return max(minimum, min(number, maximum))
+
+
 def contiguousList(inputListOrTuple) -> bool:
     '''
     returns bool True or False if a list containing ints

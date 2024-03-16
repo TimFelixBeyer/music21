@@ -2158,7 +2158,6 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
         components = self.components[:componentIndex]
         return float(sum([c.quarterLength for c in components]))
 
-
     def consolidate(self):
         '''
         Given a Duration with multiple components, consolidate into a single

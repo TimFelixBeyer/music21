@@ -552,13 +552,15 @@ def deleteMeasures(s, toDelete, *, correctMeasureNumbers=True):
     from music21 import stream
 
     if s.hasMeasures():
+        toDeleteMeasures = []
         for mNumber in toDelete:
             try:
                 removeMe = s.measure(mNumber)
                 if removeMe is not None:
-                    s.remove(removeMe)
+                    toDeleteMeasures.append(removeMe)
             except exceptions21.Music21Exception:  # More specific?
                 pass
+        s.remove(toDeleteMeasures)
 
     else:
         for part in s.parts:
@@ -861,11 +863,7 @@ class Expander(t.Generic[StreamType]):
         else:
             mList = list(streamObj.getElementsByClass(stream.Measure))
         for m in mList:
-            remove = []
-            for e in m.getElementsByClass(RepeatExpression):
-                remove.append(e)
-            for e in remove:
-                m.remove(e)
+            m.remove([e for e in m.getElementsByClass(RepeatExpression)])
 
     def repeatBarsAreCoherent(self):
         '''

@@ -1506,7 +1506,7 @@ class Test(unittest.TestCase):
 
     def testAdjustTimeAttributesFromMeasure(self):
         # Ignore import artifacts:
-        d = duration.Duration(3 + 3 / 480)
+        d = duration.Duration(3 + 5 / 480)
         m = stream.Measure([meter.TimeSignature('6/8'), note.Note(duration=d)])
         pp = PartParser()
         pp.lastMeasureOffset = 21.0

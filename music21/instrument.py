@@ -1893,19 +1893,18 @@ def deduplicate(s: stream.Stream) -> stream.Stream:
                     surviving = inst
                     break
                 # Remove remaining instruments
-                for inst in o:
-                    if inst is surviving:
-                        continue
-                    sub.remove(inst, recurse=True)
+                to_delete = [inst for inst in o if inst is not surviving]
             # Case: mixed classes: standardize names
             # Remove instances of generic `Instrument` if found
             else:
+                to_delete = []
                 for inst in o:
                     if inst.__class__ == Instrument:
-                        sub.remove(inst, recurse=True)
+                        to_delete.append(inst)
                     else:
                         inst.partName = partName
                         inst.instrumentName = instrumentName
+            sub.remove(inst, recurse=True)
 
     return s
 

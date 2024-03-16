@@ -37,6 +37,7 @@ from music21 import note
 from music21 import percussion
 from music21 import pitch
 from music21 import stream
+from music21.stream.enums import GivenElementsBehavior
 from music21 import tempo
 
 from music21.midi.percussion import MIDIPercussionException, PercussionMapper
@@ -2147,24 +2148,18 @@ def prepareStreamForMidi(s: stream.Stream) -> stream.Stream:
 
     conductor = conductorStream(s)
 
-    if s.hasPartLikeStreams():
-        # process Volumes one part at a time
-        # this assumes that dynamics in a part/stream apply to all components
-        # of that part stream
-        # this sets the cachedRealized value for each Volume
-        for p in s.getElementsByClass(stream.Stream):
-            volume.realizeVolume(p)
+    # Have to turn single stream into part to be able to add conductor stream
+    if not s.hasPartLikeStreams():
+        s = stream.Score(s, givenElementsBehavior=GivenElementsBehavior.INSERT)
+    # process volumes one part at a time
+    # this assumes that dynamics in a part/stream apply to all components
+    # of that part stream
+    # this sets the cachedRealized value for each Volume
+    for p in s.getElementsByClass(stream.Stream):
+        volume.realizeVolume(p)
 
-        s.insert(0, conductor)
-        out = s
-
-    else:  # just a single Stream
-        volume.realizeVolume(s)
-        out = stream.Score()
-        out.insert(0, conductor)
-        out.insert(0, s)
-
-    return out
+    s.insert(0, conductor)
+    return s
 
 
 def conductorStream(s: stream.Stream) -> stream.Part:

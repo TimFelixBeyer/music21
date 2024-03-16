@@ -5398,8 +5398,8 @@ class Chord(ChordBase):
             possibleNormalOrder = [(pc + transposeAmount) % 12 for pc in transposedNormalForm]
             if set(possibleNormalOrder) == mustBePresentPCs:
                 return possibleNormalOrder
-        raise ChordException('Could not find a normalOrder for chord: '
-                             + str(self.orderedPitchClassesString))
+
+        raise ChordException(f'Could not find a normalOrder for chord: {self.orderedPitchClassesString}')
 
     @property
     def normalOrderString(self):

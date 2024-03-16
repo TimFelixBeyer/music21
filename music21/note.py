@@ -302,17 +302,16 @@ class Lyric(prebase.ProtoM21Object, style.StyleMixin):
         '''
         if not self.isComposite:
             return self._text
-        else:
-            if t.TYPE_CHECKING:
-                assert isinstance(self.components, Sequence), \
-                    'Programming error: isComposite implies that components exists'  # mypy
-            text_out = self.components[0].text
-            if text_out is None:
-                text_out = ''
-            for component in self.components[1:]:
-                componentText = component.text if component.text is not None else ''
-                text_out += component.elisionBefore + componentText
-            return text_out
+        if t.TYPE_CHECKING:
+            assert isinstance(self.components, Sequence), \
+                'Programming error: isComposite implies that components exists'  # mypy
+        text_out = self.components[0].text
+        if text_out is None:
+            text_out = ''
+        for component in self.components[1:]:
+            componentText = component.text if component.text is not None else ''
+            text_out += component.elisionBefore + componentText
+        return text_out
 
     @text.setter
     def text(self, newText: str):
@@ -344,8 +343,7 @@ class Lyric(prebase.ProtoM21Object, style.StyleMixin):
         '''
         if self.isComposite:
             return 'composite'
-        else:
-            return self._syllabic
+        return self._syllabic
 
 
     @syllabic.setter
@@ -382,8 +380,7 @@ class Lyric(prebase.ProtoM21Object, style.StyleMixin):
         '''
         if self._identifier is None:
             return self._number
-        else:
-            return self._identifier
+        return self._identifier
 
     @identifier.setter
     def identifier(self, value: str|None):
@@ -436,18 +433,16 @@ class Lyric(prebase.ProtoM21Object, style.StyleMixin):
                     return '-' + text
                 case _:
                     return text
-        else:
-            if t.TYPE_CHECKING:
-                assert isinstance(self.components, Sequence), \
-                    'Programming error: isComposite should assert components exists'  # for mypy
-            firstSyllabic = self.components[0].syllabic
-            lastSyllabic = self.components[-1].syllabic
-            if firstSyllabic in ['middle', 'end']:
-                text = '-' + text
-            if lastSyllabic in ['begin', 'middle']:
-                text += '-'
-            return text
-
+        if t.TYPE_CHECKING:
+            assert isinstance(self.components, Sequence), \
+                'Programming error: isComposite should assert components exists'  # for mypy
+        firstSyllabic = self.components[0].syllabic
+        lastSyllabic = self.components[-1].syllabic
+        if firstSyllabic in ['middle', 'end']:
+            text = '-' + text
+        if lastSyllabic in ['begin', 'middle']:
+            text += '-'
+        return text
 
     @rawText.setter
     def rawText(self, rawTextIn: str):
@@ -748,9 +743,9 @@ class GeneralNote(base.Music21Object):
 
     def addLyric(self,
                  text,
-                 lyricNumber=None,
+                 lyricNumber: None | int = None,
                  *,
-                 applyRaw=False,
+                 applyRaw: bool = False,
                  lyricIdentifier=None) -> None:
         '''
         Adds a lyric, or an additional lyric, to a Note, Chord, or Rest's lyric list.

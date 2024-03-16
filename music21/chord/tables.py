@@ -1480,20 +1480,20 @@ tnIndexToChordInfo = {
 # ------------------------------------------------------------------------------
 # function to access data
 
-def forteIndexToInversionsAvailable(card, index):
+def forteIndexToInversionsAvailable(card, index) -> bool:
     '''
     Return possible inversion values for any cardinality and Forte index
 
     >>> chord.tables.forteIndexToInversionsAvailable(3, 1)
-    [0]
+    False
     >>> chord.tables.forteIndexToInversionsAvailable(3, 2)
-    [-1, 1]
+    True
     >>> chord.tables.forteIndexToInversionsAvailable(3, 3)
-    [-1, 1]
+    True
     >>> chord.tables.forteIndexToInversionsAvailable(3, 6)
-    [0]
+    False
     >>> chord.tables.forteIndexToInversionsAvailable(3, 12)
-    [0]
+    False
     '''
     if card not in list(range(1,13)):
         raise ChordTablesException(f'cardinality {card} not valid')
@@ -1501,10 +1501,7 @@ def forteIndexToInversionsAvailable(card, index):
         raise ChordTablesException(f'index {index} not valid')
     # get morris invariance vector
     morris = FORTE[card][index][2]
-    if morris[1] > 0:  # second value stored inversion status
-        return [0]
-    else:
-        return [-1, 1]
+    return morris[1] <= 0  # second value stored inversion status
 
 def _validateAddress(address):
     '''
@@ -1548,15 +1545,12 @@ def _validateAddress(address):
 
     inversionsAvailable = forteIndexToInversionsAvailable(card, index)
     if inversion is not None:
-        if inversion not in inversionsAvailable:
+        if inversionsAvailable and inversion == 0 or (not inversionsAvailable and inversion != 0):
             raise ChordTablesException(f'inversion {inversion} not valid')
 
     if inversion is None:  # get a default inversion
         # environLocal.printDebug(['getting inversion for:', card, index])
-        if 0 in inversionsAvailable:
-            inversion = 0
-        else:
-            inversion = 1
+        inversion = 0 if not inversionsAvailable else 1
 
     # test access: will raise an exception on error
     # ultimately this can be removed
@@ -1860,7 +1854,6 @@ def seekChordTablesAddress(c):
     if not pcSet:
         raise ChordTablesException(
             f'cannot access chord tables address for Chord with {len(pcSet)} pitches')
-
     # environLocal.printDebug(['calling seekChordTablesAddress:', pcSet])
 
     card = len(pcSet)
@@ -1885,23 +1878,21 @@ def seekChordTablesAddress(c):
 
         candidateTuple = (tuple(testSet), tuple(testSetInvert), testSetOriginalPC)
         candidates.append(candidateTuple)
-
     for indexCandidate in range(1, len(FORTE[card])):  # first entry is None
         dataLine = FORTE[card][indexCandidate]
         dataLinePcs = dataLine[0]
         inversionsAvailable = forteIndexToInversionsAvailable(card, indexCandidate)
-
         for candidate, candidateInversion, candidateOriginalPC in candidates:
             # environLocal.printDebug([candidate])
             # need to only match form
             if dataLinePcs == candidate:
                 index = indexCandidate
-                inversion = 0 if 0 in inversionsAvailable else 1
+                inversion = 0 if not inversionsAvailable else 1
                 return ChordTableAddress(card, index, inversion, candidateOriginalPC)
             elif dataLinePcs == candidateInversion:
                 index = indexCandidate
                 # assert 0 not in inversionsAvailable  # should not be possible
-                inversion = 0 if 0 in inversionsAvailable else -1
+                inversion = 0 if not inversionsAvailable else -1
                 return ChordTableAddress(card, index, inversion, candidateOriginalPC)
     raise ChordTablesException(f'cannot find a chord table address for {pcSet}')
 

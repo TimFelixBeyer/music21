@@ -2496,7 +2496,7 @@ class RomanNumeral(harmony.Harmony):
 
         if workingFigure == 'Cad64':
             # since useScale can be a scale, it might not have a mode
-            if hasattr(useScale, 'mode') and useScale.mode == 'minor':
+            if getattr(useScale, 'mode', None) == 'minor':
                 workingFigure = 'i64'
             else:
                 workingFigure = 'I64'
@@ -3499,14 +3499,12 @@ class RomanNumeral(harmony.Harmony):
             pass  # None
             # cache object if passed directly
         self._scale = keyOrScale
-        if (keyOrScale is None
-                or (hasattr(keyOrScale, 'isConcrete')
-                    and not keyOrScale.isConcrete)):
+        if keyOrScale is None:
             self.useImpliedScale = True
-            if self._scale is not None:
-                self.impliedScale = self._scale.derive(1, 'C')
-            else:
-                self.impliedScale = scale.MajorScale('C')
+            self.impliedScale = scale.MajorScale('C')
+        elif not getattr(keyOrScale, 'isConcrete', True):
+            self.useImpliedScale = True
+            self.impliedScale = self._scale.derive(1, 'C')
         else:
             self.useImpliedScale = False
         # need to permit object creation with no arguments, thus

@@ -4001,15 +4001,13 @@ def subtract(intervalList):
 
     n1 = pitch.Pitch('C4')
     n2 = pitch.Pitch('C4')
-    for i, intI in enumerate(intervalList):
-        if i == 0:
-            n2 = transposePitch(n2, intI)
+    n2 = transposePitch(n2, intervalList[0])
+    for intI in intervalList[1:]:
+        if not hasattr(intI, 'chromatic'):
+            intervalObj = Interval(intI)
         else:
-            if not hasattr(intI, 'chromatic'):
-                intervalObj = Interval(intI)
-            else:
-                intervalObj = intI
-            n2 = transposePitch(n2, intervalObj.reverse())
+            intervalObj = intI
+        n2 = transposePitch(n2, intervalObj.reverse())
     # print(n1.nameWithOctave, n2.nameWithOctave)
     return Interval(noteStart=n1, noteEnd=n2)
 
