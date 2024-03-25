@@ -1032,7 +1032,7 @@ class Expander(t.Generic[StreamType]):
         # return false for all other cases
         return False
 
-    def _groupRepeatBracketIndices(self, streamObj):
+    def _groupRepeatBracketIndices(self, streamObj) -> list[dict[str: list[int], str: list[spanner.RepeatBracket]]]:
         # noinspection PyShadowingNames
         '''
         Return a list of dictionaries that contains two
@@ -1115,7 +1115,7 @@ class Expander(t.Generic[StreamType]):
         for group in self._groupRepeatBracketIndices(self._srcMeasureStream):
             # get for each group and look at one at a time.
 
-            rBrackets = group['repeatBrackets']
+            rBrackets: list[int] = group['repeatBrackets']
             # environLocal.printDebug(['_repeatBracketsAreCoherent',
             #    "group['measureIndices']",  group['measureIndices']])
             # environLocal.printDebug(['_repeatBracketsAreCoherent',
@@ -1140,7 +1140,7 @@ class Expander(t.Generic[StreamType]):
                         f'repeat brackets are not numbered consecutively: {match}, {target}'])
                     return False
             # there needs to be a repeat mark after each bracket except the last
-            spannedMeasureIds = []
+            spannedMeasureIds = set()
             for rbCount, rb in enumerate(rBrackets):
                 # environLocal.printDebug(['rbCount', rbCount, rb])
                 # get the last, which is a measure, see if it has a repeat
@@ -1151,14 +1151,13 @@ class Expander(t.Generic[StreamType]):
                     if id(m) in spannedMeasureIds:
                         environLocal.printDebug(['found overlapping repeat brackets'])
                         return False
-                    spannedMeasureIds.append(id(m))
+                    spannedMeasureIds.add(id(m))
                 # check the right bar while iterating
                 rightBar = m.rightBarline
                 if rightBar is None or 'Repeat' not in rightBar.classes:
                     # all but the last must have repeat bars; except if we just
                     # have one bracket or the last
-                    if (len(rBrackets) == 1
-                            or rbCount < len(rBrackets) - 1):
+                    if (len(rBrackets) == 1 or rbCount < len(rBrackets) - 1):
                         environLocal.printDebug([
                             'repeat brackets are not terminated with a repeat barline'
                         ])
@@ -1539,7 +1538,7 @@ class Expander(t.Generic[StreamType]):
             if not innermost:
                 continue
 
-            rBrackets = group['repeatBrackets']
+            rBrackets: list[spanner.RepeatBracket] = group['repeatBrackets']
             mStart = streamObj[innermost[0]]
             mEnd = streamObj[innermost[-1]]
             for rb in rBrackets:
@@ -1562,7 +1561,7 @@ class Expander(t.Generic[StreamType]):
             # environLocal.printDebug(['cannot find innermost in a group:',
             # 'innermost', innermost, 'groupFocus', groupFocus])
             return self.processInnermostRepeatBars(streamObj)
-        rBrackets = groupFocus['repeatBrackets']
+        rBrackets: list[spanner.RepeatBracket] = groupFocus['repeatBrackets']
         # get all measures before bracket
         streamObjPre = streamObj[:innermost[0]]
         streamBracketRepeats = []  # store a list

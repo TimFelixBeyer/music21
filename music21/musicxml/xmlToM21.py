@@ -1706,9 +1706,8 @@ class PartParser(XMLParserBase):
         # TODO: pan
         # TODO: elevation
         # TODO: store id attribute somewhere
-        mxMIDIInstrument = mxScorePart.find('midi-instrument')
         i: instrument.Instrument|None = None
-        if mxMIDIInstrument is not None:
+        if (mxMIDIInstrument := mxScorePart.find('midi-instrument')) is not None:
             mxMidiProgram = mxMIDIInstrument.find('midi-program')
             mxMidiUnpitched = mxMIDIInstrument.find('midi-unpitched')
             if midiUnpitchedText := strippedText(mxMidiUnpitched):
