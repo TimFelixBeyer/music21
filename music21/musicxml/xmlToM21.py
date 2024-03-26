@@ -5103,16 +5103,31 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             # function instead -- deprecated in musicxml  4
             seta(cs, mxHarmony, 'function', 'romanNumeral')
 
+        def _parse_degree_value(mxDegree):
+            """Parse the degree-value text and return a list of integers.
+            This *should* just be a positive integer, but in practice, values like 7/9
+            or 9,11 occur quite frequently. We try to interpret these as lists of integers.
+            """
+            text = mxDegree.find('degree-value').text
+            if not text:
+                raise MusicXMLImportException('degree-value missing')
+            if text.isdigit():
+                return [int(text)]
+            nums = [num for num in text.replace('.', '/').replace(',', '/').split('/') if num]
+            if not nums:
+                raise MusicXMLImportException(f'degree-value {text!r} could not be understood')
+            warnings.warn(f'Invalid degree-value {text!r}, trying to interpret as {nums!r}')
+            return nums
+
         mxDegrees = mxHarmony.findall('degree')
         for mxDegree in mxDegrees:  # a list of components
-            hd = harmony.ChordStepModification()
-            seta(hd, mxDegree, 'degree-value', 'degree', transform=int)
-            if hd.degree is None:
-                raise MusicXMLImportException('degree-value missing')
-            # TODO: - should allow float, but meaningless to allow microtones in this context.
-            seta(hd, mxDegree, 'degree-alter', 'interval', transform=int)
-            seta(hd, mxDegree, 'degree-type', 'modType')
-            cs.addChordStepModification(hd, updatePitches=True)
+            nums = _parse_degree_value(mxDegree)
+            for num in nums:
+                hd = harmony.ChordStepModification()
+                hd.degree = int(num)
+                seta(hd, mxDegree, 'degree-alter', 'interval', transform=int)
+                seta(hd, mxDegree, 'degree-type', 'modType')
+                cs.addChordStepModification(hd, updatePitches=True)
 
         self.setEditorial(mxHarmony, cs)
         self.setPrintStyle(mxHarmony, cs)
@@ -5325,7 +5340,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         self.setTextFormatting(mxRehearsal, rm)
         return rm
 
-    def xmlToTempoIndication(self, mxMetronome, mxWords=None):
+    def xmlToTempoIndication(self, mxMetronome: ET.Element, mxWords=None):
         '''
         Given an mxMetronome, convert to either a TempoIndication subclass,
         either a tempo.MetronomeMark or tempo.MetricModulation.
