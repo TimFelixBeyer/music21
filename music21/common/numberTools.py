@@ -70,7 +70,7 @@ musicOrdinals[22] = 'Triple-octave'
 # Number methods...
 
 
-def numToIntOrFloat(value: OffsetQLIn) -> int|float:
+def numToIntOrFloat(value: OffsetQLIn|str) -> int|float:
     '''
     Given a number, return an integer if it is very close to an integer,
     otherwise, return a float.
@@ -126,13 +126,23 @@ def numToIntOrFloat(value: OffsetQLIn) -> int|float:
     >>> common.numToIntOrFloat(Fraction(4, 3))
     1.333333333...
 
+    Infinites work too
+
+    >>> common.numToIntOrFloat(float('inf'))
+    inf
+    >>> common.numToIntOrFloat('-inf')
+    -inf
+
     Note: Decimal objects are not supported.
     '''
     try:
         intVal = round(value)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         value = float(value)
-        intVal = round(value)
+        try:
+            intVal = round(value)
+        except OverflowError:
+            return value
 
     if isclose(intVal, value, abs_tol=1e-6):
         return intVal
