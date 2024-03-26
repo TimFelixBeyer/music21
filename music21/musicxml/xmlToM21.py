@@ -153,16 +153,14 @@ def musicXMLTypeToType(value: str) -> str:
     music21.musicxml.xmlObjects.MusicXMLImportException:
         found unknown MusicXML type: None
     '''
-    # MusicXML uses long instead of longa
-    if value not in duration.typeToDuration:
-        if value == 'long':
-            return 'longa'
-        elif value == '32th':
-            return '32nd'
-        else:
-            raise MusicXMLImportException(f'found unknown MusicXML type: {value}')
-    else:
+    if value in duration.typeToDuration:
         return value
+    # MusicXML uses long instead of longa
+    elif value == 'long':
+        return 'longa'
+    elif value == '32th':
+        return '32nd'
+    raise MusicXMLImportException(f'found unknown MusicXML type: {value}')
 
 
 def _floatOrIntStr(strObj):
@@ -5370,7 +5368,11 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         for mxObj in mxMetronome:
             tag = mxObj.tag
             if tag == 'beat-unit':
-                durationType = musicXMLTypeToType(mxObj.text)
+                if mxObj.text is not None:
+                    durationType = musicXMLTypeToType(mxObj.text)
+                else:
+                    warnings.warn(f'Unspecified beat-unit for metronome {mxMetronome}, assuming quarter note.', MusicXMLWarning)
+                    durationType = 'quarter'
                 dActive = duration.Duration(type=durationType)
                 durations.append(dActive)
             elif tag == 'beat-unit-dot':
