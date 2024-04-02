@@ -1816,7 +1816,7 @@ class ChordSymbol(Harmony):
                     # # should we throw an exception???? for now yes, but maybe later we should.
             if not pitchFound:
                 raise ChordStepModificationException(
-                    f'Degree not in specified chord: {hD.degree}')
+                    f'Degree {hD.degree} not in specified chord {self}, which has {degrees}')
 
         # main routines...
         for chordStepModification in chordStepModifications:
@@ -1869,40 +1869,38 @@ class ChordSymbol(Harmony):
                 ChordStepModification(modType, int(degree), alter), updatePitches=False)
         return remaining
 
-    def _getKindFromShortHand(self, sH):
+    def _getKindFromShortHand(self, sH: str):
         originalsH = sH
-        if 'add' in sH:
-            sH = sH[0:sH.index('add')]
-        if 'alter' in sH:
-            sH = sH[0:sH.index('alter')]
-        if 'omit' in sH:
-            sH = sH[0:sH.index('omit')]
-        if 'subtract' in sH:
-            sH = sH[0:sH.index('subtract')]
-        if '#' in sH and sH[sH.index('#') + 1].isdigit():
-            sH = sH[0:sH.index('#')]
-        if ('b' in sH and sH.index('b') < len(sH) - 1
-                and sH[sH.index('b') + 1].isdigit()
-                and 'ob9' not in sH and 'øb9' not in sH):
-            sH = sH[0:sH.index('b')]
-        for chordKind in CHORD_TYPES:
-            for charString in getAbbreviationListGivenChordType(chordKind):
-                if sH == charString:
+
+        for modifier in ['add', 'alter', 'omit', 'subtract']:
+            if modifier in sH:
+                sH = sH[:sH.index(modifier)]
+
+        if '#' in sH:
+            hashIndex = sH.index('#')
+            if hashIndex + 1 < len(sH) and sH[hashIndex + 1].isdigit():
+                sH = sH[:hashIndex]
+
+        if 'b' in sH:
+            bIndex = sH.index('b')
+            if (bIndex + 1 < len(sH) and sH[bIndex + 1].isdigit() and
+                    'ob9' not in sH and 'øb9' not in sH):
+                sH = sH[:bIndex]
+
+        for chordKind, abbreviations in CHORD_TYPES.items():
+            for abbreviation in abbreviations[1]:
+                if sH == abbreviation:
                     self.chordKind = chordKind
-                    return originalsH.replace(charString, '')
+                    return originalsH.replace(abbreviation, '')
+
         return originalsH
 
     def _hasPitchAboveC4(self, pitches):
-        for p in pitches:
-            if p.diatonicNoteNum > 30:  # if there are pitches above middle C, bump the octave down
-                return True
-        return False
+        return any(p.diatonicNoteNum > 30 for p in pitches)
 
     def _hasPitchBelowA1(self, pitches):
-        for p in pitches:
-            if p.diatonicNoteNum < 13:  # anything below this is just obnoxious
-                return True
-        return False
+        # anything below this is just obnoxious
+        return any(p.diatonicNoteNum < 13 for p in pitches)
 
     def _notationString(self):
         '''

@@ -44,7 +44,7 @@ from music21.common.decorators import inPlace
 from music21.common.enums import GatherSpanners, OffsetSpecial
 from music21.common.numberTools import opFrac
 from music21.common.types import (
-    StreamType, M21ObjType, ChangedM21ObjType, OffsetQL, OffsetQLSpecial
+    StreamType, M21ObjType, ChangedM21ObjType, OffsetQL, OffsetQLIn, OffsetQLSpecial
 )
 from music21 import clef
 from music21 import chord
@@ -357,24 +357,25 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # but not if every element is a stream subclass other than a Measure or Score
         # (i.e. Part or Voice generally, but even Opus theoretically)
         # because these classes usually represent synchrony
-        appendBool = True
+        should_append = True
         if givenElementsBehavior == GivenElementsBehavior.OFFSETS:
             try:
-                appendBool = all(e.offset == 0.0 for e in givenElements)
+                should_append = all(e.offset == 0.0 for e in givenElements)
             except AttributeError:
-                pass  # appropriate failure will be raised by coreGuardBeforeAddElement()
-            if appendBool and all(
+                # appropriate failure will be raised by coreGuardBeforeAddElement()
+                pass
+            if should_append and all(
                     (e.isStream and e.classSet.isdisjoint((Measure, Score)))
                     for e in givenElements):
-                appendBool = False
+                should_append = False
         elif givenElementsBehavior == GivenElementsBehavior.INSERT:
-            appendBool = False
+            should_append = False
         else:
-            appendBool = True
+            should_append = True
 
         for e in givenElements:
             self.coreGuardBeforeAddElement(e)
-            if appendBool:
+            if should_append:
                 self.coreAppend(e)
             else:
                 self.coreInsert(e.offset, e)
@@ -2868,11 +2869,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # need to move all the elements already in this stream
             for e in self._elements:
                 o = self.elementOffset(e)
-                # gap is distance from offset to insert point; tells if shift is
-                # necessary
-                gap = o - lowestOffsetInsert
                 # only process elements whose offsets are after the lowest insert
-                if gap >= 0.0:
+                if o >= lowestOffsetInsert:
                     # environLocal.printDebug(['insertAndShift()', e, 'offset', o,
                     #                         'gap:', gap, 'shiftDur:', shiftDur,
                     #                         'shiftPos:', shiftPos, 'o+shiftDur', o+shiftDur,
@@ -2912,10 +2910,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> s2.recurse().notes[-1].derivation
         <Derivation of <music21.note.Note F> from <music21.note.Note F> via '__deepcopy__'>
         '''
-        if not recurse:
-            sIter = self.iter()
-        else:
+        if recurse:
             sIter = self.recurse()
+        else:
+            sIter = self.iter()
 
         for el in sIter:
             if el.derivation is not None:
@@ -3011,12 +3009,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         recurse=recurse,
                                         allDerived=False)
 
-        try:
-            i = self.index(replacement)
-        except StreamException:
-            # good. now continue.
-            pass
-        else:
+        if replacement in self:
             raise StreamException(f'{replacement} already in {self}')
 
         try:
@@ -3203,7 +3196,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         return base._SplitTuple((self,))
 
     def splitAtQuarterLength(self,
-                             quarterLength,
+                             quarterLength: OffsetQLIn,
                              *,
                              retainOrigin=True,
                              addTies=True,
@@ -3217,7 +3210,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         * Changed in v7: all but quarterLength are keyword only
         '''
-        quarterLength = opFrac(quarterLength)
         if retainOrigin:
             sLeft = self
         else:
@@ -3245,6 +3237,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if endClef is not None:
                 sRight.clef = copy.deepcopy(endClef)
 
+        quarterLength = opFrac(quarterLength)
         if quarterLength > sLeft.highestTime:  # nothing to do
             return sLeft, sRight
 

@@ -643,7 +643,7 @@ class Converter:
         else:
             environLocal.printDebug('Loading original version')
             self.parseFileNoPickle(fp, number, format, forceSource, **keywords)
-            if writePickle is True and fpPickle is not None and storePickle is True:
+            if writePickle is True and fpPickle is not None and storePickle:
                 # save the stream to disk...
                 environLocal.printDebug('Freezing Pickle')
                 s = self.stream

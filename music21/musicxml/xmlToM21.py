@@ -5588,8 +5588,12 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 else:
                     diatonicActual = (diatonicStep - int(octaveChange * 7 / 12)) + 1
 
-                post = interval.intervalFromGenericAndChromatic(diatonicActual,
-                                                                chromaticStep + octaveChange)
+                try:
+                    post = interval.intervalFromGenericAndChromatic(diatonicActual,
+                                                                    chromaticStep + octaveChange)
+                except interval.IntervalException:
+                    # Last resort: Ignoring diatonic step
+                    post = interval.Interval(chromaticStep + octaveChange)
 
         elif chromaticStep is not None:
             post = interval.Interval(chromaticStep + octaveChange)

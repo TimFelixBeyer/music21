@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from collections.abc import Iterable
+from itertools import combinations
 import importlib
 import unittest
 import typing as t
@@ -2283,13 +2284,10 @@ def partitionByInstrument(streamObj: stream.Stream) -> stream.Stream:
 
 def _combinations(instrumentString):
     '''
-    find all combinations of instrumentString.  Remove all punctuation.
+    Find all combinations of instrumentString after removing all punctuation.
     '''
     sampleList = instrumentString.split()
-    allComb = []
-    for size in range(1, len(sampleList) + 1):
-        for i in range(len(sampleList) - size + 1):
-            allComb.append(' '.join(sampleList[i:i + size]))
+    allComb = [' '.join(c) for size in range(1, len(sampleList) + 1) for c in combinations(sampleList, size)]
     return allComb
 
 

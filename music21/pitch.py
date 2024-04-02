@@ -1213,7 +1213,7 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
             self._name = 'double-flat'
             self._alter = -2.0
         elif name in ('half-sharp', accidentalNameToModifier['half-sharp'],
-                      'quarter-sharp', 'ih', 'semisharp', 0.5):
+                      'quarter-sharp', 'ih', 'semisharp', 0.5, 'slash-sharp', 'sori'):
             self._name = 'half-sharp'
             self._alter = 0.5
         elif name in ('one-and-a-half-sharp',
@@ -1223,7 +1223,7 @@ class Accidental(prebase.ProtoM21Object, style.StyleMixin):
             self._name = 'one-and-a-half-sharp'
             self._alter = 1.5
         elif name in ('half-flat', accidentalNameToModifier['half-flat'],
-                      'quarter-flat', 'eh', 'semiflat', -0.5):
+                      'quarter-flat', 'eh', 'semiflat', -0.5, 'slash-flat', 'koron'):
             self._name = 'half-flat'
             self._alter = -0.5
         elif name in ('one-and-a-half-flat',
