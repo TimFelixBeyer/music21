@@ -3610,7 +3610,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
 
             # Second check against qLen (raw), now with tuplets
             # if not almost equal, create unlinked Duration and set raw qLen
-            tol = min(0.5 / divisions, 1e-3)  # MY CHANGE: increase tol 1e-7->1e-3 to get 9ths
+            tol = min(1/divisions, 1e-3)  # MY CHANGE: increase tol 1e-7->1e-3 to get 9ths
             # print(d.quarterLength, qLen, tol, isclose(d.quarterLength, qLen, abs_tol=tol))
             if not isclose(d.quarterLength, qLen, abs_tol=tol):
                 d.linked = False

@@ -7444,6 +7444,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # continue
             posDelete = set()
             tied = set()
+            idx_start = None
             for i, n in enumerate(notes_and_rests):
                 if t.TYPE_CHECKING:
                     assert isinstance(n, note.Note)
@@ -7550,7 +7551,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                          continue
                             else:
                                 ns = notes_and_rests[idx_start]
-                                raise ValueError(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")
+                                warnings.warn(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")
+                                # raise ValueError(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")
                         case "stop":
                             # Find the previous note
                             for j in reversed(range(i)):
@@ -7573,23 +7575,20 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                 continue
 
                     # accumulate the duration into the first note
-                    if not notes_and_rests[idx_start].duration.linked:
-                        # obscure bug found from some inexact musicxml files.
-                        notes_and_rests[idx_start].duration.linked = True
-                    notes_and_rests[idx_start].quarterLength = current_duration
+                    if idx_start is not None:
+                        if not notes_and_rests[idx_start].duration.linked:
+                            # obscure bug found from some inexact musicxml files.
+                            notes_and_rests[idx_start].duration.linked = True
+                        notes_and_rests[idx_start].quarterLength = current_duration
 
-                    # set tie to None on first note
-                    notes_and_rests[idx_start].tie = None
-                    tied.add(idx_start)
+                        # set tie to None on first note
+                        notes_and_rests[idx_start].tie = None
+                        tied.add(idx_start)
             posDelete = sorted(list(posDelete))
 
         to_delete = [notes_and_rests[i] for i in reversed(posDelete)]
         self.remove(to_delete, recurse=True)
         # all results have been processed
-        # for i in reversed(posDelete):
-            # Recurse rather than depend on the containers being Measures
-            # https://github.com/cuthbertLab/music21/issues/266
-            # self.remove(notes_and_rests[i], recurse=True)
 
         return self
 
@@ -9054,7 +9053,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         value: str|int|'music21.interval.IntervalBase',
         /,
         *,
-         recurse=True,
+        recurse=True,
         classFilterList=None
     ):
         # noinspection PyShadowingNames
@@ -9120,7 +9119,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         # this will get all elements at this level and downward.
         sIterator: iterator.StreamIterator
-        if recurse is True:
+        if recurse:
             sIterator = self.recurse()
         else:
             sIterator = self.iter()
@@ -14474,3 +14473,4 @@ _DOC_ORDER = [Stream, Measure, Part, Score, Opus, Voice,
 if __name__ == '__main__':
     import music21
     music21.mainTest(Test)
+                                     
