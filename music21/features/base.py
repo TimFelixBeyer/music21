@@ -1095,7 +1095,7 @@ def _dataSetParallelSubprocess(dataInstance, failFast):
     # howBigWeCopied = len(pickle.dumps(dataInstance))
     # print('Starting ', dataInstance, ' Size: ', howBigWeCopied)
     for feClass in dataInstance.featureExtractorClassesForParallelRunning:
-        fe = feClass()
+        fe: FeatureExtractor = feClass()
         fe.setData(dataInstance)
         # in some cases there might be problem; to not fail
         try:

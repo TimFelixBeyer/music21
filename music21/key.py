@@ -49,7 +49,7 @@ TransposeTypes = int|str|interval.Interval|interval.GenericInterval
 _sharpsToPitchCache: dict[int, pitch.Pitch] = {}
 
 
-def convertKeyStringToMusic21KeyString(textString):
+def convertKeyStringToMusic21KeyString(textString: str) -> str:
     '''
     Utility function to change strings in the form of "Eb" to
     "E-" (for E-flat major) and leaves alone proper music21 strings
@@ -75,16 +75,10 @@ def convertKeyStringToMusic21KeyString(textString):
     >>> key.convertKeyStringToMusic21KeyString('Ebb')
     'E--'
     '''
-    if (not textString.endswith('b')) or textString == 'b':
-        pass
-    elif textString == 'bb':
-        textString = 'b-'
-    elif textString == 'Bb':
-        textString = 'B-'
-    elif len(textString) == 2 and textString[-1] == 'b':
-        textString = textString[0] + '-'
-    elif set(textString[1:]) == {'b'}:
-        textString = textString[0] + '-' * (len(textString) - 1)
+    if textString.endswith('b') and textString != 'b':
+        if any(c != 'b' for c in textString[1:]):
+            raise KeyException(f'Cannot convert {textString} to a music21 key string')
+        return textString[0] + '-' * (len(textString) - 1)
     return textString
 
 

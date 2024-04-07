@@ -182,20 +182,11 @@ def main(fnAccept=None, strict=False):
     # add entire package
     acceptable = []
     for fp in mg.modulePaths:
-        rejectIt = False
-        for rejectPath in fnPathReject:
-            if rejectPath in fp:
-                rejectIt = True
-                break
-        if rejectIt:
+        if any(rejectPath in fp for rejectPath in fnPathReject):
             continue
+
         if fnAccept:
-            rejectIt = True
-            for acceptableName in fnAccept:
-                if acceptableName in fp:
-                    rejectIt = False
-                    break
-            if rejectIt:
+            if not any(acceptableName in fp for acceptableName in fnAccept):
                 continue
 
         acceptable.append(fp)

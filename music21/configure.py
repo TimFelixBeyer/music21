@@ -632,9 +632,9 @@ class YesOrNo(Dialog):
         if raw == '':
             return NoInput()
 
-        if raw in ['yes', 'y', '1', 'true']:
+        if raw in ('yes', 'y', '1', 'true'):
             return True
-        elif raw in ['no', 'n', '0', 'false']:
+        elif raw in ('no', 'n', '0', 'false'):
             return False
         # if no match, or an empty string
         return IncompleteInput(raw)
@@ -911,7 +911,7 @@ class SelectFromList(Dialog):
             return NoInput()
         # accept yes as 1
 
-        if raw in ['yes', 'y', '1', 'true']:
+        if raw in ('yes', 'y', '1', 'true'):
             post = 1
         else:  # try to convert string into a number
             try:
@@ -1012,7 +1012,7 @@ class AskAutoDownload(SelectFromList):
         override base.
         '''
         result = self.getResult()
-        if result in [1, 2, 3]:
+        if result in (1, 2, 3):
             # noinspection PyTypeChecker
             reload(environment)
             # us = environment.UserSettings()
@@ -1026,7 +1026,7 @@ class AskAutoDownload(SelectFromList):
             elif result == 3:
                 raise DialogException('user selected an option that terminates configuration.')
 
-        if result in [1, 2]:
+        if result in (1, 2):
             self._writeToUser([f"Auto Download set to: {environment.get('autoDownload')}", ' '])
 
 

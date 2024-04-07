@@ -1389,11 +1389,7 @@ def getVerticalityFromObject(music21Obj, scoreObjectIsFrom, classFilterList=None
         elementSelection = partObj.flatten().getElementsByOffset(offsetOfObject,
                                                          mustBeginInSpan=False,
                                                          classList=classFilterList)
-        for el in elementSelection:
-            if partNum in contentDict:
-                contentDict[partNum].append(el)
-            else:
-                contentDict[partNum] = [el]
+        contentDict.setdefault(partNum, []).extend(elementSelection)
     return Verticality(contentDict)
 
 

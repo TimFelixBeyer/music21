@@ -140,8 +140,7 @@ class IsFilter(StreamFilter):
             # would popping the item be faster? No: then can't use for IsNotFilter
             self.numToFind -= 1
             return True
-        else:
-            return False
+        return False
 
 class IsNotFilter(IsFilter):
     '''
@@ -334,10 +333,7 @@ class GroupFilter(StreamFilter):
 
     def __call__(self, item, iterator=None):
         eGroups = item.groups
-        for groupName in self.groupFilterList:
-            if groupName in eGroups:
-                return True
-        return False
+        return any(groupName in eGroups for groupName in self.groupFilterList)
 
 class OffsetFilter(StreamFilter):
     '''

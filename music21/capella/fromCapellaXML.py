@@ -564,7 +564,7 @@ class CapellaImporter:
             alteration = 0
         acc = pitch.Accidental(alteration)
 
-        if 'display' in alterElement.attrib and alterElement.attrib['display'] == 'suppress':
+        if alterElement.attrib.get('display') == 'suppress':
             acc.displayType = 'never'
         return acc
 
@@ -592,25 +592,17 @@ class CapellaImporter:
         >>> ci.tieFromTie(tieEl)
         <music21.tie.Tie continue>
         '''
-        begin = False
-        end = False
-        if 'begin' in tieElement.attrib and tieElement.attrib['begin'] == 'true':
-            begin = True
-        if 'end' in tieElement.attrib and tieElement.attrib['end'] == 'true':
-            end = True
+        begin = tieElement.attrib.get('begin') == 'true'
+        end = tieElement.attrib.get('end') == 'true'
 
-        tieType = None
-        if begin is True and end is True:
-            tieType = 'continue'
-        elif begin is True:
-            tieType = 'start'
-        elif end is True:
-            tieType = 'stop'
-        else:
-            return None
+        if begin and end:
+            return tie.Tie('continue')
+        elif begin:
+            return tie.Tie('start')
+        elif end:
+            return tie.Tie('stop')
+        return None
 
-        tieObj = tie.Tie(tieType)
-        return tieObj
 
     def lyricListFromLyric(self, lyricElement):
         '''
@@ -650,16 +642,15 @@ class CapellaImporter:
         '''
         verseNumber = 1
         syllabic = 'single'
-        if 'i' in verse.attrib:
-            verseNumber = int(verse.attrib['i']) + 1
-        if 'hyphen' in verse.attrib and verse.attrib['hyphen'] == 'true':
+        verseNumber = int(verse.attrib.get('i', 0)) + 1
+        if verse.attrib.get('hyphen') == 'true':
             syllabic = 'begin'
         text = verse.text
         if text is None or text == '':
             return None
-        else:
-            lyric = note.Lyric(text=text, number=verseNumber, syllabic=syllabic, applyRaw=True)
-            return lyric
+
+        lyric = note.Lyric(text=text, number=verseNumber, syllabic=syllabic, applyRaw=True)
+        return lyric
 
         # i = number - 1
         # align
@@ -748,10 +739,7 @@ class CapellaImporter:
             timeString = timeSign.attrib['time']
             if timeString != 'infinite':
                 return meter.TimeSignature(timeString)
-            else:
-                return None
-        else:
-            return None
+        return None
 
     def durationFromDuration(self, durationElement):
         '''
@@ -875,7 +863,7 @@ class CapellaImporter:
                         hasRepeatEnd = True
                     if repeatType.find('start') > -1:
                         startRep = bar.Repeat('start')
-                        if hasRepeatEnd is True:
+                        if hasRepeatEnd:
                             startRep.priority = 1
                         barlineList.append(startRep)
             else:

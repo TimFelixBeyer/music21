@@ -698,15 +698,15 @@ def divideByPages(
     return scoreLists
 
 
-def getPageRegionMeasureNumbers(scoreIn):
+def getPageRegionMeasureNumbers(scoreIn: stream.Score) -> list[t.Tuple[int, int]]:
     return getRegionMeasureNumbers(scoreIn, 'Page')
 
 
-def getSystemRegionMeasureNumbers(scoreIn):
+def getSystemRegionMeasureNumbers(scoreIn: stream.Score) -> list[t.Tuple[int, int]]:
     return getRegionMeasureNumbers(scoreIn, 'System')
 
 
-def getRegionMeasureNumbers(scoreIn, region='Page'):
+def getRegionMeasureNumbers(scoreIn: stream.Score, region='Page') -> list[t.Tuple[int, int]]:
     '''
     get a list where each entry is a 2-tuplet whose first number
     refers to the first measure on a page and whose second number
@@ -729,7 +729,7 @@ def getRegionMeasureNumbers(scoreIn, region='Page'):
     allAppropriateLayout = firstPart.flatten().getElementsByClass(classesToReturn)
 
     for pl in allAppropriateLayout:
-        plMeasureNumber = pl.measureNumber
+        plMeasureNumber: int|None = pl.measureNumber
         if pl.isNew is False:
             continue
         if plMeasureNumber not in measureStartList:

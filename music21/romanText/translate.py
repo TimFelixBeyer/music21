@@ -299,7 +299,7 @@ def _copyMultipleMeasures(rtMeasure: rtObjects.RTMeasure,
     return measures, kCurrent
 
 
-def _getKeyAndPrefix(rtKeyOrString):
+def _getKeyAndPrefix(rtKeyOrString: str|rtObjects.RTKey):
     '''
     Given an RTKey specification, return the Key and a string prefix based
     on the tonic:

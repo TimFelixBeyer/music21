@@ -357,17 +357,11 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # but not if every element is a stream subclass other than a Measure or Score
         # (i.e. Part or Voice generally, but even Opus theoretically)
         # because these classes usually represent synchrony
-        should_append = True
         if givenElementsBehavior == GivenElementsBehavior.OFFSETS:
-            try:
-                should_append = all(e.offset == 0.0 for e in givenElements)
-            except AttributeError:
-                # appropriate failure will be raised by coreGuardBeforeAddElement()
-                pass
-            if should_append and all(
-                    (e.isStream and e.classSet.isdisjoint((Measure, Score)))
-                    for e in givenElements):
-                should_append = False
+            # Check if all elements have offset 0.0 and none are Measures or Scores in streams
+            all_zeros = all(getattr(e, 'offset', 0.0) == 0.0 for e in givenElements)
+            disjoint_gen = (e.isStream and e.classSet.isdisjoint((Measure, Score)) for e in givenElements)
+            should_append = all_zeros and not all(disjoint_gen)
         elif givenElementsBehavior == GivenElementsBehavior.INSERT:
             should_append = False
         else:
@@ -1777,7 +1771,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     for s in self.recurse(streamsOnly=True):
                         try:
                             indexInStream = s.index(target)
-                            s.remove(target)
+                            s.pop(indexInStream)
                             break
                         except (StreamException, sites.SitesException):
                             continue
@@ -3042,7 +3036,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         target.sites.remove(self)
         target.activeSite = None
-        self._offsetDict.pop(id(target), None)  # key might not exist
+        try:
+            del self._offsetDict[id(target)]
+        except KeyError:  # pragma: no cover
+            pass
 
         updateIsFlat = replacement.isStream
         # elements have changed: sort order may change b/c have diff classes
@@ -14473,4 +14470,3 @@ _DOC_ORDER = [Stream, Measure, Part, Score, Opus, Voice,
 if __name__ == '__main__':
     import music21
     music21.mainTest(Test)
-                                     

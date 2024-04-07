@@ -2418,9 +2418,10 @@ class GeneralAppoggiatura(Ornament):
                 assert isinstance(appoggiaturaNote, note.Note)
             appoggiaturaNote.transpose(transposeInterval, inPlace=True)
 
-        inExpressions = -1
-        if self in srcObj.expressions:
+        try:
             inExpressions = srcObj.expressions.index(self)
+        except ValueError:
+            inExpressions = -1
 
         remainderNote = copy.deepcopy(srcObj) if not inPlace else srcObj
         remainderNote.duration.quarterLength = newDuration

@@ -979,8 +979,10 @@ class StreamIterator(prebase.ProtoM21Object, Sequence[M21ObjType]):
             out = self
 
         out.resetCaches()
-        if oldFilter in out.filters:
-            out.filters.pop(out.filters.index(oldFilter))
+        try:
+            out.filters.remove(oldFilter)
+        except ValueError:
+            pass
 
         return out
 

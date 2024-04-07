@@ -437,19 +437,9 @@ class ModuleGather:
         '''
         gets one module object from the file path without using Imp
         '''
-        skip = False
-        for fnSkip in self.moduleSkip:
-            if fp.endswith(fnSkip):
-                skip = True
-                break
-        if skip:
+        if any([fp.endswith(fnSkip) for fnSkip in self.moduleSkip]):
             return 'skip'
-        for dirSkip in self.pathSkip:
-            dirSkipSlash = os.sep + dirSkip + os.sep
-            if dirSkipSlash in fp:
-                skip = True
-                break
-        if skip:
+        if any([os.sep + dirSkip + os.sep in fp for dirSkip in self.pathSkip]):
             return 'skip'
         moduleName = self._getNamePeriod(fp)
         moduleNames = moduleName.split('.')

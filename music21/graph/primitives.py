@@ -442,20 +442,20 @@ class Graph(prebase.ProtoM21Object):
         if axis not in ('x', 'y', 'z'):
             return
 
-        if 'range' in thisAxis and thisAxis['range'] is not None:
+        if thisAxis.get('range') is not None:
             rangeFuncName = 'set_' + axis + 'lim'
             if len(self.axisKeys) == 3:
                 rangeFuncName += '3d'
             thisRangeFunc = getattr(subplot, rangeFuncName)
             thisRangeFunc(*thisAxis['range'])
 
-        if 'label' in thisAxis and thisAxis['label'] is not None:
+        if thisAxis.get('label') is not None:
             # ax.set_xlabel, set_ylabel, set_zlabel <-- for searching do not delete.
             setLabelFunction = getattr(subplot, 'set_' + axis + 'label')
             setLabelFunction(thisAxis['label'],
                              fontsize=self.labelFontSize, family=self.fontFamily)
 
-        if 'scale' in thisAxis and thisAxis['scale'] is not None:
+        if thisAxis.get('scale') is not None:
             # ax.set_xscale, set_yscale, set_zscale <-- for searching do not delete.
             setLabelFunction = getattr(subplot, 'set_' + axis + 'scale')
             setLabelFunction(thisAxis['scale'])

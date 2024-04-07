@@ -138,7 +138,7 @@ class Variant(base.Music21Object):
 
         # must mask pitches so as not to recurse
         # TODO: check tt recurse does not go into this
-        if attr in ['flat', 'pitches']:
+        if attr in ('flat', 'pitches'):
             raise AttributeError
 
         # needed for unpickling where ._stream doesn't exist until later...

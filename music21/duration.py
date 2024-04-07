@@ -777,9 +777,9 @@ def convertTypeToQuarterLength(
     Traceback (most recent call last):
     music21.duration.DurationException: no such type (minim) available for conversion
     '''
-    if dType in typeToDuration:
+    try:
         durationFromType = typeToDuration[dType]
-    else:
+    except KeyError:
         raise DurationException(
             f'no such type ({dType}) available for conversion')
 

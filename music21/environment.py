@@ -544,7 +544,7 @@ class _EnvironmentCore:
             try:
                 self.defaultRootTempDir.mkdir()
             except OSError:  # directory already exists or permission denied
-                if common.getPlatform() in ['nix', 'darwin']:
+                if common.getPlatform() in ('nix', 'darwin'):
                     uid = os.getuid()
                     dir_path = pathlib.Path(tempfile.gettempdir()) / f'music21-userid-{uid}'
                 else:
@@ -637,7 +637,7 @@ class _EnvironmentCore:
             else:  # use home directory
                 directory = pathlib.Path(os.path.expanduser('~'))
             return directory / 'music21-settings.xml'
-        elif platform in ['nix', 'darwin']:
+        elif platform in ('nix', 'darwin'):
             # might not exist if running as nobody in a webserver...
             if 'HOME' in os.environ and os.access(os.environ['HOME'], os.W_OK):
                 directory = pathlib.Path(os.environ['HOME'])

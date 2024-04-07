@@ -192,9 +192,7 @@ class ABCToken(prebase.ProtoM21Object, common.objects.EqualSlottedObjectMixin):
 
         * Changed in v6.2: made a staticmethod
         '''
-        if '%' in strSrc:
-            return strSrc.split('%')[0]
-        return strSrc
+        return strSrc.split('%')[0]
 
     def preParse(self):
         '''
