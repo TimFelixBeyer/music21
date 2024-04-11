@@ -7415,14 +7415,15 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         else:
             # Flatten all chords
             for c in self.recurse().getElementsByClass('Chord'):
+                v = c.activeSite
                 for noteObj in c.notes:
                     noteObj.duration = copy.deepcopy(c.duration)
                     noteObj.expressions = copy.deepcopy(c.expressions)
                     noteObj.articulations = copy.deepcopy(c.articulations)
                     if c.style.hideObjectOnPrint and not noteObj.style.hideObjectOnPrint:
                         print(noteObj.style.__dict__, c.style.__dict__)
-                    c.activeSite.insert(c.offset, noteObj)
-                c.activeSite.remove(c)
+                    v.insert(c.offset, noteObj)
+                v.remove(c)
             ties = {"start": 0, "continue": 0, "stop": 0}
             for n in self.flatten().notes:
                 if n.tie is not None:
@@ -7484,7 +7485,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         break
                                     else:
                                         # We have a start tie
-
                                         # This does not fail because it is necessary for
                                         # correct MIDI import due to possible overlaps
                                         # introduced by chord quantization.

@@ -1675,7 +1675,7 @@ class Note(NotRest):
     @pitches.setter
     def pitches(self, value: Sequence[Pitch]):
         if common.isListLike(value) and value:
-            self.pitch = value[0]
+            self.pitch: Pitch = value[0]
         else:
             raise NoteException(f'cannot set pitches with provided object: {value}')
 

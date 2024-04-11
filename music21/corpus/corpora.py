@@ -302,27 +302,16 @@ class Corpus(prebase.ProtoM21Object):
             workName = str(workName).replace('schumann/', 'schumann_robert/')
 
         paths = self.getPaths(fileExtensions=fileExtensions)
-        results = []
 
-        workPath = pathlib.PurePath(workName)
-        workPosix = workPath.as_posix().lower()
+        workPosix = pathlib.PurePath(workName).as_posix().lower()
         # find all matches for the work name
         # TODO: this should match by path component, not just
         # substring
-        for path in paths:
-            if workPosix in path.as_posix().lower():
-                results.append(path)
+        results = [path for path in paths if workPosix in path.as_posix().lower()]
 
-        if results:
-            # more than one matched...use more stringent criterion:
-            # must have a slash before the name
-            previousResults = results
-            results = []
-            for path in previousResults:
-                if '/' + workPosix in path.as_posix().lower():
-                    results.append(path)
-            if not results:
-                results = previousResults
+        # If any path has the work name with a preceding slash, filter to those specifically
+        if any('/' + workPosix in path.as_posix().lower() for path in results):
+            results = [path for path in results if '/' + workPosix in path.as_posix().lower()]
 
         movementResults = []
         if movementNumber is not None and results:
@@ -355,7 +344,7 @@ class Corpus(prebase.ProtoM21Object):
                     # look for direct matches first
                     for movementStr in movementStrList:
                         # if movementStr.lower() in filePath.lower():
-                        if filenameWithoutExtension.lower() == movementStr.lower():
+                        if filenameWithoutExtension.lower() == movementStr:
                             movementResults.append(filePath)
                             searchPartialMatch = False
                 # if we have one direct match, all other matches must
@@ -365,7 +354,7 @@ class Corpus(prebase.ProtoM21Object):
                     continue
                 if searchPartialMatch:
                     for movementStr in movementStrList:
-                        if filename.startswith(movementStr.lower()):
+                        if filename.startswith(movementStr):
                             movementResults.append(filePath)
             if not movementResults:
                 pass
