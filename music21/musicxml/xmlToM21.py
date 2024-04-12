@@ -2849,6 +2849,8 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             ss = n.getSpannerSites()
             # transfer all spanners from the notes to the chord.
             for sp in ss:
+                if isinstance(sp, expressions.TremoloSpanner):
+                    continue
                 sp.replaceSpannedElement(n, c)
             for art in n.articulations:
                 if type(art) in seenArticulations:
