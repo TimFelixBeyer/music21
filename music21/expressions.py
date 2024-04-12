@@ -2568,9 +2568,14 @@ class Tremolo(Ornament):
         {0.0} <music21.note.Note C>
         {0.5} <music21.note.Note C>
         '''
-        lengthOfEach = 2**(-self.numberOfMarks)
         objsConverted = []
         eRemain = copy.deepcopy(srcObj) if not inPlace else srcObj
+        ratio = 1
+        for tup in srcObj.duration.tuplets:
+            if tup.numberNotesNormal == 1 and tup.numberNotesActual == 2:
+                continue
+            ratio *= tup.numberNotesNormal / tup.numberNotesActual
+        lengthOfEach = 2 ** (-self.numberOfMarks) / ratio
         if self in eRemain.expressions:
             eRemain.expressions.remove(self)
         while eRemain is not None and eRemain.quarterLength > lengthOfEach:

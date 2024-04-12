@@ -4385,40 +4385,49 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         [<music21.duration.Tuplet 5/3/16th>]
         >>> tup[0].durationNormal
         DurationTuple(type='16th', dots=2, quarterLength=0.4375)
+
+        >>> mxNote = ET.fromstring('<note><type>16th</type>' +
+        ...    '<time-modification><actual-notes>5</actual-notes>' +
+        ...    '<normal-notes>4</normal-notes></time-modification>' +
+        ...    '<time-modification><actual-notes>2</actual-notes>' +
+        ...    '<normal-notes>1</normal-notes></time-modification>' +
+        ...    '</note>')
+        >>> tups = MP.xmlToTuplets(mxNote)
+        >>> tups
+        [<music21.duration.Tuplet 5/4/16th>, <music21.duration.Tuplet 2/1/16th>]
         '''
-        tup = duration.Tuplet()
-        mxTimeModification = mxNote.find('time-modification')
-        if mxTimeModification is None:
+        mxTimeModifications = mxNote.findall('time-modification')
+        if not mxTimeModifications:
             raise MusicXMLImportException('Note without time-modification in xmlToTuplets')
+        tups = []
+        for mxTimeModification in mxTimeModifications:
+            tup = duration.Tuplet(numberNotesActual=1, numberNotesNormal=1)
+            # environLocal.printDebug(['got mxTimeModification', mxTimeModification])
 
-        # environLocal.printDebug(['got mxTimeModification', mxTimeModification])
+            # This should only be a backup in case there are no tuplet definitions
+            # in the tuplet tag.
+            tup.numberNotesActual *= int(mxTimeModification.find('actual-notes').text)
+            tup.numberNotesNormal *= int(mxTimeModification.find('normal-notes').text)
 
-        # This should only be a backup in case there are no tuplet definitions
-        # in the tuplet tag.
-        seta = _setAttributeFromTagText
-        seta(tup, mxTimeModification, 'actual-notes', 'numberNotesActual', transform=int)
-        seta(tup, mxTimeModification, 'normal-notes', 'numberNotesNormal', transform=int)
+            mxNormalType = mxTimeModification.find('normal-type')
+            musicXMLNormalType: str
+            if normalTypeText := strippedText(mxNormalType):
+                musicXMLNormalType = normalTypeText
+            else:
+                musicXMLNormalType = strippedText(mxNote.find('type'))
 
-        mxNormalType = mxTimeModification.find('normal-type')
-        musicXMLNormalType: str
-        if normalTypeText := strippedText(mxNormalType):
-            musicXMLNormalType = normalTypeText
-        else:
-            musicXMLNormalType = strippedText(mxNote.find('type'))
+            durationNormalType = musicXMLTypeToType(musicXMLNormalType)
+            numDots = len(mxTimeModification.findall('normal-dot'))
+            tup.setDurationType(durationNormalType, numDots)
 
-        durationNormalType = musicXMLTypeToType(musicXMLNormalType)
-        numDots = len(mxTimeModification.findall('normal-dot'))
-
-        tup.setDurationType(durationNormalType, numDots)
+            tups.append(tup)
 
         mxNotations = mxNote.find('notations')
-        if mxNotations is None:
-            self.activeTuplets[0] = tup
         # environLocal.printDebug(['got mxNotations', mxNotations])
-
-        remainingTupletAmountToAccountFor = tup.tupletMultiplier()
-        timeModTup = tup
-
+        remainingTupletAmountToAccountFor = 1
+        for tup in tups:
+            remainingTupletAmountToAccountFor *= tup.tupletMultiplier()
+        timeModTups = tups
         returnTuplets: list[duration.Tuplet|None] = [None] * 8
         removeFromActiveTuplets = set()
 
@@ -4447,9 +4456,10 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 if mxTupletActual is None or mxTupletNormal is None:
                     # in theory either can be absent, but so far I have only seen both present
                     # or both absent
-                    tup = copy.deepcopy(timeModTup)
+                    tup = copy.deepcopy(timeModTups[0])
                 else:
                     tup = duration.Tuplet()
+                    seta = _setAttributeFromTagText
                     seta(tup, mxTupletActual,
                          'tuplet-number', 'numberNotesActual', transform=int)
                     seta(tup, mxTupletNormal,
@@ -4520,12 +4530,16 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
 
         # if there is anything left to
         if remainingTupletAmountToAccountFor != 1:
+            for tup in tups:
+                returnTuplets.append(tup)
+                remainingTupletAmountToAccountFor /= tup.tupletMultiplier()
+        if remainingTupletAmountToAccountFor != 1:
             remainderFraction = fractions.Fraction(remainingTupletAmountToAccountFor)
             remainderTuplet = duration.Tuplet(remainderFraction.denominator,
                                               remainderFraction.numerator)
-            remainderTuplet.durationNormal = timeModTup.durationNormal
-            remainderTuplet.durationActual = timeModTup.durationActual
-            returnTuplets[-1] = remainderTuplet
+            remainderTuplet.durationNormal = timeModTups[0].durationNormal
+            remainderTuplet.durationActual = timeModTups[0].durationActual
+            returnTuplets.append(remainderTuplet)
 
         # now we can remove stops for future notes.
         for tupletIndexToRemove in removeFromActiveTuplets:

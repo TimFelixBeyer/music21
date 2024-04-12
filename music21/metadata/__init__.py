@@ -1138,7 +1138,7 @@ class Metadata(base.Music21Object):
                     # see if there is an associated grandfathered workId, and if so,
                     # search for that, too.
 
-                    if (workId :=  properties.UNIQUE_NAME_TO_MUSIC21_WORK_ID.get(
+                    if (workId := properties.UNIQUE_NAME_TO_MUSIC21_WORK_ID.get(
                         uniqueName)
                        ) is None:
                         # there is no associated grandfathered workId, don't search it
@@ -2029,9 +2029,13 @@ class Metadata(base.Music21Object):
         >>> metadata.Metadata._isContributorUniqueName('average duration')
         False
         '''
-        if uniqueName not in properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION:
+        try:
+            return properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION[uniqueName].isContributor
+        except KeyError:
             return False
-        return properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION[uniqueName].isContributor
+        # if uniqueName not in properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION:
+        #     return False
+        # return properties.UNIQUE_NAME_TO_PROPERTY_DESCRIPTION[uniqueName].isContributor
 
     @staticmethod
     def _isContributorNamespaceName(namespaceName: str) -> bool:
@@ -2760,9 +2764,7 @@ class RichMetadata(Metadata):
         '''
         if super()._isStandardUniqueName(uniqueName):
             return True
-        if uniqueName in self.additionalRichMetadataAttributes:
-            return True
-        return False
+        return uniqueName in self.additionalRichMetadataAttributes
 
 
 # -----------------------------------------------------------------------------

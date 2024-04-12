@@ -556,7 +556,7 @@ class Music21Object(prebase.ProtoM21Object):
         if isinstance(new_id, int) and new_id > defaults.minIdNumberToConsiderMemoryLocation:
             msg = 'Setting an ID that could be mistaken for a memory location '
             msg += f'is discouraged: got {new_id}'
-            # warnings.warn(msg)
+            warnings.warn(msg)
         self._id = new_id
 
     def mergeAttributes(self, other: Music21Object) -> None:
@@ -1214,21 +1214,20 @@ class Music21Object(prebase.ProtoM21Object):
         E shares a slur with C
         '''
         found = self.sites.getSitesByClass('SpannerStorage')
-        post: list[spanner.Spanner] = []
         if spannerClassList is not None:
             if not common.isIterable(spannerClassList):
                 spannerClassList = [spannerClassList]
 
-        for obj in found:
-            if obj is None:  # pragma: no cover
-                continue
-            if spannerClassList is None:
-                post.append(obj.client)
-            else:
+            post: list[spanner.Spanner] = []
+            for obj in found:
+                if obj is None:  # pragma: no cover
+                    continue
                 for spannerClass in spannerClassList:
                     if spannerClass in obj.client.classSet:
                         post.append(obj.client)
                         break
+        else:
+            post = [obj.client for obj in found if obj is not None]
 
         return sorted(post, key=lambda x: x.sortTuple())
 
