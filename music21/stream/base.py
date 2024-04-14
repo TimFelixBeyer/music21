@@ -7430,7 +7430,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     ties[n.tie.type] += 1
             f = self.flatten()
             notes_and_rests: Stream[note.Note] = f.notes.stream()#.addFilter(
-            #     lambda el, _iterator: el.quarterLength > 0
+            #      lambda el, _iterator: el.quarterLength > 0
             # ).stream()
             # there are several valid tie-combinations
             # start - stop
@@ -7440,6 +7440,11 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # continue - stop
             # start - continue
             # continue
+            # TODO: Switch for grace-note behaviors in following cases:
+            # ignore
+            # grace __ note
+            # grace __ note __ note
+            # grace __ other __ note
             posDelete = set()
             tied = set()
             idx_start = None
@@ -7463,20 +7468,52 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                     # If the next note with that pitch has a continue tie,
                                     # we keep going further
                                     if tied_note.tie is not None and tied_note.tie.type == "continue":
+                                        if (tied_note.offset - (n.offset + current_duration)) > 1e-3:
+                                            warnings.warn(f"Ties do not touch ({n.offset + current_duration}, {n.pitch}) → ({tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            n.tie = None
+                                            tied_note.tie = None
+                                            break
+                                        elif (tied_note.offset - (n.offset + current_duration)) < -1e-3:
+                                            warnings.warn(f"Ties do not touch ({n.offset + current_duration}, {n.pitch}) → ({tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            n.tie = None
+                                            tied_note.tie = None
+                                            break
                                         # We ignore ties on grace notes since they are usually cosmetic.
                                         # If the grace note is followed by a continue tie
                                         if notes_and_rests[idx_start].duration.isGrace:
                                             notes_and_rests[idx_start].tie = None
                                             idx_start = j
+                                            current_duration = tied_note.quarterLength
                                         else:
                                             posDelete.add(j)
                                             current_duration += tied_note.quarterLength
                                         continue
                                     elif tied_note.offset == n.offset and (tied_note.tie is None or tied_note.tie.type == "start"):
+                                        if tied_note.duration.quarterLength > n.duration.quarterLength:
+                                            current_duration = tied_note.duration.quarterLength
+                                        if tied_note.tie is None and n.duration.isGrace and not tied_note.duration.isGrace:
+                                            # print("want to delete", tied_note, tied_note.tie, tied_note.offset, tied_note.measureNumber, tied_note.quarterLength, tied_note.pitch.midi, tied_note.pitch.nameWithOctave)
+                                            posDelete.add(j)
+                                            break
+                                        tied_note.tie = None
                                         # Ignore new start ties at the same offset,
                                         # happens frequently in malformed MusicXML
                                         continue
                                     elif tied_note.tie is None or tied_note.tie.type == "stop":
+                                        if (tied_note.offset - (n.offset + current_duration)) > 1e-3:
+                                            warnings.warn(f"Ties do not touch ({n.offset + current_duration}, {n.pitch}) → ({tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            # print(n.measureNumber, n.offset, n.offset + current_duration, tied_note.offset, tied_note.measureNumber, tied_note.quarterLength, n.pitch.midi, n.pitch.nameWithOctave)
+                                            n.tie = None
+                                            tied_note.tie = None
+                                            break
+                                        elif (tied_note.offset - (n.offset + current_duration)) < -1e-3:
+                                            if tied_note.tie is None:
+                                                continue
+                                            else:
+                                                warnings.warn(f"Ties do not touch ({n.offset + current_duration}, {n.pitch}) → ({tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                                n.tie = None
+                                                tied_note.tie = None
+                                                break
                                         if notes_and_rests[idx_start].duration.isGrace:
                                             tied_note.tie = None
                                             break
@@ -7484,6 +7521,17 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         current_duration += tied_note.quarterLength
                                         break
                                     else:
+                                        if (tied_note.offset - (n.offset + current_duration)) > 1e-3:
+                                            warnings.warn(f"Ties do not touch ({n.offset + current_duration}, {n.pitch}) → ({tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            # print(n.measureNumber, n.offset, n.offset + current_duration, tied_note.offset, tied_note.measureNumber, tied_note.quarterLength, n.pitch.midi, n.pitch.nameWithOctave)
+                                            n.tie = None
+                                            tied_note.tie = None
+                                            break
+                                        elif tied_note.offset + 1e-3 < n.offset + current_duration:
+                                            warnings.warn(f"Ties do not touch ({n.offset + current_duration}, {n.pitch}) → ({tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            n.tie = None
+                                            tied_note.tie = None
+                                            break
                                         # We have a start tie
                                         # This does not fail because it is necessary for
                                         # correct MIDI import due to possible overlaps
@@ -7519,7 +7567,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                     break
                             else:
                                 # print(n.duration.quarterLength, n.measureNumber, n.offset, n.pitch)
-                                warnings.warn(f"Continue tie misused as start tie (?, ?) → ({n.offset}, {n.pitch}), ignoring")
+                                warnings.warn(f"Continue tie misused as start tie (?, ?) → ({n.measureNumber}, {n.offset}, {n.pitch}), ignoring")
                                 # raise ValueError(f"Continue tie misused as start tie (?, ?) -> ({n.offset}, {n.pitch})!")
                             # Find end for this one
                             for j in range(i + 1, len(notes_and_rests)):
@@ -7542,13 +7590,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         current_duration += tied_note.quarterLength
                                         break
                                     else:
-                                         warnings.warn(f"Unexpected start tie ({tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitch}), treating as continue.")
+                                         warnings.warn(f"Unexpected start tie ({tied_note.measureNumber}, {tied_note.offset}, {tied_note.pitch}) in active tie ({n.measureNumber}, {n.offset}, {n.pitch}), treating as continue.")
                                          current_duration += tied_note.quarterLength
                                          # raise ValueError(f"Unexpected start tie ({tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitc
                                          continue
                             else:
                                 ns = notes_and_rests[idx_start]
-                                warnings.warn(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")
+                                warnings.warn(f"No end tie found for continue tie ({ns.measureNumber}, {ns.offset}, {ns.pitch}) -> ({n.measureNumber}, {n.offset}, {n.pitch}) -> (?, ?).")
                                 # raise ValueError(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")
                         case "stop":
                             # Find the previous note
@@ -7568,7 +7616,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                                 notes_and_rests[idx_start])
                                     break
                             else:
-                                warnings.warn(f"Tie ended but never began (?, ?) -> ({n.offset}, {n.pitch}), ignoring!")
+                                warnings.warn(f"Tie ended but never began (?, ?) -> ({n.measureNumber}, {n.offset}, {n.pitch}), ignoring!")
                                 continue
 
                     # accumulate the duration into the first note

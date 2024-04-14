@@ -690,12 +690,7 @@ class StreamAligner:
         >>> sa.calculateNumSimilarities(nhwr2, nhwr4)
         0
         '''
-
-        count = 0
-        for val in targetTup.hashItemsKeys:
-            if getattr(targetTup, val) == getattr(sourceTup, val):
-                count += 1
-        return count
+        return sum([getattr(targetTup, v) == getattr(sourceTup, v) for v in targetTup.hashItemsKeys])
 
     def tupleEqualityWithoutReference(self, tup1, tup2):
         '''
