@@ -8693,6 +8693,18 @@ class Test(unittest.TestCase):
         self.assertIs(n.activeSite, s2)
         self.assertTrue(s1.notes)
         self.assertIs(n.activeSite, s2)
+
+    def testStripTiesCorpus(self):
+        s = corpus.parse("mozart/k156", "movement1")
+        s = s.expandRepeats()
+        s.stripTies(inPlace=True, preserveVoices=False)
+        self.assertEqual(len(s.flatten().notes), 2748)
+        s = corpus.parse("mozart/k156", "movement2")
+        s.stripTies(inPlace=True, preserveVoices=False)
+        self.assertEqual(len(s.flatten().notes), 1043)
+        s = corpus.parse("weber/concertino_clarinet")
+        s.stripTies(inPlace=True, preserveVoices=False)
+        self.assertEqual(len(s.flatten().notes), 4697)
 # -----------------------------------------------------------------------------
 
 

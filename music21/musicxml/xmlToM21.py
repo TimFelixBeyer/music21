@@ -2193,7 +2193,9 @@ class PartParser(XMLParserBase):
         # offsets within measure; if the .highestTime value is greater, deal with the
         # conflict
 
-        mHighestTime = m.highestTime
+        mHighestTime = max([m.elementOffset(e) + e.duration.quarterLength for e in m._elements if e.isStream or isinstance(e, note.GeneralNote)], default=0.0)
+        if abs(m.highestTime - mHighestTime) > 1e-4:
+            warnings.warn(f"Ambiguous measure length: {mHighestTime} or {m.highestTime} - using {mHighestTime}.", MusicXMLWarning)
 
         if self.lastTimeSignature is not None:
             lastTimeSignatureQuarterLength = self.lastTimeSignature.barDuration.quarterLength
