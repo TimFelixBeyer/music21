@@ -3759,6 +3759,14 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 optionalHideObject(trem)
                 self.setEditorial(mxNotations, trem)
 
+        # tied
+        ties = {mxObj.get('type') for mxObj in mxNotations.findall('tied')}
+        if ties:
+            tieObj = tie.Tie('continue' if ties == {'start', 'stop'} else ties.pop())
+            if n.tie is not None and n.tie != tieObj:
+                warnings.warn(f'`tie` and `tied` mismatch {n.tie.type} vs. {tieObj.type}, prioritizing `tied`', MusicXMLWarning)
+            n.tie = tieObj
+
         # create spanners for rest
         self.xmlNotationsToSpanners(mxNotations, n)
 
