@@ -7062,6 +7062,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         matchByPitch: bool = True,
         preserveVoices: bool = True,
         allowEnharmonicTies: bool = True,
+        version: str='1'
     ) -> StreamType | None:
         # noinspection PyShadowingNames
         '''
@@ -7206,13 +7207,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # returnObj.parts for this...
             for p in self.getElementsByClass(Stream):
                 # already copied if necessary; edit in place
-                p.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices)
+                p.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices, version=version)
             return self
 
         if self.hasVoices():
             for v in self.voices:
                 # already copied if necessary; edit in place
-                v.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices)
+                v.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices, version=version)
             return self
 
         def updateEndMatch(nInner) -> bool:
@@ -7461,12 +7462,22 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # should_be_gone = [n for n in notes_and_rests if n.tie is not None and n.tie.type != 'start']
             # orig_tie_map = {n: n.tie for n in notes_and_rests}
             # tot_extended = {i: 0 for i in range(128)}
+
+            def pitch_match(n1, n2):
+                return (allowEnharmonicTies or n1.pitch.step == n2.pitch.step) and n1.pitch.isEnharmonic(n2.pitch)
+
+            def warn_tie(information, notes, durations=None, action=None):
+                if not durations:
+                    durations = [None] * len(notes)
+                note_strings = [f"({n.measureNumber}, {n.offset}-{n.offset + (d if d is not None else n.duration.quarterLength)}, {n.pitch})" if n is not None else "(?, ?, ?)" for n, d in zip(notes, durations)]
+                warnings.warn(f"{information}"
+                                + " → ".join(note_strings)
+                                + f", {action}.")
+
             posDelete = set()
             tied = set()
-            idx_start = None
             for i, n in enumerate(notes_and_rests):
-                if t.TYPE_CHECKING:
-                    assert isinstance(n, note.Note)
+                idx_start = None
                 if n.isRest or i in posDelete or i in tied:
                     continue
                 if n.tie is not None:
@@ -7479,22 +7490,23 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                             for j in range(i+1, len(notes_and_rests)):
                                 if j in posDelete or j in tied:
                                     continue
-                                if (allowEnharmonicTies or n.pitch.step == notes_and_rests[j].pitch.step) and n.pitch.isEnharmonic(notes_and_rests[j].pitch):
+
+                                if pitch_match(n, notes_and_rests[j]):
                                     tied_note = notes_and_rests[j]
+                                    tie_type = getattr(tied_note.tie, 'type', None)
                                     expected_start = n.offset + current_duration
                                     gap = tied_note.offset - expected_start
                                     # If the next note with that pitch has a continue tie,
                                     # we keep going further
-                                    if tied_note.tie is not None and tied_note.tie.type == "continue":
+                                    if tie_type == 'continue':
                                         # tie should've appeared before
                                         if gap > 1/120 and n.style.noteSize != 'cue':
-                                            warnings.warn(f"Ties do not touch ({n.measureNumber}, {n.offset}-{n.offset + current_duration}, {n.pitch}) → ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
                                             n.tie = None
                                             tied_note.tie.type = "start"
                                             break
                                         elif gap < -1/120:   # tie should appear later
-                                            # print(current_duration, tied_note.tie, n.tie, tied_note.offset-tied_note.getContextByClass('Measure').offset, n.offset-n.getContextByClass('Measure').offset, n.quarterLength, tied_note.quarterLength)
-                                            warnings.warn(f"Ties do not touch ({n.measureNumber}, {n.offset}-{n.offset + current_duration}, {n.pitch}) → ({tied_note.measureNumber}, {tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
                                             n.tie = None
                                             tied_note.tie.type = "start"
                                             break
@@ -7508,7 +7520,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                             posDelete.add(j)
                                             current_duration += tied_note.quarterLength
                                         continue
-                                    elif tied_note.offset == n.offset and (tied_note.tie is None or tied_note.tie.type == "start"):
+                                    elif tied_note.offset == n.offset and tie_type in (None, "start"):
                                         if tied_note.duration.quarterLength > n.duration.quarterLength:
                                             current_duration = tied_note.duration.quarterLength
                                         if tied_note.tie is None and n.duration.isGrace and not tied_note.duration.isGrace:
@@ -7519,14 +7531,14 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         # Ignore new start ties at the same offset,
                                         # happens frequently in malformed MusicXML
                                         continue
-                                    elif tied_note.tie is None or tied_note.tie.type == "stop":
+                                    elif tie_type in (None, "stop"):
                                         if gap > 1:
-                                            warnings.warn(f"Ties do not touch ({n.measureNumber}, {n.offset}-{n.offset + current_duration}, {n.pitch}) → ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
                                             n.tie = None
                                             tied_note.tie = None
                                             break
                                         if gap > 1/120:
-                                            warnings.warn(f"Ties do not touch exactly ({n.measureNumber}, {n.offset}-{n.offset + current_duration}, {n.pitch}) → ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}), but will merge.")
+                                            warn_tie("Ties do not touch exactly", [n, tied_note], [current_duration, None], "but will merge")
                                             posDelete.add(j)
                                             current_duration += tied_note.quarterLength + tied_note.offset - (n.offset + current_duration)
                                             break
@@ -7534,7 +7546,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                             if tied_note.tie is None:
                                                 continue
                                             else:
-                                                warnings.warn(f"Ties do not touch ({n.measureNumber}, {n.offset}-{n.offset + current_duration}, {n.pitch}) → ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                                warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
                                                 n.tie = None
                                                 tied_note.tie = None
                                                 break
@@ -7546,12 +7558,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         break
                                     else:
                                         if gap > 1/120 and n.style.noteSize != 'cue':
-                                            warnings.warn(f"Ties do not touch ({n.measureNumber}, {n.offset}-{n.offset + current_duration}, {n.pitch}) → ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
                                             n.tie = None
                                             tied_note.tie = None
                                             break
                                         elif gap < 1/120:
-                                            warnings.warn(f"Ties do not touch ({n.measureNumber}, {n.offset}-{n.offset + current_duration}, {n.pitch}) → ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}), ignoring.")
+                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
                                             n.tie = None
                                             tied_note.tie = None
                                             break
@@ -7568,7 +7580,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         # warnings.warn(f"Unexpected start tie ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitch}), treating second start tie as continue tie!")
                                         continue
                             else:
-                                warnings.warn(f"No end tie found for start tie ({n.measureNumber}, {n.offset}, {n.pitch}) -> ?, ignoring.")
+                                warn_tie(f"No end tie found for start tie", [n, None], [current_duration, None], action="ignoring")
                                 continue
                         case "continue":
                             # Find the starting note
@@ -7576,9 +7588,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                             for j in reversed(range(i)):
                                 if j in posDelete or j in tied:
                                     continue
-                                if n.pitch.step == notes_and_rests[j].pitch.step and n.pitch.isEnharmonic(notes_and_rests[j].pitch):
-                                    idx_start = j
+                                if pitch_match(n, notes_and_rests[j]):
                                     tied_note = notes_and_rests[j]
+                                    idx_start = j
                                     # Previous notes can never have a tie that hasnt been dealt with
                                     # assert tied_note.tie is None
                                     current_duration += tied_note.quarterLength
@@ -7590,13 +7602,13 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                     break
                             else:
                                 # print(n.duration.quarterLength, n.measureNumber, n.offset, n.pitch)
-                                warnings.warn(f"Continue tie misused as start tie (?, ?) → ({n.measureNumber}, {n.offset}, {n.pitch}), ignoring")
+                                warn_tie(f"Continue tie misused as start tie", [None, n], action="ignoring")
                                 # raise ValueError(f"Continue tie misused as start tie (?, ?) -> ({n.offset}, {n.pitch})!")
                             # Find end for this one
                             for j in range(i + 1, len(notes_and_rests)):
                                 if j in posDelete or j in tied:
                                     continue
-                                if n.pitch.step == notes_and_rests[j].pitch.step and n.pitch.isEnharmonic(notes_and_rests[j].pitch):
+                                if pitch_match(n, notes_and_rests[j]):
                                     tied_note = notes_and_rests[j]
                                     posDelete.add(j)
                                     for sp in f.spanners:
@@ -7606,27 +7618,28 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                                 notes_and_rests[idx_start])
                                     # If the next note with that pitch has a continue tie,
                                     # we keep going further
-                                    if tied_note.tie is not None and tied_note.tie.type == "continue":
+                                    tie_type = getattr(tied_note.tie, 'type', None)
+                                    if tie_type == "continue":
                                         current_duration += tied_note.quarterLength
                                         continue
-                                    elif tied_note.tie is None or tied_note.tie.type == "stop":
+                                    elif tie_type in (None, "stop"):
                                         current_duration += tied_note.quarterLength
                                         break
                                     else:
-                                         warnings.warn(f"Unexpected start tie ({tied_note.measureNumber}, {tied_note.offset}, {tied_note.pitch}) in active tie ({n.measureNumber}, {n.offset}, {n.pitch}), treating as continue.")
-                                         current_duration += tied_note.quarterLength
-                                         # raise ValueError(f"Unexpected start tie ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitc
-                                         continue
+                                        warn_tie(f"Unexpected start tie in active tie", n, tied_note, current_duration, "treating as continue")
+                                        current_duration += tied_note.quarterLength
+                                        # raise ValueError(f"Unexpected start tie ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitc
+                                        continue
                             else:
                                 ns = notes_and_rests[idx_start]
-                                warnings.warn(f"No end tie found for continue tie ({ns.measureNumber}, {ns.offset}, {ns.pitch}) -> ({n.measureNumber}, {n.offset}, {n.pitch}) -> (?, ?).")
+                                warn_tie(f"No end tie found for continue tie", [ns, n, None], [current_duration, None, None], "treating as stop.")
                                 # raise ValueError(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")
                         case "stop":
                             # Find the previous note
                             for j in reversed(range(i)):
                                 if j in posDelete or j in tied:
                                     continue
-                                if n.pitch.step == notes_and_rests[j].pitch.step and n.pitch.isEnharmonic(notes_and_rests[j].pitch):
+                                if pitch_match(n, notes_and_rests[j]):
                                     idx_start = j
                                     posDelete.add(i)
                                     tied_note = notes_and_rests[j]
@@ -7639,7 +7652,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                                 notes_and_rests[idx_start])
                                     break
                             else:
-                                warnings.warn(f"Tie ended but never began (?, ?) -> ({n.measureNumber}, {n.offset}, {n.pitch}), ignoring!")
+                                warn_tie(f"Tie ended but never began", [None, n], [None, None], "ignoring")
                                 continue
 
                     # accumulate the duration into the first note
@@ -7670,7 +7683,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         #         print({i: sum(n.quarterLength for n in to_delete if n.pitch.midi == i) for i in range(128) if sum(n.quarterLength for n in to_delete if n.pitch.midi == i) != 0})
         self.remove(to_delete, recurse=True)
         # all results have been processed
-
         return self
 
     def extendTies(self, ignoreRests: bool=False, pitchAttr: str='nameWithOctave'):
