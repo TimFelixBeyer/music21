@@ -511,7 +511,7 @@ class Music21Object(prebase.ProtoM21Object):
         if activeSite is not None:
             self.activeSite = activeSite
         if quarterLength is not None:
-            self.duration.quarterLength = quarterLength
+            self.quarterLength = quarterLength
         if keywords:  # should be empty
             raise Music21ObjectException(f"Keywords {keywords} were passed, but not understood")
 

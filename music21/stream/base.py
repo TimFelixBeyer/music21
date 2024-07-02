@@ -7553,7 +7553,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                             while (j := j+1) < len(notes_and_rests):
                                 should_skip = (j in posDelete or j in tied
                                     or not pitch_match(n, notes_and_rests[j], allowEnharmonicTies)
-                                    or (target_voice is not None and notes_and_rests[j].getContextByClass('Voice').id != target_voice.id)
+                                    or (getattr(notes_and_rests[j].tie, 'type', None) is None and target_voice is not None and notes_and_rests[j].getContextByClass('Voice').id != target_voice.id)
                                 )
                                 if should_skip:
                                     if j + 1 == len(notes_and_rests) and target_voice is not None:
@@ -7615,6 +7615,11 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                                 j = max(i, idx_start)
                                             continue
                                         if -gapThreshold <= gap <= (2 if n.style.noteSize == 'cue' else 1):
+                                            if not mergeTiedGraceNotes and n.duration.isGrace:
+                                                tied_note.tie = None
+                                                n.tie = None
+                                                idx_start = None
+                                                break
                                             warn_tie('Ties do not touch exactly', [n, tied_note], [current_duration, None], 'but will merge')
                                             posDelete.add(j)
                                             fix_spanners(n, tied_note)
@@ -7708,6 +7713,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                     expected_start = n.offset + n.quarterLength
                                     gap = tied_note.offset - expected_start
                                     if (n.style.noteSize != 'cue' and abs(gap) > gapThreshold) or (n.style.noteSize == 'cue' and not (-gapThreshold <= gap <= 1)):
+                                    # if (n.style.noteSize != 'cue' and not (-gapThreshold <= gap <= 1)) or (n.style.noteSize == 'cue' and not (-gapThreshold <= gap <= 1)):
                                         warn_tie('Ties do not touch', [n, tied_note], [None, None], f'ignoring9')
                                         idx_start = None
                                         n.tie = None
@@ -7715,7 +7721,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         break
                                     posDelete.add(i)
                                     fix_spanners(n, tied_note)
-                                    current_duration += n.quarterLength
+                                    if abs(gap) > gapThreshold:
+                                        current_duration = tied_note.quarterLength + tied_note.offset - n.offset
+                                    else:
+                                        current_duration += n.quarterLength
                                     break
                             else:
                                 idx_start = None

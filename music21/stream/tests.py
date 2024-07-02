@@ -1597,6 +1597,188 @@ class Test(unittest.TestCase):
         self.assertEqual(len(stripped[harmony.ChordSymbol]), 1)
         self.assertEqual(stripped[harmony.ChordSymbol].first().quarterLength, 0)
 
+    def testStripTiesWithGapsPreserveVoicesFalse(self):
+        '''
+        Testing that ties are not merged when notes are further apart than 1/95th
+        and preserveVoices is set to False.
+        '''
+        import warnings
+        # TODO: test grace note ties
+        # TODO: test enharmonic merge
+        tie_pair_tests  = [
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['start', 'start']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['start', 'continue']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['start', 'stop']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['start', None]},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['continue', 'start']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['continue', 'continue']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['continue', 'stop']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['continue', None]},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['stop', 'start']},
+                'outputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['stop', 'continue']},
+                'outputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['stop', 'stop']},
+                'outputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['stop', None]},
+                'outputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, 'start']},
+                'outputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, 'continue']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, 'stop']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, None]},
+                'outputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, None]}
+            }
+        ]
+
+        tie_tests = [
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['start', 'stop']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0), (2.0, 3.0)], 'ties': ['start', 'continue', 'stop']},
+                'outputs': {'times': [(0.0, 3.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 1.5), (1.5, 2.0), (2.0, 3.0)], 'ties': ['start', 'continue', 'continue', 'stop']},
+                'outputs': {'times': [(0.0, 3.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['start', None]},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': ['continue', 'stop']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, 'stop']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0)], 'ties': [None, 'continue']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.0, 2.0), (2.0, 3.0)], 'ties': [None, 'continue', None]},
+                'outputs': {'times': [(0.0, 3.0)], 'ties': [None]}
+            },
+        ]
+        gap_tests = [
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.01, 2.01)], 'ties': ['start', 'stop']},
+                'outputs': {'times': [(0.0, 2.0)], 'ties': [None]}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.1, 2.1)], 'ties': ['start', 'stop']},
+                'outputs': {'times': [(0.0, common.opFrac(2.1))], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.1, 2.1)], 'ties': ['start', None]},
+                'outputs': {'times': [(0.0, common.opFrac(2.1))], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.1, 2.1)], 'ties': [None, 'stop']},
+                'outputs': {'times': [(0.0, 1.0), (common.opFrac(1.1), common.opFrac(2.1))], 'ties': [None, None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (2.1, 3.0)], 'ties': ['start', 'stop']},
+                'outputs': {'times': [(0.0, 1.0), (common.opFrac(2.1), 3.0)], 'ties': [None, None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.01, 2.0), (2.01, 3.0)], 'ties': ['start', 'continue', 'stop']},
+                'outputs': {'times': [(0.0, 3.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.01, 2.0), (2.01, 3.0)], 'ties': ['start', 'continue', 'stop']},
+                'outputs': {'times': [(0.0, 3.0)], 'ties': [None], 'warning': UserWarning}
+            },
+            {
+                'inputs': {'times': [(0.0, 1.0), (1.01, 2.0), (2.1, 3.5)], 'ties': ['start', 'continue', 'stop']},
+                'outputs': {'times': [(0.0, 3.5)], 'ties': [None], 'warning': UserWarning}
+            },
+        ]
+
+        for test in tie_pair_tests + tie_tests + gap_tests:
+            input = test['inputs']
+            output = test['outputs']
+
+            s = Stream()
+            if 'voices' not in input:
+                input['voices'] = [1] * len(input['times'])
+            voices = {}
+            for voice in input['voices']:
+                if voice not in voices:
+                    voices[voice] = Voice(id=voice)
+            s.append(list(voices.values()))
+
+            if 'graces' not in input:
+                input['graces'] = [False] * len(input['times'])
+
+            for i, (start, end) in enumerate(input['times']):
+                n = note.Note('C4', quarterLength=end-start)
+                if input['ties'][i] is not None:
+                    n.tie = tie.Tie(input['ties'][i])
+                if input['graces'][i]:
+                    n.duration = n.duration.getGraceDuration()
+                voices[input['voices'][i]].insert(start, n)
+
+            if 'warning' in output:
+                with self.assertWarns(UserWarning):
+                    s.stripTies(preserveVoices=False, inPlace=True)
+            else:
+                # no warning
+                with warnings.catch_warnings():
+                    warnings.simplefilter("error")
+                    s.stripTies(preserveVoices=False, inPlace=True)
+            notes = list(s.flatten().notes)
+            times = [(common.opFrac(n.offset), common.opFrac(n.offset + n.quarterLength)) for n in notes]
+            self.assertListEqual(times, output['times'])
+            ties = [None if n.tie is None else n.tie.type for n in notes]
+            self.assertListEqual(ties, output['ties'])
+
     def testTwoStreamMethods(self):
         from music21.note import Note
 
