@@ -502,8 +502,7 @@ def makeMeasures(
             refStreamHighestTime = refStreamOrTimeRange.highestTime
         else:  # assume it's a list
             refStreamHighestTime = max(refStreamOrTimeRange)
-        if refStreamHighestTime > oMax:
-            oMax = refStreamHighestTime
+        oMax = max(oMax, refStreamHighestTime)
 
     # create a stream of measures to contain the offsets range defined
     # create as many measures as needed to fit in oMax

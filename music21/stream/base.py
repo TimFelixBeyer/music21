@@ -2804,8 +2804,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 o = insertList[i]
                 e = insertList[i + 1]
                 qL = e.quarterLength
-                if o + qL > highestTimeInsert:
-                    highestTimeInsert = o + qL
+                highestTimeInsert = max(highestTimeInsert, o + qL)
                 if lowestOffsetInsert is None or o < lowestOffsetInsert:
                     lowestOffsetInsert = o
                 i += 2
@@ -4107,7 +4106,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # TODO: allow sortTuple as a parameter (in all getElement...)
 
         candidates = []
-        offset = opFrac(offset)
+        offset: OffsetQL = opFrac(offset)
         nearestTrailSpan = offset  # start with max time
 
         sIterator = self.iter()
@@ -4117,7 +4116,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         # need both _elements and _endElements
         for e in sIterator:
-            span = opFrac(offset - self.elementOffset(e))
+            span: OffsetQL = opFrac(offset - self.elementOffset(e))
             # environLocal.printDebug(['e span check', span, 'offset', offset,
             #   'e.offset', e.offset, 'self.elementOffset(e)', self.elementOffset(e), 'e', e])
             if span < 0 or (span == 0 and _beforeNotAt):
@@ -11285,10 +11284,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # environLocal.printDebug(['makeVoices(): olDict', olDict])
         # find the max necessary voices by finding the max number
         # of elements in each group; these may not all be necessary
-        maxVoiceCount = 1
-        for group in olDict.values():
-            if len(group) > maxVoiceCount:
-                maxVoiceCount = len(group)
+        maxVoiceCount = max([len(group) for group in olDict.values()] + [1])
         if maxVoiceCount == 1:  # nothing to do here
             return self
 

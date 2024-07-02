@@ -24,7 +24,6 @@ from fractions import Fraction
 import abc
 import copy
 import enum
-import math
 import re
 import typing as t
 from typing import overload
@@ -1064,9 +1063,7 @@ class GenericInterval(IntervalBase):
         Returns simpleUndirectedSteps and undirectedOctaves.
         '''
         # unisons (even augmented) are neither steps nor skips.
-        undirected = self.undirected
-        steps = undirected % 7
-        octaves = undirected // 7
+        octaves, steps = divmod(self.undirected, 7)
         if steps == 0:
             octaves -= 1
             steps = 7
@@ -3532,7 +3529,7 @@ class Interval(IntervalBase):
                         and oldPitch2Accidental.name == 'natural'):
                     pitch2.accidental = oldPitch2Accidental
 
-        if useImplicitOctave is True:
+        if useImplicitOctave:
             pitch2.octave = None
 
         if inPlace:

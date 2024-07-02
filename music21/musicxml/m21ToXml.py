@@ -1551,8 +1551,7 @@ class ScoreExporter(XMLExporterBase, PartStaffExporterMixin):
             else:
                 innerStream.transferOffsetToElements()
                 ht = innerStream.highestTime
-            if ht > self.highestTime:
-                self.highestTime = ht
+            self.highestTime = max(self.highestTime, ht)
         self.refStreamOrTimeRange = [0.0, self.highestTime]
         self.parts = list(s.parts)
 
@@ -4491,7 +4490,7 @@ class MeasureExporter(XMLExporterBase):
         </pitch>
         '''
         mxPitch = Element('pitch')
-        _setTagTextFromAttribute(p, mxPitch, 'step')
+        _setTagTextFromAttribute(p, mxPitch, 'step', 'step')
         if p.accidental is not None:
             mxAlter = SubElement(mxPitch, 'alter')
             mxAlter.text = str(common.numToIntOrFloat(p.accidental.alter))
@@ -4572,11 +4571,11 @@ class MeasureExporter(XMLExporterBase):
         </frame-note>
         '''
         mxFrameNote = Element('frame-note')
-        _setTagTextFromAttribute(fretNote, mxFrameNote, 'string')
-        _setTagTextFromAttribute(fretNote, mxFrameNote, 'fret')
+        _setTagTextFromAttribute(fretNote, mxFrameNote, 'string', 'string')
+        _setTagTextFromAttribute(fretNote, mxFrameNote, 'fret', 'fret')
 
         if fretNote.fingering is not None:
-            _setTagTextFromAttribute(fretNote, mxFrameNote, 'fingering')
+            _setTagTextFromAttribute(fretNote, mxFrameNote, 'fingering', 'fingering')
 
         return mxFrameNote
 
@@ -6497,8 +6496,8 @@ class MeasureExporter(XMLExporterBase):
         '''
         mxLyric = Element('lyric')
         if not ly.isComposite:
-            _setTagTextFromAttribute(ly, mxLyric, 'syllabic')
-            _setTagTextFromAttribute(ly, mxLyric, 'text', forceEmpty=True)
+            _setTagTextFromAttribute(ly, mxLyric, 'syllabic', 'syllabic')
+            _setTagTextFromAttribute(ly, mxLyric, 'text', 'text', forceEmpty=True)
         else:
             # composite must have at least one component
             if t.TYPE_CHECKING:
@@ -6512,8 +6511,8 @@ class MeasureExporter(XMLExporterBase):
                     mxElision = SubElement(mxLyric, 'elision')
                     if component.elisionBefore:
                         mxElision.text = component.elisionBefore
-                _setTagTextFromAttribute(component, mxLyric, 'syllabic')
-                _setTagTextFromAttribute(component, mxLyric, 'text', forceEmpty=True)
+                _setTagTextFromAttribute(component, mxLyric, 'syllabic', 'syllabic')
+                _setTagTextFromAttribute(component, mxLyric, 'text', 'text', forceEmpty=True)
 
         # TODO: extend
         # TODO: laughing
@@ -7074,7 +7073,7 @@ class MeasureExporter(XMLExporterBase):
             # TODO: cancel
             seta(keyOrKeySignature, mxKey, 'fifths', 'sharps')
             if hasattr(keyOrKeySignature, 'mode') and keyOrKeySignature.mode is not None:
-                seta(keyOrKeySignature, mxKey, 'mode')
+                seta(keyOrKeySignature, mxKey, 'mode', 'mode')
 
         else:
             # choice... non-traditional-key...
@@ -7154,7 +7153,7 @@ class MeasureExporter(XMLExporterBase):
 
         mxSign = SubElement(mxClef, 'sign')
         mxSign.text = sign
-        _setTagTextFromAttribute(clefObj, mxClef, 'line')
+        _setTagTextFromAttribute(clefObj, mxClef, 'line', 'line')
         if clefObj.octaveChange not in (0, None):
             _setTagTextFromAttribute(clefObj, mxClef, 'clef-octave-change', 'octaveChange')
 

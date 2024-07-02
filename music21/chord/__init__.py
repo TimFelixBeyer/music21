@@ -138,18 +138,12 @@ class ChordBase(note.NotRest):
         # if provided.
 
         super().__init__(**keywords)
-
-        # inherit Duration object from GeneralNote
-        # keep it here in case we have no notes
-
-        durationKeyword = keywords.get('duration')
-        durationKeyword = self._add_core_or_init(notes, useDuration=durationKeyword)
-
-        if durationKeyword is not None:
-            self.duration = durationKeyword
-        elif 'type' in keywords or 'quarterLength' in keywords:  # dots dont cut it
-            self.duration = Duration(**keywords)
-
+        # Normally, we inherit Duration object from GeneralNote
+        # It is overridden here in case no chord duration is specified
+        if not any(k in keywords for k in ('duration', 'type', 'quarterLength')):
+            self._add_core_or_init(notes, useDuration=None)
+        else:
+            self._add_core_or_init(notes, useDuration=self.duration)
 
     def __eq__(self, other):
         if not super().__eq__(other):
@@ -233,13 +227,13 @@ class ChordBase(note.NotRest):
             elif isinstance(n, ChordBase):
                 for newNote in n._notes:
                     self._notes.append(copy.deepcopy(newNote))
-                if quickDuration is True:
+                if quickDuration:
                     self.duration = n.duration
                     useDuration = None
                     quickDuration = False
             elif isinstance(n, note.NotRest):
                 self._notes.append(n)
-                if quickDuration is True:
+                if quickDuration:
                     self.duration = n.duration
                     useDuration = None
                     quickDuration = False
@@ -828,7 +822,7 @@ class Chord(ChordBase):
 
         keyErrorStr = f'Cannot access component with: {key!r}'
         if isinstance(key, str):
-            if "." in key:
+            if '.' in key:
                 key, attrStr = key.split('.', 1)
                 attributes = tuple(attrStr.split('.'))
             try:
@@ -914,7 +908,7 @@ class Chord(ChordBase):
         Traceback (most recent call last):
         ValueError: Chord index must be set to a valid note object
         '''
-        if isinstance(key, str) and key.count('.'):
+        if isinstance(key, str) and '.' in key:
             keySplit = key.split('.')
             keyFind = '.'.join(keySplit[0:-1])
             attr = keySplit[-1]
