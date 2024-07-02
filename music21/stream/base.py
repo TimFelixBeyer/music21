@@ -63,6 +63,7 @@ from music21 import pitch
 from music21 import tie
 from music21 import repeat
 from music21 import sites
+from music21.sorting import SortTuple
 from music21 import style
 from music21 import tempo
 
@@ -149,7 +150,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     >>> s1 = stream.Stream()
     >>> s1.append(note.Note('C#4', type='half'))
     >>> s1.append(note.Note('D5', type='quarter'))
-    >>> s1.duration.quarterLength
+    >>> s1.quarterLength
     3.0
     >>> for thisNote in s1.notes:
     ...     print(thisNote.octave)
@@ -171,7 +172,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
     >>> p1.id = 'embeddedPart'
     >>> p1.append(note.Rest())  # quarter rest
     >>> s2 = stream.Stream([c1, n1, p1])
-    >>> s2.duration.quarterLength
+    >>> s2.quarterLength
     1.5
     >>> s2.show('text')
     {0.0} <music21.clef.TrebleClef>
@@ -1801,12 +1802,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             match.activeSite = None
 
             if shiftOffsets and not matchedEndElement:
-                matchDuration = match.duration.quarterLength
+                matchDuration = match.quarterLength
                 shiftedRegionStart = matchOffset + matchDuration
                 if (i + 1) < len(targetList):
                     shiftedRegionEnd = self.elementOffset(targetList[i + 1])
                 else:
-                    shiftedRegionEnd = self.duration.quarterLength
+                    shiftedRegionEnd = self.quarterLength
 
                 shiftDur += matchDuration
                 if shiftDur != 0.0:
@@ -2301,10 +2302,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             except AttributeError:
                 raise StreamException(f'Cannot insert item {item!r} to stream '
                                       + '-- is it a music21 object?')
-
         # if not common.isNum(offset):
         try:  # using float conversion instead of isNum for performance
-            offset = float(offset)
+            float(offset)
         except (ValueError, TypeError):
             raise StreamException(f'Offset {offset!r} must be a number.')
 
@@ -2318,13 +2318,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                       element,
                                       ignoreSort=ignoreSort,
                                       setActiveSite=setActiveSite)
-        updateIsFlat = False
-        if element.isStream:
-            updateIsFlat = True
+
+
+        updateIsFlat = element.isStream and self.isFlat
         # track if the sort has changed
-        self.coreElementsChanged(clearIsSorted=not storeSorted, updateIsFlat=updateIsFlat)
-        if ignoreSort is False:
-            self.isSorted = storeSorted
+        self.coreElementsChanged(clearIsSorted=not storeSorted,
+                                 updateIsFlat=updateIsFlat)
 
     def insertIntoNoteOrChord(self, offset, noteOrChord, chordsOnly=False):
         # noinspection PyShadowingNames
@@ -2337,9 +2336,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         previously-found chord will remain the same in the new Chord.
 
         >>> n1 = note.Note('D4')
-        >>> n1.duration.quarterLength = 2.0
+        >>> n1.quarterLength = 2.0
         >>> r1 = note.Rest()
-        >>> r1.duration.quarterLength = 2.0
+        >>> r1.quarterLength = 2.0
         >>> c1 = chord.Chord(['C4', 'E4'])
         >>> s = stream.Stream()
         >>> s.append(n1)
@@ -2540,7 +2539,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> notes = []
         >>> for x in range(3):
         ...     n = note.Note('G#')
-        ...     n.duration.quarterLength = 3
+        ...     n.quarterLength = 3
         ...     notes.append(n)
         >>> a.append(notes[0])
         >>> a.highestOffset, a.highestTime
@@ -2558,7 +2557,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         >>> for x in range(3):
         ...     n = note.Note('A-')
-        ...     n.duration.quarterLength = 3
+        ...     n.quarterLength = 3
         ...     n.offset = 0
         ...     notes2.append(n)
         >>> a.append(notes2)  # add em all again
@@ -2572,7 +2571,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         >>> n3 = note.Note('B-')
         >>> n3.offset = 1
-        >>> n3.duration.quarterLength = 3
+        >>> n3.quarterLength = 3
         >>> a.append(n3)
         >>> a.highestOffset, a.highestTime
         (18.0, 21.0)
@@ -2623,26 +2622,19 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             self.coreSelfActiveSite(e)
             self._elements.append(e)
 
-            if e.duration.quarterLength != 0:
+            if e.quarterLength != 0:
                 # environLocal.printDebug(['incrementing highest time',
-                #                         'e.duration.quarterLength',
-                #                          e.duration.quarterLength])
-                highestTime += e.duration.quarterLength
-            if lastElement is not None and not lastElement.duration.quarterLength:
+                #                         'e.quarterLength',
+                #                          e.quarterLength])
+                highestTime += e.quarterLength
+            if lastElement is not None and not lastElement.quarterLength:
                 if (e.priority < lastElement.priority
                         or e.classSortOrder < lastElement.classSortOrder):
                     clearIsSorted = True
             lastElement = e
 
-        # does not normally change sorted state
-        if clearIsSorted:
-            storeSorted = False
-        else:
-            storeSorted = self.isSorted
-
         # we cannot keep the index cache here b/c we might
-        self.coreElementsChanged(updateIsFlat=updateIsFlat)
-        self.isSorted = storeSorted
+        self.coreElementsChanged(updateIsFlat=updateIsFlat, clearIsSorted=clearIsSorted)
         self._setHighestTime(opFrac(highestTime))  # call after to store in cache
 
     def storeAtEnd(self, itemOrList, ignoreSort=False):
@@ -2684,7 +2676,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         self.coreGuardBeforeAddElement(element)
 
         # cannot support elements with Durations in the highest time list
-        if element.duration.quarterLength != 0:
+        if element.quarterLength != 0:
             raise StreamException('cannot insert an object with a non-zero '
                                   + 'Duration into the highest time elements list')
 
@@ -2798,7 +2790,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         # need to find the highest time after the insert
         if itemOrNone is not None:  # we have an offset and an element
             insertObject = itemOrNone
-            qL = insertObject.duration.quarterLength
+            qL = insertObject.quarterLength
             offset = offsetOrItemOrList
             lowestOffsetInsert = offset
             highestTimeInsert = offset + qL
@@ -2811,7 +2803,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             while i < len(insertList):
                 o = insertList[i]
                 e = insertList[i + 1]
-                qL = e.duration.quarterLength
+                qL = e.quarterLength
                 if o + qL > highestTimeInsert:
                     highestTimeInsert = o + qL
                 if lowestOffsetInsert is None or o < lowestOffsetInsert:
@@ -2820,7 +2812,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         else:  # using native offset
             # if hasattr(offsetOrItemOrList, 'duration'):
             insertObject = offsetOrItemOrList
-            qL = insertObject.duration.quarterLength
+            qL = insertObject.quarterLength
             # should this be getOffsetBySite(None)?
             highestTimeInsert = insertObject.offset + qL
             lowestOffsetInsert = insertObject.offset
@@ -3314,15 +3306,16 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 off = common.mixedNumeral(offGet)
             else:
                 off = common.strTrimFloat(offGet)
-            if addEndTimes is False:
+
+            if not addEndTimes:
                 return in_indent + '{' + off + '} ' + repr(in_element)
+
+            ql = offGet + in_element.quarterLength
+            if useMixedNumerals:
+                qlStr = common.mixedNumeral(ql)
             else:
-                ql = offGet + in_element.duration.quarterLength
-                if useMixedNumerals:
-                    qlStr = common.mixedNumeral(ql)
-                else:
-                    qlStr = common.strTrimFloat(ql)
-                return in_indent + '{' + off + ' - ' + qlStr + '} ' + repr(in_element)
+                qlStr = common.strTrimFloat(ql)
+            return in_indent + '{' + off + ' - ' + qlStr + '} ' + repr(in_element)
 
         msg = []
         insertSpaces = 4
@@ -4883,8 +4876,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     or el.classSet.intersection(removeClasses)
                     or (not retainVoices and 'Voice' in el.classes)):
                 # remove this element
-                if fillWithRests and el.duration.quarterLength:
-                    endTime = elOffset + el.duration.quarterLength
+                if fillWithRests and el.quarterLength:
+                    endTime = elOffset + el.quarterLength
                     if restInfo['offset'] is None:
                         restInfo['offset'] = elOffset
                         restInfo['endTime'] = endTime
@@ -5239,7 +5232,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         instrument_map: dict[instrument.Instrument, OffsetQL] = {}
         for inst in instrument_stream:
             # keep track of original durations of each instrument
-            instrument_map[inst] = inst.duration.quarterLength
+            instrument_map[inst] = inst.quarterLength
             # this loses the expression of duration, but should be fine for instruments.
 
         instrument_stream.duration = self.duration
@@ -5279,7 +5272,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         # restore original durations
         for inst, original_ql in instrument_map.items():
-            inst.duration.quarterLength = original_ql
+            inst.quarterLength = original_ql
 
         return self
 
@@ -5964,7 +5957,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         ...
         {36.0} <music21.note.Note D-->
 
-        >>> a.duration.quarterLength
+        >>> a.quarterLength
         40.0
         >>> a[9].offset
         36.0
@@ -6063,7 +6056,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if b is searchElement or b.id == searchElement.id:
                 found = i
                 foundOffset = self.elementOffset(b)
-                foundEnd = foundOffset + b.duration.quarterLength
+                foundEnd = foundOffset + b.quarterLength
         if found is None:
             raise StreamException('Could not find the element in the stream')
 
@@ -6129,7 +6122,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         if offsetsOnly:
             endTimes = set()
         else:
-            endTimes = {opFrac(v[0] + v[1].duration.quarterLength)
+            endTimes = {opFrac(v[0] + v[1].quarterLength)
                             for v in offsetDictValues}
         return sorted(offsets.union(endTimes))
 
@@ -6199,7 +6192,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         >>> cc[3]
         <music21.chord.Chord C#4>
-        >>> cc[3].duration.quarterLength
+        >>> cc[3].quarterLength
         Fraction(22, 25)
 
         >>> cc.show('text', addEndTimes=True)
@@ -6357,12 +6350,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         def removeConsecutiveRests(templateInner, consecutiveRests):
             if len(consecutiveRests) < 2:
                 return
-            totalDuration = sum(r.duration.quarterLength for r in consecutiveRests)
+            totalDuration = sum(r.quarterLength for r in consecutiveRests)
             startOffset = templateInner.elementOffset(consecutiveRests[0])
             for r in consecutiveRests:
                 templateInner.remove(r)
             rNew = note.Rest()
-            rNew.duration.quarterLength = totalDuration
+            rNew.quarterLength = totalDuration
             templateInner.insert(startOffset, rNew)
 
         # --------------------------------------
@@ -6538,7 +6531,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 # do not include barlines
                 if isinstance(e, bar.Barline):
                     continue
-                dur = e.duration.quarterLength
+                dur = e.quarterLength
                 offset = group.elementOffset(e)
                 endTime = opFrac(offset + dur)
                 # NOTE: used to make a copy.copy of elements here;
@@ -6989,7 +6982,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
 
         >>> stream1 = stream.Stream()
         >>> n = note.Note(type='quarter')
-        >>> n.duration.quarterLength
+        >>> n.quarterLength
         1.0
         >>> stream1.repeatInsert(n, [0, 10, 20, 30, 40])
 
@@ -6997,7 +6990,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> stream1.insert(15, dyn)
         >>> stream1[-1].offset  # offset of last element
         40.0
-        >>> stream1.duration.quarterLength  # total duration
+        >>> stream1.quarterLength  # total duration
         41.0
         >>> len(stream1)
         6
@@ -7005,33 +6998,33 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> stream2 = stream1.flatten().extendDuration(note.GeneralNote, inPlace=False)
         >>> len(stream2)
         6
-        >>> stream2[0].duration.quarterLength
+        >>> stream2[0].quarterLength
         10.0
 
         The Dynamic does not affect the second note:
 
         >>> stream2[1].offset
         10.0
-        >>> stream2[1].duration.quarterLength
+        >>> stream2[1].quarterLength
         10.0
 
-        >>> stream2[-1].duration.quarterLength  # or extend to end of stream
+        >>> stream2[-1].quarterLength  # or extend to end of stream
         1.0
-        >>> stream2.duration.quarterLength
+        >>> stream2.quarterLength
         41.0
         >>> stream2[-1].offset
         40.0
         '''
-        qLenTotal = self.duration.quarterLength
+        qLenTotal = self.quarterLength
         elements = list(self.getElementsByClass(objClass))
 
         for element, nextElement in zip(elements, elements[1:]):
             span = self.elementOffset(nextElement) - self.elementOffset(element)
-            element.duration.quarterLength = span
+            element.quarterLength = span
 
         # handle last element
         if elements:
-            elements[-1].duration.quarterLength = (qLenTotal
+            elements[-1].quarterLength = (qLenTotal
                                                    - self.elementOffset(elements[-1]))
         return self
 
@@ -7062,7 +7055,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         matchByPitch: bool = True,
         preserveVoices: bool = True,
         allowEnharmonicTies: bool = True,
-        version: str='1'
+        mergeTiedGraceNotes: bool = False,
+        strict: bool = False,
+        gapThreshold: float = 1/95,
     ) -> StreamType | None:
         # noinspection PyShadowingNames
         '''
@@ -7207,93 +7202,105 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             # returnObj.parts for this...
             for p in self.getElementsByClass(Stream):
                 # already copied if necessary; edit in place
-                p.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices, version=version)
+                p.stripTies(inPlace=True,
+                            matchByPitch=matchByPitch,
+                            preserveVoices=preserveVoices,
+                            allowEnharmonicTies=allowEnharmonicTies,
+                            mergeTiedGraceNotes=mergeTiedGraceNotes,
+                            strict=strict,
+                            gapThreshold=gapThreshold)
             return self
 
         if self.hasVoices():
             for v in self.voices:
                 # already copied if necessary; edit in place
-                v.stripTies(inPlace=True, matchByPitch=matchByPitch, preserveVoices=preserveVoices, version=version)
+                v.stripTies(inPlace=True,
+                            matchByPitch=matchByPitch,
+                            preserveVoices=preserveVoices,
+                            allowEnharmonicTies=allowEnharmonicTies,
+                            mergeTiedGraceNotes=mergeTiedGraceNotes,
+                            strict=strict,
+                            gapThreshold=gapThreshold)
             return self
 
-        def updateEndMatch(nInner) -> bool:
-            '''
-            updateEndMatch based on nList, iLast, matchByPitch, etc.
-            '''
-            # 2 cases before matchByPitch=False returns early.
+        if preserveVoices:
+            def updateEndMatch(nInner) -> bool:
+                '''
+                updateEndMatch based on nList, iLast, matchByPitch, etc.
+                '''
+                # 2 cases before matchByPitch=False returns early.
 
-            # Case 1: nInner is not a chord, and it has a stop tie
-            # can't trust chords, which only tell if SOME member has a tie
-            # matchByPitch does not matter here
-            # https://github.com/cuthbertLab/music21/issues/502
-            if (hasattr(nInner, 'tie')
-                    and not isinstance(nInner, chord.Chord)
-                    and nInner.tie is not None
-                    and nInner.tie.type == 'stop'):
-                return True
-            # Case 2: matchByPitch=False and all chord members have a stop tie
-            # and checking cardinality passes (don't match chords to single notes)
-            if (not matchByPitch
-                    and isinstance(nInner, chord.Chord)
-                    and isinstance(nLast, chord.Chord)
-                    and None not in [inner_p.tie for inner_p in nInner.notes]
-                    and {inner_p.tie.type for inner_p in nInner.notes} == {'stop'}  # type: ignore
-                    and len(nLast.pitches) == len(nInner.pitches)):
-                return True
+                # Case 1: nInner is not a chord, and it has a stop tie
+                # can't trust chords, which only tell if SOME member has a tie
+                # matchByPitch does not matter here
+                # https://github.com/cuthbertLab/music21/issues/502
+                if (hasattr(nInner, 'tie')
+                        and not isinstance(nInner, chord.Chord)
+                        and nInner.tie is not None
+                        and nInner.tie.type == 'stop'):
+                    return True
+                # Case 2: matchByPitch=False and all chord members have a stop tie
+                # and checking cardinality passes (don't match chords to single notes)
+                if (not matchByPitch
+                        and isinstance(nInner, chord.Chord)
+                        and isinstance(nLast, chord.Chord)
+                        and None not in [inner_p.tie for inner_p in nInner.notes]
+                        and {inner_p.tie.type for inner_p in nInner.notes} == {'stop'}  # type: ignore
+                        and len(nLast.pitches) == len(nInner.pitches)):
+                    return True
 
-            # Now, matchByPitch
-            # if we cannot find a stop tie, see if last note was connected
-            # and this and the last note are the same pitch; this assumes
-            # that connected and same pitch value is tied; this is not
-            # frequently the case
-            elif not matchByPitch:
-                return False
-
-            # find out if the last index is in position connected
-            # if the pitches are the same for each note
-            if (nLast is not None
-                    and iLast in posConnected
-                    and hasattr(nLast, 'pitch')
-                    and hasattr(nInner, 'pitch')
-                    # before doing pitch comparison, need to
-                    # make sure we're not comparing a Note to a Chord
-                    and not isinstance(nLast, chord.Chord)
-                    and not isinstance(nInner, chord.Chord)
-                    and nLast.pitch == nInner.pitch):
-                return True
-            # looking for two chords of equal size
-            if (nLast is not None
-                    and not isinstance(nInner, note.Note)
-                    and iLast in posConnected
-                    and hasattr(nLast, 'pitches')
-                    and hasattr(nInner, 'pitches')):
-                if len(nLast.pitches) != len(nInner.pitches):
+                # Now, matchByPitch
+                # if we cannot find a stop tie, see if last note was connected
+                # and this and the last note are the same pitch; this assumes
+                # that connected and same pitch value is tied; this is not
+                # frequently the case
+                elif not matchByPitch:
                     return False
 
-                for pLast, pInner in zip(nLast.pitches, nInner.pitches):
-                    # check to see that each is the same pitch, but
-                    # allow for `accidental is None` == `Accidental('natural')`
-                    if pLast.step != pInner.step or not pLast.isEnharmonic(pInner):
+                # find out if the last index is in position connected
+                # if the pitches are the same for each note
+                if (nLast is not None
+                        and iLast in posConnected
+                        and hasattr(nLast, 'pitch')
+                        and hasattr(nInner, 'pitch')
+                        # before doing pitch comparison, need to
+                        # make sure we're not comparing a Note to a Chord
+                        and not isinstance(nLast, chord.Chord)
+                        and not isinstance(nInner, chord.Chord)
+                        and nLast.pitch == nInner.pitch):
+                    return True
+                # looking for two chords of equal size
+                if (nLast is not None
+                        and not isinstance(nInner, note.Note)
+                        and iLast in posConnected
+                        and hasattr(nLast, 'pitches')
+                        and hasattr(nInner, 'pitches')):
+                    if len(nLast.pitches) != len(nInner.pitches):
                         return False
+
+                    for pLast, pInner in zip(nLast.pitches, nInner.pitches):
+                        # check to see that each is the same pitch, but
+                        # allow for `accidental is None` == `Accidental('natural')`
+                        if pLast.step != pInner.step or not pLast.isEnharmonic(pInner):
+                            return False
+                    return True
+
+                return False
+
+            def allTiesAreContinue(nr: note.NotRest) -> bool:
+                if nr.tie is None:  # pragma: no cover
+                    return False
+                if nr.tie.type != 'continue':
+                    return False
+                # check every chord member, since tie type "continue" on a chord
+                # only indicates that SOME member is tie-continue.
+                if isinstance(nr, chord.Chord):
+                    for innerN in nr.notes:
+                        if innerN.tie is None:
+                            return False
+                        if innerN.tie.type != 'continue':
+                            return False
                 return True
-
-            return False
-
-        def allTiesAreContinue(nr: note.NotRest) -> bool:
-            if nr.tie is None:  # pragma: no cover
-                return False
-            if nr.tie.type != 'continue':
-                return False
-            # check every chord member, since tie type "continue" on a chord
-            # only indicates that SOME member is tie-continue.
-            if isinstance(nr, chord.Chord):
-                for innerN in nr.notes:
-                    if innerN.tie is None:
-                        return False
-                    if innerN.tie.type != 'continue':
-                        return False
-            return True
-        if preserveVoices:
             # need to just get .notesAndRests with a nonzero duration,
             # as there may be other objects in the Measure
             # that come before the first Note, such as a SystemLayout object
@@ -7416,243 +7423,305 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     posConnected = []  # reset to empty
         else:
             # Flatten all chords
+            f = self.flatten()
             for c in self.recurse().getElementsByClass('Chord'):
-                v = c.activeSite
+                c: chord.Chord
+                v: Stream = c.activeSite
                 for noteObj in c.notes:
                     noteObj.duration = copy.deepcopy(c.duration)
                     noteObj.expressions = copy.deepcopy(c.expressions)
                     noteObj.articulations = copy.deepcopy(c.articulations)
-                    if c.style.hideObjectOnPrint and not noteObj.style.hideObjectOnPrint:
-                        print(noteObj.style.__dict__, c.style.__dict__)
                     v.insert(c.offset, noteObj)
                 v.remove(c)
-            ties = {"start": 0, "continue": 0, "stop": 0}
-            for n in self.flatten().notes:
-                if n.tie is not None:
-                    ties[n.tie.type] += 1
-            f = self.flatten()
-            notes_and_rests: Stream[note.Note] = f.notes#.addFilter(
-            # re-sort to make sure end ties are before start ties at the same offset
-            from music21.sorting import SortTuple
-            def key_func(n):
+
+            def key_func(n: note.Note) -> SortTuple:
+                """
+                Generate a sort tuple for a note, considering ties and grace notes.
+                Makes sure "end" ties occur before "start" ties at the same offset.
+                """
                 tup = n.sortTuple()
                 if n.duration.isGrace:
                     return tup
-                new_tup = SortTuple(atEnd=tup.atEnd, offset=n.offset, priority=tup.priority,
-                          classSortOrder=tup.classSortOrder, isNotGrace=n.pitch.midi, insertIndex=False if n.tie is None else n.tie.type == 'start')
-                return new_tup
-            notes_and_rests = sorted(notes_and_rests, key=key_func)
-                       #      lambda el, _iterator: el.quarterLength > 0
-            # ).stream()
-            # there are several valid tie-combinations
-            # start - stop
-            # start - continue - stop
-            # - stop
-            # start -
-            # continue - stop
-            # start - continue
-            # continue
-            # TODO: special case allow arpeggios where starting tie doesnt match ending tie
-            # TODO: allow enharmonic ties?
-            # TODO: Switch for grace-note behaviors in following cases:
-            # ignore
-            # grace __ note
-            # grace __ note __ note
-            # grace __ other __ note
-            # should_be_gone = [n for n in notes_and_rests if n.tie is not None and n.tie.type != 'start']
-            # orig_tie_map = {n: n.tie for n in notes_and_rests}
-            # tot_extended = {i: 0 for i in range(128)}
+                tie_type = n.tie.type if n.tie is not None else None
+                tie_order = {
+                    'stop': 0,
+                    'continue': 1,
+                    None: 2,
+                    'start': 3,
+                }
+                pitch = n.pitch.midi if hasattr(n, 'pitch') else 1
+                return SortTuple(
+                    atEnd=tup.atEnd,
+                    offset=n.offset,
+                    priority=tup.priority,
+                    classSortOrder=tup.classSortOrder,
+                    isNotGrace=pitch,
+                    insertIndex=tie_order[tie_type]
+                )
 
-            def pitch_match(n1, n2):
-                return (allowEnharmonicTies or n1.pitch.step == n2.pitch.step) and n1.pitch.isEnharmonic(n2.pitch)
+            f = self.flatten()
+            notes_and_rests: list[note.NotRest] = sorted(f.notes, key=key_func)
+
+            ties = {'start': 0, 'continue': 0, 'stop': 0}
+            for n in notes_and_rests:
+                if n.tie is not None:
+                    ties[n.tie.type] += 1
+
+            # TODO: special case allow arpeggios where starting tie doesn't match ending tie
+            should_be_gone = [n for n in notes_and_rests if n.tie is not None and n.tie.type != 'start']
+            orig_tie_map = {n: n.tie for n in notes_and_rests}
+            tot_extended = {i: 0 for i in range(128)}
+
+            def pitch_match(n1, n2, allowEnharmonicTies=True):
+                return n1.pitch.isEnharmonic(n2.pitch) and (n1.pitch.step == n2.pitch.step or allowEnharmonicTies)
+
+            def note_to_str(n, d=None):
+                duration = d if d is not None else n.quarterLength
+                tie_type = n.tie.type if n.tie is not None else None
+                return f'({n.measureNumber}, {n.offset}-{n.offset + duration}, {n.pitch}, {tie_type})'
 
             def warn_tie(information, notes, durations=None, action=None):
                 if not durations:
                     durations = [None] * len(notes)
-                note_strings = [f"({n.measureNumber}, {n.offset}-{n.offset + (d if d is not None else n.duration.quarterLength)}, {n.pitch})" if n is not None else "(?, ?, ?)" for n, d in zip(notes, durations)]
-                warnings.warn(f"{information}"
-                                + " → ".join(note_strings)
-                                + f", {action}.")
-
+                note_strings = [note_to_str(n, d) if n is not None else '(?, ?, ?)' for n, d in zip(notes, durations)]
+                warnings.warn(f"{information} {' → '.join(note_strings)}, {action}.")
             posDelete = set()
             tied = set()
+
+            def check_ties(n1: note.Note, n2: note.Note, strict=False) -> bool:
+                tie1 = getattr(n1.tie, 'type', None)
+                tie2 = getattr(n2.tie, 'type', None)
+
+                strict_combinatations = {
+                    ('start', 'stop'),
+                    ('start', 'continue'),
+                    ('continue', 'stop'),
+                    ('continue', 'continue'),
+                }
+                relaxed_combinations = {
+                    (None, 'continue'),
+                    (None, 'stop'),
+                    ('start', None),
+                    ('start', 'start'),
+                    ('continue', 'start'),
+                    ('continue', None)
+                }
+                valid_strict = (tie1, tie2) in strict_combinatations
+                if strict:
+                    return valid_strict
+                return valid_strict or (tie1, tie2) in relaxed_combinations
+
+
+            # def seek_forward(n, i):
+            #     def get_voice_id(n):
+            #         v = n.getContextByClass('Voice')
+            #         return v.id if v is not None else None
+            #     v = get_voice_id(n)
+            #     if v is not None:
+            #         # Try to find the next note in the same voice first
+            #         for j in range(i+1, len(notes_and_rests)):
+            #             if j in posDelete or j in tied:
+            #                 continue
+            #             if not pitch_match(n, notes_and_rests[j], allowEnharmonicTies):
+            #                 continue
+            #             if not get_voice_id(notes_and_rests[j]) == v:
+            #                 continue
+            #             gap = notes_and_rests[j].offset - (n.offset + n.quarterLength)
+
+            def fix_spanners(n, tied_note):
+                for sp in f.spanners:
+                    if tied_note in sp:
+                        sp.replaceSpannedElement(tied_note, n)
+
+
+            posDelete: set[note.Note] = set()
+            tied: str[note.Note] = set()
             for i, n in enumerate(notes_and_rests):
                 idx_start = None
                 if n.isRest or i in posDelete or i in tied:
                     continue
                 if n.tie is not None:
-                    # If we are here, we know that there is no (relevant) tie before the
+                    # If we are here, we know that there are no (relevant) ties before the
                     # current one
                     current_duration = n.quarterLength
                     match n.tie.type:
-                        case "start":
+                        case 'start':
+                            # TODO: change this to be a list of indices instead of just idx_start + current_duration
                             idx_start = i
-                            for j in range(i+1, len(notes_and_rests)):
-                                if j in posDelete or j in tied:
+                            j = i
+                            target_voice = n.getContextByClass('Voice')
+                            while (j := j+1) < len(notes_and_rests):
+                                should_skip = (j in posDelete or j in tied
+                                    or not pitch_match(n, notes_and_rests[j], allowEnharmonicTies)
+                                    or (target_voice is not None and notes_and_rests[j].getContextByClass('Voice').id != target_voice.id)
+                                )
+                                if should_skip:
+                                    if j + 1 == len(notes_and_rests) and target_voice is not None:
+                                        target_voice = None
+                                        j = max(i, idx_start)
                                     continue
-
-                                if pitch_match(n, notes_and_rests[j]):
-                                    tied_note = notes_and_rests[j]
-                                    tie_type = getattr(tied_note.tie, 'type', None)
-                                    expected_start = n.offset + current_duration
-                                    gap = tied_note.offset - expected_start
-                                    # If the next note with that pitch has a continue tie,
-                                    # we keep going further
-                                    if tie_type == 'continue':
-                                        # tie should've appeared before
-                                        if gap > 1/120 and n.style.noteSize != 'cue':
-                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
-                                            n.tie = None
-                                            tied_note.tie.type = "start"
-                                            break
-                                        elif gap < -1/120:   # tie should appear later
-                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
-                                            n.tie = None
-                                            tied_note.tie.type = "start"
-                                            break
-                                        # If the grace note is followed by a continue tie, we ignore it
-                                        # since ties on grace notes are usually cosmetic.
-                                        if notes_and_rests[idx_start].duration.isGrace:
-                                            notes_and_rests[idx_start].tie = None
-                                            idx_start = j
-                                            current_duration = tied_note.quarterLength
-                                        else:
-                                            posDelete.add(j)
-                                            current_duration += tied_note.quarterLength
-                                        continue
-                                    elif tied_note.offset == n.offset and tie_type in (None, "start"):
-                                        if tied_note.duration.quarterLength > n.duration.quarterLength:
-                                            current_duration = tied_note.duration.quarterLength
-                                        if tied_note.tie is None and n.duration.isGrace and not tied_note.duration.isGrace:
-                                            # print("want to delete", tied_note, tied_note.tie, tied_note.offset, tied_note.measureNumber, tied_note.quarterLength, tied_note.pitch.midi, tied_note.pitch.nameWithOctave)
-                                            posDelete.add(j)
-                                            break
-                                        tied_note.tie = None
-                                        # Ignore new start ties at the same offset,
-                                        # happens frequently in malformed MusicXML
-                                        continue
-                                    elif tie_type in (None, "stop"):
-                                        if gap > 1:
-                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
-                                            n.tie = None
-                                            tied_note.tie = None
-                                            break
-                                        if gap > 1/120:
-                                            warn_tie("Ties do not touch exactly", [n, tied_note], [current_duration, None], "but will merge")
-                                            posDelete.add(j)
-                                            current_duration += tied_note.quarterLength + tied_note.offset - (n.offset + current_duration)
-                                            break
-                                        elif gap < -1/120:
-                                            if tied_note.tie is None:
-                                                continue
-                                            else:
-                                                warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
-                                                n.tie = None
-                                                tied_note.tie = None
-                                                break
-                                        if notes_and_rests[idx_start].duration.isGrace:
-                                            tied_note.tie = None
-                                            break
-                                        posDelete.add(j)
-                                        current_duration += tied_note.quarterLength
+                                tied_note = notes_and_rests[j]
+                                tie_type = getattr(tied_note.tie, 'type', None)
+                                expected_start = n.offset + current_duration
+                                gap = tied_note.offset - expected_start
+                                # If the next note with that pitch has a continue tie,
+                                # we keep going further
+                                if tie_type in ('start', 'continue'):
+                                    # tie should've appeared before
+                                    if (n.style.noteSize != "cue" and abs(gap) > gapThreshold) or (n.style.noteSize == 'cue' and not -gapThreshold <= gap <= 1):
+                                        if target_voice is not None:
+                                            if j + 1 == len(notes_and_rests):
+                                                target_voice = None
+                                                j = max(i, idx_start)
+                                            continue
+                                        warn_tie('Ties do not touch', [n, tied_note], [current_duration, None], 'ignoring1')
+                                        n.tie = None
+                                        tied_note.tie.type = 'start'
                                         break
+                                    # If we aren't merging tied grace notes,
+                                    # we pretend like this is the start of a new tie
+                                    if not mergeTiedGraceNotes and n.duration.isGrace:
+                                        n.tie = None
+                                        idx_start = j
+                                        n = notes_and_rests[idx_start]
+                                        current_duration = tied_note.quarterLength
                                     else:
-                                        if gap > 1/120 and n.style.noteSize != 'cue':
-                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
-                                            n.tie = None
-                                            tied_note.tie = None
-                                            break
-                                        elif gap < 1/120:
-                                            warn_tie("Ties do not touch", [n, tied_note], [current_duration, None], "ignoring")
-                                            n.tie = None
-                                            tied_note.tie = None
-                                            break
-                                        # We have a start tie
-                                        # This does not fail because it is necessary for
-                                        # correct MIDI import due to possible overlaps
-                                        # introduced by chord quantization.
-                                        if notes_and_rests[idx_start].duration.isGrace:
-                                            notes_and_rests[idx_start].tie = None
-                                            idx_start = j
-                                        else:
+                                        posDelete.add(j)
+                                        fix_spanners(n, tied_note)
+                                        current_duration += tied_note.quarterLength
+                                    continue
+                                elif tied_note.offset == n.offset and tie_type is None:
+                                    # Usually, this happens when there note doublings, in which case we
+                                    # TODO: Currently, we keep only one and delete the other,
+                                    # TODO (cont.): should probably merge both notes
+                                    if not mergeTiedGraceNotes and n.duration.isGrace:
+                                        if target_voice is not None:
+                                            if j + 1 == len(notes_and_rests):
+                                                target_voice = None
+                                                j = max(i, idx_start)
+                                            continue
+                                        break
+                                    current_duration = max(n.quarterLength, tied_note.quarterLength)
+                                    posDelete.add(j)
+                                    fix_spanners(n, tied_note)
+                                    break
+                                else:
+                                    assert tie_type in (None, 'stop'), f'Unexpected tie type {tie_type} for {tied_note}'
+                                    gap_ok = -gapThreshold <= gap <= gapThreshold
+                                    if not gap_ok:
+                                        if target_voice is not None:
+                                            if j + 1 == len(notes_and_rests):
+                                                target_voice = None
+                                                j = max(i, idx_start)
+                                            continue
+                                        if -gapThreshold <= gap <= (2 if n.style.noteSize == 'cue' else 1):
+                                            warn_tie('Ties do not touch exactly', [n, tied_note], [current_duration, None], 'but will merge')
                                             posDelete.add(j)
-                                            current_duration += tied_note.quarterLength
-                                        # warnings.warn(f"Unexpected start tie ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitch}), treating second start tie as continue tie!")
-                                        continue
+                                            fix_spanners(n, tied_note)
+                                            current_duration = tied_note.quarterLength + tied_note.offset - n.offset
+                                            break
+                                        elif tied_note.tie is None:
+                                            continue
+                                        else:
+                                            warn_tie('Ties do not touch', [n, tied_note], [current_duration, None], f'ignoring2')
+                                            n.tie = None
+                                            tied_note.tie = None
+                                            break
+                                    if not mergeTiedGraceNotes and n.duration.isGrace:
+                                        tied_note.tie = None
+                                        n.tie = None
+                                        idx_start = None
+                                        break
+                                    posDelete.add(j)
+                                    fix_spanners(n, tied_note)
+                                    current_duration += tied_note.quarterLength
+                                    break
                             else:
-                                warn_tie(f"No end tie found for start tie", [n, None], [current_duration, None], action="ignoring")
-                                continue
-                        case "continue":
+                                warn_tie(f'No end tie found for start tie', [n, None], [current_duration, None], action='ignoring')
+                        case 'continue':
                             # Find the starting note
-                            posDelete.add(i)
                             for j in reversed(range(i)):
                                 if j in posDelete or j in tied:
                                     continue
-                                if pitch_match(n, notes_and_rests[j]):
+                                if pitch_match(n, notes_and_rests[j], allowEnharmonicTies):
                                     tied_note = notes_and_rests[j]
+                                    tie_type = getattr(tied_note.tie, 'type', None)
                                     idx_start = j
+                                    expected_start = tied_note.offset + tied_note.quarterLength
+                                    gap = n.offset - expected_start
+                                    if (n.style.noteSize != 'cue' and abs(gap) > gapThreshold) or (n.style.noteSize == 'cue' and not (-gapThreshold <= gap <= 1)):
+                                        warn_tie('Ties do not touch', [tied_note, n], [None, None], 'ignoring6')
+                                        n.tie = tie.Tie('start')
+                                        tied_note.tie = None
+                                        break
                                     # Previous notes can never have a tie that hasnt been dealt with
-                                    # assert tied_note.tie is None
-                                    current_duration += tied_note.quarterLength
-                                    for sp in f.spanners:
-                                        if tied_note in sp:
-                                            sp.replaceSpannedElement(
-                                                notes_and_rests[i],
-                                                notes_and_rests[idx_start])
+                                    if abs(gap) > gapThreshold:
+                                        current_duration = tied_note.quarterLength + tied_note.offset - n.offset
+                                    else:
+                                        current_duration += tied_note.quarterLength
+                                    posDelete.add(i)
+                                    fix_spanners(n, tied_note)
                                     break
                             else:
-                                # print(n.duration.quarterLength, n.measureNumber, n.offset, n.pitch)
-                                warn_tie(f"Continue tie misused as start tie", [None, n], action="ignoring")
-                                # raise ValueError(f"Continue tie misused as start tie (?, ?) -> ({n.offset}, {n.pitch})!")
+                                idx_start = i
+                                warn_tie(f'Continue tie misused as start tie', [None, n])
                             # Find end for this one
                             for j in range(i + 1, len(notes_and_rests)):
                                 if j in posDelete or j in tied:
                                     continue
-                                if pitch_match(n, notes_and_rests[j]):
+                                if pitch_match(n, notes_and_rests[j], allowEnharmonicTies):
                                     tied_note = notes_and_rests[j]
                                     posDelete.add(j)
-                                    for sp in f.spanners:
-                                        if tied_note in sp:
-                                            sp.replaceSpannedElement(
-                                                notes_and_rests[j],
-                                                notes_and_rests[idx_start])
+                                    expected_start = n.offset + n.quarterLength
+                                    gap = tied_note.offset - expected_start
+                                    if (n.style.noteSize != 'cue' and abs(gap) > gapThreshold) or (n.style.noteSize == 'cue' and not (-gapThreshold <= gap <= 1)):
+                                        warn_tie('Ties do not touch', [tied_note, n], [None, None], 'ignoring8')
+                                        n.tie = tie.Tie('start')
+                                        tied_note.tie = None
+                                        break
+                                    fix_spanners(n, tied_note)
                                     # If the next note with that pitch has a continue tie,
                                     # we keep going further
                                     tie_type = getattr(tied_note.tie, 'type', None)
-                                    if tie_type == "continue":
+                                    if tie_type == 'continue':
                                         current_duration += tied_note.quarterLength
                                         continue
-                                    elif tie_type in (None, "stop"):
+                                    elif tie_type in (None, 'stop'):
                                         current_duration += tied_note.quarterLength
                                         break
                                     else:
-                                        warn_tie(f"Unexpected start tie in active tie", n, tied_note, current_duration, "treating as continue")
+                                        warn_tie(f'Unexpected start tie in active tie', [n, tied_note], [current_duration, None], 'treating as continue')
                                         current_duration += tied_note.quarterLength
-                                        # raise ValueError(f"Unexpected start tie ({tied_note.measureNumber} {tied_note.offset}, {tied_note.pitch}) in active tie ({n.offset}, {n.pitc
                                         continue
                             else:
                                 ns = notes_and_rests[idx_start]
-                                warn_tie(f"No end tie found for continue tie", [ns, n, None], [current_duration, None, None], "treating as stop.")
-                                # raise ValueError(f"No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).")
-                        case "stop":
+                                warn_tie(f'No end tie found for continue tie', [ns, n, None], [current_duration, None, None], 'treating as stop')
+                                # raise ValueError(f'No end tie found for continue tie ({ns.offset}, {ns.pitch}) -> ({n.offset}, {n.pitch}) -> (?, ?).')
+                        case 'stop':
                             # Find the previous note
                             for j in reversed(range(i)):
                                 if j in posDelete or j in tied:
                                     continue
-                                if pitch_match(n, notes_and_rests[j]):
+                                if pitch_match(n, notes_and_rests[j], allowEnharmonicTies):
                                     idx_start = j
+                                    n, tied_note = notes_and_rests[idx_start], notes_and_rests[i]
+                                    expected_start = n.offset + n.quarterLength
+                                    gap = tied_note.offset - expected_start
+                                    if (n.style.noteSize != 'cue' and abs(gap) > gapThreshold) or (n.style.noteSize == 'cue' and not (-gapThreshold <= gap <= 1)):
+                                        warn_tie('Ties do not touch', [n, tied_note], [None, None], f'ignoring9')
+                                        idx_start = None
+                                        n.tie = None
+                                        tied_note.tie = None
+                                        break
                                     posDelete.add(i)
-                                    tied_note = notes_and_rests[j]
-                                    current_duration += tied_note.quarterLength
-                                    # replace removed elements in spanners
-                                    for sp in f.spanners:
-                                        if tied_note in sp:
-                                            sp.replaceSpannedElement(
-                                                notes_and_rests[i],
-                                                notes_and_rests[idx_start])
+                                    fix_spanners(n, tied_note)
+                                    current_duration += n.quarterLength
                                     break
                             else:
-                                warn_tie(f"Tie ended but never began", [None, n], [None, None], "ignoring")
+                                idx_start = None
+                                tied.add(i)
+                                n.tie = None
+                                warn_tie(f'Tie ended but never began', [None, n], [None, None], 'ignoring')
                                 continue
 
                     # accumulate the duration into the first note
@@ -7660,8 +7729,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                         if not notes_and_rests[idx_start].duration.linked:
                             # obscure bug found from some inexact musicxml files.
                             notes_and_rests[idx_start].duration.linked = True
-                        # tot_extended[notes_and_rests[idx_start].pitch.midi] += current_duration - notes_and_rests[idx_start].quarterLength
-                        notes_and_rests[idx_start].quarterLength = current_duration
+                        tot_extended[notes_and_rests[idx_start].pitch.midi] += opFrac(current_duration - notes_and_rests[idx_start].quarterLength)
+                        notes_and_rests[idx_start].quarterLength = opFrac(current_duration)
 
                         # set tie to None on first note
                         notes_and_rests[idx_start].tie = None
@@ -7669,6 +7738,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             posDelete = sorted(list(posDelete))
 
         to_delete = [notes_and_rests[i] for i in reversed(posDelete)]
+        # print(ties, len(notes_and_rests))
         # if not preserveVoices:
         #     missed = set(should_be_gone)-set(to_delete)
         #     extra = set(to_delete)-set(should_be_gone)
@@ -7676,9 +7746,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         #     invalid = (missed or extra or ties['start'] != ties['stop'] or ties['stop'] + ties['continue'] != len(to_delete) or any(abs(tot_extended[i] - sum(n.quarterLength for n in to_delete if n.pitch.midi == i))  > 1e-2 for i in range(128)))
         #     if invalid:
         #         print(ties, ties['stop'] + ties['continue'], len(to_delete))
-
-        #         print("Should be deleted but won't:", [(n.measureNumber, n.offset, n.pitch.nameWithOctave, n.tie, orig_tie_map[n]) for n in missed])
-        #         print("Will be deleted, but shouldnt:", [(n.measureNumber, n.offset, n.pitch.nameWithOctave, n.tie, orig_tie_map[n]) for n in extra])
+        #         print('Should be deleted but won\'t:', sorted([(n.measureNumber, n.offset, n.offset-n.getContextByClass('Measure').offset, n.pitch.nameWithOctave, n.tie, orig_tie_map[n]) for n in missed]))
+        #         print('Will be deleted, but shouldn\'t:', sorted([(n.measureNumber, n.offset, n.offset-n.getContextByClass('Measure').offset, n.pitch.nameWithOctave, n.tie, orig_tie_map[n]) for n in extra]))
         #         print({i: t for i, t in tot_extended.items() if t != 0})
         #         print({i: sum(n.quarterLength for n in to_delete if n.pitch.midi == i) for i in range(128) if sum(n.quarterLength for n in to_delete if n.pitch.midi == i) != 0})
         self.remove(to_delete, recurse=True)
@@ -7729,7 +7798,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                 continue
             # environLocal.printDebug(['examining', i, e])
             connections = _getNextElements(srcFlat, i,
-                                           e.getOffsetBySite(srcFlat) + e.duration.quarterLength)
+                                           e.getOffsetBySite(srcFlat) + e.quarterLength)
             # environLocal.printDebug(['possible connections', connections])
 
             for p, m in itertools.product(pSrc, connections):
@@ -8536,8 +8605,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         Can highestTime be a fraction?
 
         >>> n = note.Note('D')
-        >>> n.duration.quarterLength = 1/3
-        >>> n.duration.quarterLength
+        >>> n.quarterLength = 1/3
+        >>> n.quarterLength
         Fraction(1, 3)
 
         >>> s = stream.Stream()
@@ -8558,7 +8627,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             #     Take the case where a whole note appears a 0.0, but a
             #     textExpression (ql=0) at 0.25 --
             #     isSorted would be true, but highestTime should be 4.0 not 0.25
-            highestTime = max([self.elementOffset(e) + e.duration.quarterLength for e in self._elements], default=0.0)
+            highestTime = max([self.elementOffset(e) + e.quarterLength for e in self._elements], default=0.0)
             # call to opFrac may be unneccessary
             self._cache['HighestTime'] = opFrac(highestTime)
         return self._cache['HighestTime']
@@ -8654,7 +8723,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         4.0
         >>> a.duration
         <music21.duration.Duration 4.0>
-        >>> a.duration.quarterLength
+        >>> a.quarterLength
         4.0
 
         Advanced usage: override the duration from what is set:
@@ -8664,7 +8733,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         2.0
 
         >>> a.duration = newDuration
-        >>> a.duration.quarterLength
+        >>> a.quarterLength
         2.0
 
         Restore normal behavior by setting duration to None:
@@ -8910,7 +8979,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             for e in group:
                 if isinstance(e, bar.Barline):
                     continue
-                dur = e.duration.quarterLength
+                dur = e.quarterLength
                 offset = round(e.getOffsetBySite(group), 8)
                 # calculate all time regions given this offset
 
@@ -9133,7 +9202,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             else:
                 # partial measure at start of piece
                 padBeats = ts1.getBeatProportion(
-                    ts1.barDuration.quarterLength - myMeas.duration.quarterLength) - 1
+                    ts1.barDuration.quarterLength - myMeas.quarterLength) - 1
                 return (myBeat + padBeats, myMeas)
         else:
             return (myBeat, myMeas)
@@ -9423,7 +9492,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> s.quantize((4,), processOffsets=True, processDurations=True, inPlace=True)
         >>> [e.offset for e in s]
         [0.0, 0.5, 1.0, 1.5, 1.75]
-        >>> [e.duration.quarterLength for e in s]
+        >>> [e.quarterLength for e in s]
         [0.5, 0.5, 0.5, 0.25, 0.25]
 
         The error in quantization is set in the editorial attribute for the note in
@@ -9444,7 +9513,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> quantized = s.quantize(processOffsets=True, processDurations=True, inPlace=False)
         >>> [e.offset for e in quantized]
         [0.0, 0.5, 1.0, 1.5, 1.75]
-        >>> [e.duration.quarterLength for e in quantized]
+        >>> [e.quarterLength for e in quantized]
         [0.5, 0.5, 0.5, 0.25, 0.25]
 
         Set `recurse=True` to quantize elements in substreams such as parts, measures, voices:
@@ -9491,7 +9560,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> u = s.quantize(processOffsets=True, processDurations=True, inPlace=False)
         >>> [e.offset for e in u]
         [0.0, Fraction(1, 3), 1.0, Fraction(4, 3), Fraction(5, 3)]
-        >>> [e.duration.quarterLength for e in u]
+        >>> [e.quarterLength for e in u]
         [Fraction(1, 3), Fraction(1, 3), Fraction(1, 3), Fraction(1, 3), Fraction(1, 3)]
 
         Original unchanged because inPlace=False:
@@ -9503,7 +9572,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         >>> v = s.quantize(processOffsets=True, processDurations=True, inPlace=False)
         >>> [e.offset for e in v]
         [0.0, 0.5, 1.0, 1.5, 1.75]
-        >>> [e.duration.quarterLength for e in v]
+        >>> [e.quarterLength for e in v]
         [0.5, 0.5, 0.5, 0.25, 0.25]
         '''
         if not quarterLengthDivisors:
@@ -9574,7 +9643,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     if hasattr(e, 'editorial') and o_matchTuple.signedError != 0:
                         e.editorial.offsetQuantizationError = o_matchTuple.signedError * sign
                 if processDurations:
-                    ql = e.duration.quarterLength
+                    ql = e.quarterLength
                     ql = max(ql, 0)  # negative ql possible in buggy MIDI files?
                     zeroAllowed = not isinstance(e, note.NotRest) or e.duration.isGrace
                     if processOffsets and originallySorted:
@@ -9592,7 +9661,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     if d_matchTuple.match == 0 and isinstance(e, note.Rest):
                         rests_lacking_durations.append(e)
                     else:
-                        e.duration.quarterLength = d_matchTuple.match
+                        e.quarterLength = d_matchTuple.match
                         if hasattr(e, 'editorial') and d_matchTuple.signedError != 0:
                             e.editorial.quarterLengthQuantizationError = d_matchTuple.signedError
 
@@ -10417,7 +10486,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                         continue
 
                     lastStart = e.offset
-                    lastEnd = opFrac(lastStart + e.duration.quarterLength)
+                    lastEnd = opFrac(lastStart + e.quarterLength)
                     lastWasNone = False
                     lastPitches = e.pitches
 
@@ -10439,7 +10508,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                             continue
 
                         lastStart = e.offset
-                        lastEnd = opFrac(lastStart + e.duration.quarterLength)
+                        lastEnd = opFrac(lastStart + e.quarterLength)
                         lastPitches = e.pitches
                         lastWasNone = False
 
@@ -10451,7 +10520,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                         lastWasNone = True
                         lastPitches = ()
                 elif skipRests and isinstance(e, note.Rest):
-                    lastEnd = opFrac(e.offset + e.duration.quarterLength)
+                    lastEnd = opFrac(e.offset + e.quarterLength)
 
         if lastWasNone:
             returnList.pop()  # removes the last-added element
@@ -10550,7 +10619,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         '''
         post = []
         for e in flatStream:
-            dur = e.duration.quarterLength
+            dur = e.quarterLength
             durSpan = (e.offset, opFrac(e.offset + dur))
             post.append(durSpan)
         # assume this is already sorted
@@ -10740,9 +10809,9 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             if eOffset > highestCurrentEndTime:
                 gapElement = note.Rest()
                 gapQuarterLength = opFrac(eOffset - highestCurrentEndTime)
-                gapElement.duration.quarterLength = gapQuarterLength
+                gapElement.quarterLength = gapQuarterLength
                 gapStream.insert(highestCurrentEndTime, gapElement, ignoreSort=True)
-            eDur = e.duration.quarterLength
+            eDur = e.quarterLength
             highestCurrentEndTime = opFrac(max(highestCurrentEndTime, eOffset + eDur))
 
         # TODO: Is this even necessary, we do insert the elements in sorted order
@@ -12535,7 +12604,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
         {25.0} <music21.note.Note G>
         {31.0} <music21.note.Note F>
         '''
-        returnObjDuration = self.duration.quarterLength
+        returnObjDuration = self.quarterLength
 
         # If any classes should be exempt from gap closing or expanding, this deals with those.
         if isRemove:
@@ -12855,19 +12924,19 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     else:
                         expressedVariantsExist = True
                 elif 'GeneralNote' in eClasses:
-                    nQuarterLength = e.duration.quarterLength
+                    nQuarterLength = e.quarterLength
                     nOffset = e.getOffsetBySite(newPart)
                     newPart.remove(e)
                     r = note.Rest()
-                    r.duration.quarterLength = nQuarterLength
+                    r.quarterLength = nQuarterLength
                     r.style.hideObjectOnPrint = True
                     newPart.insert(nOffset, r)
                 elif 'Measure' in eClasses:  # Recurse if measure
-                    measureDuration = e.duration.quarterLength
+                    measureDuration = e.quarterLength
                     for n in e.notesAndRests:
                         e.remove(n)
                     r = note.Rest()
-                    r.duration.quarterLength = measureDuration
+                    r.quarterLength = measureDuration
                     r.style.hideObjectOnPrint = True
                     e.insert(0.0, r)
 

@@ -1505,7 +1505,7 @@ class ScoreExporter(XMLExporterBase, PartStaffExporterMixin):
         self.highestTime = 0.0  # redundant, but set here.
 
         if self.spannerBundle is None:
-            self.spannerBundle = self.stream.spannerBundle
+            self.spannerBundle: spanner.SpannerBundle = self.stream.spannerBundle
 
     def setPartsAndRefStream(self) -> None:
         '''

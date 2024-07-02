@@ -181,8 +181,8 @@ def _floatOrIntStr(strObj):
         return None
     try:
         val = float(strObj)
-        if val == int(val):
-            val = int(val)
+        if val.is_integer():
+            return int(val)
         return val
     except ValueError:
         return strObj

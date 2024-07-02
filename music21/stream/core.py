@@ -112,7 +112,7 @@ class StreamCore(Music21Object):
 
         self.coreSetElementOffset(
             element,
-            float(offset),  # why is this not opFrac?
+            offset,  # why is this not opFrac?
             addElement=True,
             setActiveSite=setActiveSite
         )
