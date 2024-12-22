@@ -912,7 +912,14 @@ def makeRests(
             r.style.hideObjectOnPrint = hideRests
             # environLocal.printDebug(['makeRests(): add rests', r, r.duration])
             # place at oLowTarget to reach to oLow
-            component.insert(oLowTarget, r)
+            if r.duration.type == 'complex':
+                r_list = r.splitAtDurations()
+                off = 0
+                for r_inner in r_list:
+                    component.insert(oLowTarget + off, r_inner)
+                    off += r_inner.duration.quarterLength
+            else:
+                component.insert(oLowTarget, r)
 
         # create rest from end to highest
         qLen = oHighTarget - oHigh
@@ -921,7 +928,14 @@ def makeRests(
             r.duration.quarterLength = qLen
             r.style.hideObjectOnPrint = hideRests
             # place at oHigh to reach to oHighTarget
-            component.insert(oHigh, r)
+            if r.duration.type == 'complex':
+                r_list = r.splitAtDurations()
+                off = 0
+                for r_inner in r_list:
+                    component.insert(oHigh + off, r_inner)
+                    off += r_inner.duration.quarterLength
+            else:
+                component.insert(oHigh, r)
 
         if fillGaps:
             gapStream = component.findGaps()
@@ -930,7 +944,14 @@ def makeRests(
                     r = note.Rest()
                     r.duration.quarterLength = e.duration.quarterLength
                     r.style.hideObjectOnPrint = hideRests
-                    component.insert(e.offset, r)
+                    if r.duration.type == 'complex':
+                        r_list = r.splitAtDurations()
+                        off = 0
+                        for r_inner in r_list:
+                            component.insert(e.offset + off, r_inner)
+                            off += r_inner.duration.quarterLength
+                    else:
+                        component.insert(e.offset, r)
 
     if s.hasMeasures():
         # split rests at measure boundaries
