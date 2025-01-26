@@ -1321,13 +1321,9 @@ class SpannerBundle(prebase.ProtoM21Object):
 
         remove = None
         for i, ref in enumerate(self._pendingSpannedElementAssignment):
-            # environLocal.printDebug(['calling freePendingSpannedElementAssignment()',
-            #    self._pendingSpannedElementAssignment])
             if ref['className'] in spannedElementCandidate.classSet:
                 ref['spanner'].addSpannedElements(spannedElementCandidate)
                 remove = i
-                # environLocal.printDebug(['freePendingSpannedElementAssignment()',
-                #    'added spannedElement', ref['spanner']])
                 break
         if remove is not None:
             self._pendingSpannedElementAssignment.pop(remove)

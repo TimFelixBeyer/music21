@@ -567,10 +567,7 @@ class KeySignature(base.Music21Object):
         >>> g.accidentalByStep('E')
         <music21.pitch.Accidental half-flat>
         '''
-        if self.sharps is None and self.alteredPitches:
-            return True
-        else:
-            return False
+        return self.sharps is None and self.alteredPitches
 
     def accidentalByStep(self, step: StepName) -> pitch.Accidental|None:
         '''
@@ -649,7 +646,6 @@ class KeySignature(base.Music21Object):
             if thisAlteration.step.lower() == step.lower():
                 return copy.deepcopy(thisAlteration.accidental)
             # get a new one each time otherwise we have linked accidentals, YUK!
-
         return None
 
     # --------------------------------------------------------------------------
@@ -802,8 +798,6 @@ class KeySignature(base.Music21Object):
 
         if not inPlace:
             return p
-        else:
-            return None
 
     def getScale(self, mode='major'):
         '''
@@ -1210,10 +1204,9 @@ class Key(KeySignature, scale.DiatonicScale):
         >>> k2.alternateInterpretations
         []
         '''
-        if method == 'correlationCoefficient':
-            return self._tonalCertaintyCorrelationCoefficient()
-        else:
+        if method != 'correlationCoefficient':
             raise ValueError(f'Unknown method: {method}')
+        return self._tonalCertaintyCorrelationCoefficient()
 
     @overload
     def transpose(self: KeyType,

@@ -121,6 +121,11 @@ class SoundTagMixin:
             helpers.setM21AttributeFromAttribute(
                 mm, mxDir, 'placement', 'placement'
             )
+            direction_type = mxDir.find('direction-type')
+            if direction_type is not None:
+                words_elem = direction_type.find('words')
+                if words_elem is not None and words_elem.text:
+                    mm.text = words_elem.text
             self.setEditorial(mxDir, mm)
         self.insertCoreAndRef(totalOffset, staffKey, mm)
 
