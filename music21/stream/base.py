@@ -7431,6 +7431,12 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     noteObj.expressions = copy.deepcopy(c.expressions)
                     noteObj.articulations = copy.deepcopy(c.articulations)
                     v.insert(c.offset, noteObj)
+
+                for sp in f.spanners:
+                    if c in sp:
+                        sp.replaceSpannedElement(c, c.notes[0])
+                        for n in c.notes[1:]:
+                            sp.addSpannedElements(n)
                 v.remove(c)
 
             def key_func(n: note.Note) -> SortTuple:
@@ -7527,11 +7533,10 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             #                 continue
             #             gap = notes_and_rests[j].offset - (n.offset + n.quarterLength)
 
-            def fix_spanners(n, tied_note):
+            def fix_spanners(n: note.Note, tied_note: note.Note):
                 for sp in f.spanners:
-                    if tied_note in sp:
+                    if n in sp:
                         sp.replaceSpannedElement(tied_note, n)
-
 
             posDelete: set[note.Note] = set()
             tied: str[note.Note] = set()
@@ -7676,6 +7681,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                 if pitch_match(n, notes_and_rests[j], allowEnharmonicTies):
                                     tied_note = notes_and_rests[j]
                                     posDelete.add(j)
+                                    fix_spanners(n, tied_note)
                                     expected_start = n.offset + n.quarterLength
                                     gap = tied_note.offset - expected_start
                                     if (n.style.noteSize != 'cue' and abs(gap) > gapThreshold) or (n.style.noteSize == 'cue' and not (-gapThreshold <= gap <= 1)):
@@ -7683,7 +7689,6 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                                         n.tie = tie.Tie('start')
                                         tied_note.tie = None
                                         break
-                                    fix_spanners(n, tied_note)
                                     # If the next note with that pitch has a continue tie,
                                     # we keep going further
                                     tie_type = getattr(tied_note.tie, 'type', None)
@@ -14038,7 +14043,7 @@ class Score(Stream):
             # update based on last id, new object
             if e.sites.hasSpannerSite():
                 origin = e.derivation.origin
-                if origin is not None and e.derivation.method == '__deepcopy__':
+                if origin is not None and e.derivation.method == 'expandRepeats':
                     spannerBundle.replaceSpannedElement(origin, e)
         return post
 
