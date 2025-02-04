@@ -867,11 +867,12 @@ class Expander(t.Generic[StreamType]):
 
     def repeatBarsAreCoherent(self):
         '''
-        Check that all repeat bars are paired properly. Returns True or False
+        Check that all repeat bars are paired properly. Returns True or False.
         '''
         startCount = 0
         endCount = 0
         countBalance = 0
+        lastMarkIsStart = False
         for m in self._srcMeasureStream:
             lb = m.leftBarline
             rb = m.rightBarline
@@ -880,6 +881,7 @@ class Expander(t.Generic[StreamType]):
                 if lb.direction == 'start':
                     startCount += 1
                     countBalance += 1
+                    lastMarkIsStart = True
                 # ends of repeats may be encountered on left of bar
                 elif lb.direction == 'end':
                     if countBalance == 0:  # the first repeat found
@@ -887,6 +889,7 @@ class Expander(t.Generic[StreamType]):
                         countBalance += 1  # simulate first
                     endCount += 1
                     countBalance -= 1
+                    lastMarkIsStart = False
             if rb is not None and 'music21.bar.Repeat' in rb.classSet:
                 if rb.direction == 'end':
                     # if this is the first repeat found, then we
@@ -896,16 +899,23 @@ class Expander(t.Generic[StreamType]):
                         countBalance += 1  # simulate first
                     endCount += 1
                     countBalance -= 1
+                    lastMarkIsStart = False
                 else:
                     raise ExpanderException(
                         f'a right barline is found that cannot be processed: {m}, {rb}'
                     )
+        # if we end with a start repeat but no end repeat, add a simulated end
+        if lastMarkIsStart and countBalance in (1, 2) and startCount in (endCount, endCount + 1):
+            from music21 import bar
+            endCount += 1
+            countBalance -= 1
+            self._srcMeasureStream[-1].rightBarline = bar.Repeat(direction='end')
+
         if countBalance not in (0, 1):
             environLocal.printDebug([f'Repeats are not balanced: countBalance: {countBalance}'])
             return False
         if startCount not in (endCount, endCount - 1):
-            environLocal.printDebug(['start count not the same as end count: %s / %s' % (
-                startCount, endCount)])
+            environLocal.printDebug([f'start count not the same as end count: {startCount} / {endCount}'])
             return False
         # environLocal.printDebug(['matched start and end repeat barline count of: ',
         #    '%s/%s' % (startCount, endCount)])

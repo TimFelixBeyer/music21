@@ -139,18 +139,14 @@ __all__ = [
 
 from collections import namedtuple
 from collections.abc import Iterable
-import copy
-from dataclasses import dataclass
 import datetime
 import pathlib
 import re
 import typing as t
 from typing import overload
-import unittest
 
 from music21 import base
 from music21 import common
-from music21.common import deprecated
 from music21 import defaults
 from music21 import environment
 from music21 import exceptions21
@@ -158,13 +154,8 @@ from music21 import interval
 
 from music21.metadata import properties
 from music21.metadata.properties import PropertyDescription
-from music21.metadata import bundles
-from music21.metadata import caching
-from music21.metadata import primitives
-from music21.metadata.primitives import (Date, DatePrimitive,
-                                         DateSingle, DateRelative, DateBetween,
-                                         DateSelection, Text, Contributor, Creator,
-                                         Imprint, Copyright, ValueType)
+from music21.metadata.primitives import (Contributor, Copyright, Date, DatePrimitive,
+                                         DateSingle, Text, ValueType)
 # -----------------------------------------------------------------------------
 environLocal = environment.Environment('metadata')
 

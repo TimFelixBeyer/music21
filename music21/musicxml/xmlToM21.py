@@ -5312,7 +5312,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         Add a single dynamic element to the core and staffReference.
         '''
         m21DynamicText = mxDyn.tag
-        if m21DynamicText == 'other-dynamic' and mxDyn.text:
+        if m21DynamicText == 'other-dynamics' and mxDyn.text:
             m21DynamicText = mxDyn.text.strip()
 
         d = dynamics.Dynamic(m21DynamicText)
