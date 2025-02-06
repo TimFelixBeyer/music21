@@ -3447,7 +3447,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             self.xmlToDuration(mxNote, n.duration)
 
             # translate if necessary
-            n = self.xmlGraceToGrace(mxGrace, n)
+            self.xmlGraceToGrace(mxGrace, n)
 
         # this must be before notations, to get the slurs, etc.
         # attached to the grace notes...
@@ -3627,22 +3627,20 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         Given a completely formed, non-grace Note or Chord that should become one
         create and return a m21 grace version of the same.
         '''
-        post = noteOrChord.getGrace()
-        post.duration.slash = (mxGrace.get('slash') in ('yes', None))
+        noteOrChord.getGrace(inPlace=True)
+        noteOrChord.duration.slash = (mxGrace.get('slash') in ('yes', None))
 
         try:
-            post.duration.stealTimePrevious = int(mxGrace.get('steal-time-previous')) / 100
+            noteOrChord.duration.stealTimePrevious = int(mxGrace.get('steal-time-previous')) / 100
         except TypeError:
             pass
 
         try:
-            post.duration.stealTimeFollowing = int(mxGrace.get('steal-time-following')) / 100
+            noteOrChord.duration.stealTimeFollowing = int(mxGrace.get('steal-time-following')) / 100
         except TypeError:
             pass
-
         # TODO: make-time -- maybe; or this is something totally different.
 
-        return post
 
     def xmlNotations(self, mxNotations: ET.Element, n: note.GeneralNote):
         # noinspection PyShadowingNames

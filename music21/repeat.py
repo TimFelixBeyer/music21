@@ -904,12 +904,10 @@ class Expander(t.Generic[StreamType]):
                     raise ExpanderException(
                         f'a right barline is found that cannot be processed: {m}, {rb}'
                     )
-        # if we end with a start repeat but no end repeat, add a simulated end
-        if lastMarkIsStart and countBalance in (1, 2) and startCount in (endCount, endCount + 1):
-            from music21 import bar
+        # if we end with a start repeat but no end repeat, add a simulated one at the end
+        if lastMarkIsStart:
             endCount += 1
             countBalance -= 1
-            self._srcMeasureStream[-1].rightBarline = bar.Repeat(direction='end')
 
         if countBalance not in (0, 1):
             environLocal.printDebug([f'Repeats are not balanced: countBalance: {countBalance}'])
@@ -917,6 +915,13 @@ class Expander(t.Generic[StreamType]):
         if startCount not in (endCount, endCount - 1):
             environLocal.printDebug([f'start count not the same as end count: {startCount} / {endCount}'])
             return False
+
+        # if we end with a start repeat but no end repeat, have to actually add an end repeat
+        # so that the rest of the code expands everything correctly
+        if lastMarkIsStart:
+            # import here to avoid circular import
+            from music21 import bar
+            self._srcMeasureStream[-1].rightBarline = bar.Repeat(direction='end')
         # environLocal.printDebug(['matched start and end repeat barline count of: ',
         #    '%s/%s' % (startCount, endCount)])
         return True
