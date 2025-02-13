@@ -7432,7 +7432,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     noteObj.articulations = copy.deepcopy(c.articulations)
                     v.insert(c.offset, noteObj)
 
-                for sp in f.spanners:
+                for sp in c.getSpannerSites():
                     if c in sp:
                         sp.replaceSpannedElement(c, c.notes[0])
                         for n in c.notes[1:]:
@@ -7453,6 +7453,7 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
                     'continue': 1,
                     None: 2,
                     'start': 3,
+                    'let-ring': 4,
                 }
                 pitch = n.pitch.midi if hasattr(n, 'pitch') else 1
                 return SortTuple(
@@ -7534,8 +7535,8 @@ class Stream(core.StreamCore, t.Generic[M21ObjType]):
             #             gap = notes_and_rests[j].offset - (n.offset + n.quarterLength)
 
             def fix_spanners(n: note.Note, tied_note: note.Note):
-                for sp in f.spanners:
-                    if n in sp:
+                for sp in n.getSpannerSites():
+                    if n in sp:  # should and probably is always True
                         sp.replaceSpannedElement(tied_note, n)
 
             posDelete: set[note.Note] = set()
