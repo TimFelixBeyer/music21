@@ -383,9 +383,9 @@ class StreamAligner:
         [0, None, None]
 
         '''
-        verticalCost = self.distanceMatrix[i - 1][j] if i >= 1 else None
-        horizontalCost = self.distanceMatrix[i][j - 1] if j >= 1 else None
-        diagonalCost = self.distanceMatrix[i - 1][j - 1] if (i >= 1 and j >= 1) else None
+        verticalCost = int(self.distanceMatrix[i - 1][j]) if i >= 1 else None
+        horizontalCost = int(self.distanceMatrix[i][j - 1]) if j >= 1 else None
+        diagonalCost = int(self.distanceMatrix[i - 1][j - 1]) if (i >= 1 and j >= 1) else None
 
         possibleMoves = [verticalCost, horizontalCost, diagonalCost]
         return possibleMoves

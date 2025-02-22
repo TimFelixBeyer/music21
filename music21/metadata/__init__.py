@@ -154,8 +154,11 @@ from music21 import interval
 
 from music21.metadata import properties
 from music21.metadata.properties import PropertyDescription
-from music21.metadata.primitives import (Contributor, Copyright, Date, DatePrimitive,
-                                         DateSingle, Text, ValueType)
+from music21.metadata import bundles
+from music21.metadata import caching
+from music21.metadata import primitives
+from music21.metadata.primitives import (Contributor, Copyright, Creator, Date, DatePrimitive,
+                                         DateBetween, DateRelative, DateSelection, Imprint, DateSingle, Text, ValueType)
 # -----------------------------------------------------------------------------
 environLocal = environment.Environment('metadata')
 
@@ -2667,8 +2670,8 @@ class RichMetadata(Metadata):
          ('composer', 'Arcangelo Corelli'),
          ...
          ('sourcePath', 'corelli/opus3no1/1grave.xml'),
-         ('tempoFirst', '<music21.tempo.MetronomeMark Quarter=60 (playback only)>'),
-         ('tempos', ['<music21.tempo.MetronomeMark Quarter=60 (playback only)>']),
+         ('tempoFirst', '<music21.tempo.MetronomeMark Grave Quarter=40>'),
+         ('tempos', ['<music21.tempo.MetronomeMark Grave Quarter=40>']),
          ('timeSignatureFirst', '4/4'),
          ('timeSignatures', ['4/4']))
 

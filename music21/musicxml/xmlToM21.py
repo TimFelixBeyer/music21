@@ -884,7 +884,7 @@ class MusicXMLImporter(XMLParserBase):
                     empty_voices.setdefault(m, []).append(v)
 
             m.layoutWidth = m.layoutWidth['temp']
-        # remove empty voices
+        # remove empty voices, which can happen after a partwise score is pulled apart
         for m, vs in empty_voices.items():
             m.remove(vs)
 
@@ -3542,8 +3542,8 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         >>> c2
         <music21.duration.Duration unlinked type:eighth quarterLength:0.0>
         >>> gn1 = note.Note(duration=c2)
-        >>> gn2 = MP.xmlGraceToGrace(mxGrace, gn1)
-        >>> gn2.duration
+        >>> MP.xmlGraceToGrace(mxGrace, gn1)
+        >>> gn1.duration
         <music21.duration.GraceDuration unlinked type:eighth quarterLength:0.0>
         '''
         numDots = 0
@@ -4095,7 +4095,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                 try:
                     sp = spb[0]
                 except IndexError:
-                    raise MusicXMLImportException('Error in getting DynamicWedges')
+                    raise MusicXMLImportException('Error in getting DynamicWedge')
                 sp.completeStatus = True
                 # will only have a target if this follows the note
                 if targetLast is not None:
@@ -6219,7 +6219,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
         >>> MP.voiceIndices
         {'1'}
         >>> MP.useVoices
-        False
+        True
 
         >>> MP = musicxml.xmlToM21.MeasureParser()
         >>> MP.mxMeasure = ET.fromstring('<measure><note><voice>1</voice></note>'
@@ -6255,7 +6255,7 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
                     # it is a set, so no need to check if already there
                     # additional time < 1 sec per ten million ops.
 
-        if len(self.voiceIndices) > 1:
+        if len(self.voiceIndices) > 0:
             for vIndex in sorted(self.voiceIndices):
                 v = stream.Voice()
                 v.id = vIndex  # TODO: should use a separate voiceId or something in Voice.

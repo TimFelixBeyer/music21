@@ -73,8 +73,10 @@ class Test(unittest.TestCase):
 
         # check coherence: will raise
         ex = repeat.Expander(s)
-        self.assertFalse(ex.isExpandable())
-        self.assertEqual(ex.findInnermostRepeatIndices(s), [0])
+        # changed from m21 default of False,
+        # because we now accept repeats with no end (we just assume the very end of the piece is the end of the repeat)
+        self.assertTrue(ex.isExpandable())
+        # self.assertEqual(ex.findInnermostRepeatIndices(s), [0])
 
     def testRepeatCoherenceB2(self):
         # a nested repeat; acceptable

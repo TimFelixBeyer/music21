@@ -567,7 +567,7 @@ class KeySignature(base.Music21Object):
         >>> g.accidentalByStep('E')
         <music21.pitch.Accidental half-flat>
         '''
-        return self.sharps is None and self.alteredPitches
+        return bool(self.sharps is None and self.alteredPitches)
 
     def accidentalByStep(self, step: StepName) -> pitch.Accidental|None:
         '''

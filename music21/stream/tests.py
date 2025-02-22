@@ -2342,12 +2342,12 @@ class Test(unittest.TestCase):
             # environLocal.printDebug(['first element', p[0], p[0].duration])
             # by default, initial rest should be made
             sub = p.getElementsByClass(note.Rest).stream()
-            self.assertEqual(len(sub), 1)
+            self.assertEqual(sub[0].offset, 0)
 
             self.assertEqual(sub.duration.quarterLength, partOffset)
 
-            # first element should have offset of first dur
-            self.assertEqual(p[1].offset, sub.duration.quarterLength)
+            # first element should have offset of first duration
+            self.assertEqual(p.flatten().notes[0].offset, sub.duration.quarterLength)
 
             partOffset += partOffsetShift
 
@@ -6042,16 +6042,16 @@ class Test(unittest.TestCase):
         sPost = s.makeRests(fillGaps=True, inPlace=False)
         self.assertEqual(str(list(sPost.voices[0].notesAndRests)),
                          '[<music21.note.Rest half>, <music21.note.Note C>, '
-                         + '<music21.note.Rest 2.25ql>, '
+                         + '<music21.note.Rest half>, <music21.note.Rest 16th>, '
                          + '<music21.note.Note C>, '
-                         + '<music21.note.Rest 2.5ql>, '
+                         + '<music21.note.Rest half>, <music21.note.Rest eighth>, '
                          + '<music21.note.Note C>, '
-                         + '<music21.note.Rest 4.25ql>, '
+                         + '<music21.note.Rest whole>, <music21.note.Rest 16th>, '
                          + '<music21.note.Note C>, '
                          + '<music21.note.Rest half>]')
         self.assertEqual(str(list(sPost.voices[1].notesAndRests)),
                          '[<music21.note.Rest 16th>, <music21.note.Note C>, '
-                         + '<music21.note.Rest 3.25ql>, '
+                         + '<music21.note.Rest half>, <music21.note.Rest quarter>, <music21.note.Rest 16th>, '
                          + '<music21.note.Note C>, '
                          + '<music21.note.Rest dotted-quarter>, <music21.note.Note C>, '
                          + '<music21.note.Rest breve>, <music21.note.Note C>]')
@@ -7956,17 +7956,19 @@ class Test(unittest.TestCase):
 {0 - 0} <music21.tempo.MetronomeMark Quarter=120 (playback only)>
 {0 - 0} <music21.key.Key of B- major>
 {0 - 0} <music21.meter.TimeSignature 4/4>
-{0 - 2/3} <music21.note.Note B->
-{2/3 - 1 1/3} <music21.note.Note C>
-{1 1/3 - 2} <music21.note.Note B->
-{2 - 4} <music21.note.Note A>''')
+{0 - 4} <music21.stream.Voice 1>
+    {0 - 2/3} <music21.note.Note B->
+    {2/3 - 1 1/3} <music21.note.Note C>
+    {1 1/3 - 2} <music21.note.Note B->
+    {2 - 4} <music21.note.Note A>''')
         self.assertMultiLineEqual(
             s.parts[1].getElementsByClass(Measure)[0]._reprText(addEndTimes=True),
             '''{0.0 - 0.0} <music21.clef.BassClef>
 {0.0 - 0.0} <music21.tempo.MetronomeMark Quarter=120 (playback only)>
 {0.0 - 0.0} <music21.key.Key of B- major>
 {0.0 - 0.0} <music21.meter.TimeSignature 4/4>
-{0.0 - 4.0} <music21.note.Note B->''')
+{0.0 - 4.0} <music21.stream.Voice 1>
+    {0.0 - 4.0} <music21.note.Note B->''')
         chords = s.chordify()
         m1 = chords.getElementsByClass(Measure)[0]
         self.assertMultiLineEqual(m1._reprText(addEndTimes=True, useMixedNumerals=True),

@@ -224,7 +224,7 @@ def interpolation(correlation, peak):
     >>> f = [2, 3, 1, 6, 4, 2, 3, 1]
     >>> peak = numpy.argmax(f)
     >>> peak  # f[3] is 6, which is the max.
-    3
+    np.int64(3)
     >>> audioSearch.interpolation(f, peak)
     3.21428571...
     '''
@@ -234,7 +234,7 @@ def interpolation(correlation, peak):
     vertex = (correlation[peak - 1] - correlation[peak + 1]) / (
         correlation[peak - 1] - 2.0 * correlation[peak] + correlation[peak + 1])
     vertex = vertex * 0.5 + peak
-    return vertex
+    return float(vertex)
 
 
 def normalizeInputFrequency(inputPitchFrequency, thresholds=None, pitches=None):
