@@ -2572,8 +2572,6 @@ class Tremolo(Ornament):
         eRemain = copy.deepcopy(srcObj) if not inPlace else srcObj
         ratio = 1
         for tup in srcObj.duration.tuplets:
-            if tup.numberNotesNormal == 1 and tup.numberNotesActual == 2:
-                continue
             ratio *= tup.numberNotesNormal / tup.numberNotesActual
         lengthOfEach = 2 ** (-self.numberOfMarks) / ratio
         if self in eRemain.expressions:

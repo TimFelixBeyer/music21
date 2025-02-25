@@ -638,9 +638,6 @@ class GeneralObjectExporter:
         '''
         # return a complete musicxml representation
         objCopy = copy.deepcopy(obj)
-        # m = stream.Measure()
-        # m.timeSignature = tsCopy
-        # m.append(note.Rest())
         out = stream.Measure(number=1)
         out.append(objCopy)
         return self.fromMeasure(out)

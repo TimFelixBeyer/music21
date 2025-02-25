@@ -57,12 +57,10 @@ from music21 import text  # for text boxes
 from music21 import tie
 
 from music21.musicxml import xmlObjects
-from music21.musicxml import helpers
+from music21.musicxml.helpers import synchronizeIdsToM21 as synchronizeIds
+from music21.musicxml.helpers import setM21AttributeFromAttribute as setAttributeFromAttribute
 from music21.musicxml.xmlSoundParser import SoundTagMixin
 from music21.musicxml.xmlObjects import MusicXMLImportException, MusicXMLWarning
-
-synchronizeIds = helpers.synchronizeIdsToM21
-setAttributeFromAttribute = helpers.setM21AttributeFromAttribute
 
 if t.TYPE_CHECKING:
     from music21 import base
@@ -2850,8 +2848,6 @@ class MeasureParser(SoundTagMixin, XMLParserBase):
             ss = n.getSpannerSites()
             # transfer all spanners from the notes to the chord.
             for sp in ss:
-                if isinstance(sp, expressions.TremoloSpanner):
-                    continue
                 sp.replaceSpannedElement(n, c)
             for art in n.articulations:
                 if type(art) in seenArticulations:

@@ -1737,8 +1737,6 @@ class Note(NotRest):
         else:
             post = self
 
-        # use inPlace, b/c if we are inPlace, we operate on self;
-        # if we are not inPlace, post is a copy
         post.pitch.transpose(intervalObj, inPlace=True)
         if (post.pitch.accidental is not None
                 and isinstance(value, (int, interval.ChromaticInterval))):
@@ -1748,7 +1746,6 @@ class Note(NotRest):
                     if (post.pitch.pitchClass == alteredPitch.pitchClass
                             and post.pitch.accidental.alter != alteredPitch.accidental.alter):
                         post.pitch.getEnharmonic(inPlace=True)
-
         if not inPlace:
             post.derivation.method = 'transpose'
             return post
